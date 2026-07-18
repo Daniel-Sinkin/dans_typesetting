@@ -1,0 +1,47 @@
+# Object files and libraries
+*.d
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Executables and debugger output
+*.exe
+*.out
+*.app
+*.ilk
+*.pdb
+
+# Build directories and CMake output
+build/
+Build/
+build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+install_manifest.txt
+_deps/
+
+# Editor and tooling caches
+.cache/
+.DS_Store
+*.bak
+*.log
+*.swp
+*.swo
+*.tmp
+*~
+
+# Local repository guidance
+private/
+
+# Generated samples
+sample-document.tex
+sample-document.pdf
+run/

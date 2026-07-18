@@ -1,0 +1,9 @@
+# Use the compilation database emitted by the normal development build.
+CompileFlags:
+  CompilationDatabase: build
+
+Index:
+  Background: Build
+
+Completion:
+  AllScopes: No

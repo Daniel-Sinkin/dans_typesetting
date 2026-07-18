@@ -1,0 +1,2 @@
+# Keep repository text files stable across Linux, macOS, and Windows checkouts.
+* text=auto eol=lf
