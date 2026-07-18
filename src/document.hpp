@@ -1,0 +1,111 @@
+#ifndef DANS_TYPESETTING_SRC_DOCUMENT_HPP
+#define DANS_TYPESETTING_SRC_DOCUMENT_HPP
+
+#include "common.hpp"
+
+#include <concepts>
+#include <memory>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+namespace dans::document
+{
+struct Metadata
+{
+    u16 major{};
+    u16 minor{};
+    u32 patch{};
+};
+
+struct Preamble
+{
+    std::string title{};
+    std::string author{};
+    std::string date{};
+    bool toc_enabled{true};
+};
+
+// The document core's semantic primitive. A block participates in document
+// flow, but deliberately carries no PDF layout dimensions or backend behavior.
+class DocumentBlock
+{
+  public:
+    DocumentBlock() = default;
+    virtual ~DocumentBlock() = default;
+
+    DocumentBlock(const DocumentBlock&) = delete;
+    auto operator=(const DocumentBlock&) -> DocumentBlock& = delete;
+    DocumentBlock(DocumentBlock&&) = delete;
+    auto operator=(DocumentBlock&&) -> DocumentBlock& = delete;
+
+    [[nodiscard]] virtual auto type_id() const noexcept -> std::string_view = 0;
+};
+
+// Owns semantic blocks in authoring order. Sections use the same sequence for
+// their bodies, so structural and plugin-provided blocks can be interleaved.
+class BlockSequence
+{
+  public:
+    template <typename Block, typename... Args>
+        requires std::derived_from<Block, DocumentBlock>
+    auto add(Args&&... args) -> Block&
+    {
+        auto block = std::make_unique<Block>(std::forward<Args>(args)...);
+        auto& result = *block;
+        blocks_.push_back(std::move(block));
+        return result;
+    }
+
+    [[nodiscard]] auto blocks() const noexcept -> std::span<const std::unique_ptr<DocumentBlock>>;
+
+  private:
+    std::vector<std::unique_ptr<DocumentBlock>> blocks_{};
+};
+
+// A core structural block. Nesting sections constructs a valid hierarchy
+// without storing error-prone numeric heading levels in the document model.
+class Section final : public DocumentBlock
+{
+  public:
+    static constexpr std::string_view k_type_id = "dans.core.section";
+
+    explicit Section(std::string_view title);
+
+    [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
+    [[nodiscard]] auto title() const noexcept -> std::string_view;
+
+    [[nodiscard]] auto blocks() noexcept -> BlockSequence&;
+    [[nodiscard]] auto blocks() const noexcept -> const BlockSequence&;
+
+  private:
+    std::string title_{};
+    BlockSequence blocks_{};
+};
+
+class Document
+{
+  public:
+    explicit Document(Metadata metadata = {});
+
+    [[nodiscard]] auto metadata() noexcept -> Metadata&;
+    [[nodiscard]] auto metadata() const noexcept -> const Metadata&;
+
+    auto set_preamble(Preamble preamble) -> void;
+    auto clear_preamble() noexcept -> void;
+    [[nodiscard]] auto preamble() const noexcept -> const std::optional<Preamble>&;
+
+    [[nodiscard]] auto blocks() noexcept -> BlockSequence&;
+    [[nodiscard]] auto blocks() const noexcept -> const BlockSequence&;
+
+  private:
+    Metadata metadata_{};
+    std::optional<Preamble> preamble_{};
+    BlockSequence blocks_{};
+};
+}  // namespace dans::document
+
+#endif  // DANS_TYPESETTING_SRC_DOCUMENT_HPP
