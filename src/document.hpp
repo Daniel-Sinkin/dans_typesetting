@@ -15,6 +15,8 @@
 
 namespace dans::document
 {
+class BlockSequence;
+
 struct Metadata
 {
     u16 major{};
@@ -36,6 +38,9 @@ class DocumentBlock
     auto operator=(DocumentBlock&&) -> DocumentBlock& = delete;
 
     [[nodiscard]] virtual auto type_id() const noexcept -> std::string_view = 0;
+    [[nodiscard]] virtual auto child_sequence_count() const noexcept -> usize;
+    [[nodiscard]] virtual auto child_sequence_id(usize index) const -> std::string_view;
+    [[nodiscard]] virtual auto child_sequence(usize index) const -> const BlockSequence&;
 };
 
 // Owns semantic blocks in authoring order. Sections use the same sequence for
@@ -71,6 +76,9 @@ class Section final : public DocumentBlock
     );
 
     [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
+    [[nodiscard]] auto child_sequence_count() const noexcept -> usize override;
+    [[nodiscard]] auto child_sequence_id(usize index) const -> std::string_view override;
+    [[nodiscard]] auto child_sequence(usize index) const -> const BlockSequence& override;
     [[nodiscard]] auto title() const noexcept -> std::string_view;
     [[nodiscard]] auto reference_id() const noexcept -> const std::optional<ReferenceId>&;
 

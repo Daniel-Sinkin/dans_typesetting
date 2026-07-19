@@ -534,6 +534,14 @@ auto MarkdownWriter::prepare_context(const Document& document) const -> Markdown
                     }
                 );
             }
+            for (usize index{}; index < block->child_sequence_count(); ++index)
+            {
+                if (block->child_sequence_id(index).empty())
+                {
+                    throw std::logic_error{"A nested block exposed an unnamed child sequence"};
+                }
+                self(self, block->child_sequence(index), depth, parent_path);
+            }
         }
     };
 

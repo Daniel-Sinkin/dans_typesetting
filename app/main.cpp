@@ -12,6 +12,7 @@
 #include "connectors/latex/latex_math.hpp"
 #include "connectors/latex/latex_mixin.hpp"
 #include "connectors/latex/math.hpp"
+#include "connectors/latex/padding.hpp"
 #include "connectors/latex/paragraph.hpp"
 #include "connectors/latex/reference.hpp"
 #include "connectors/latex/table.hpp"
@@ -31,6 +32,7 @@
 #include "plugins/latex_mixin.hpp"
 #include "plugins/math.hpp"
 #include "plugins/math_matvec.hpp"
+#include "plugins/padding.hpp"
 #include "plugins/paragraph.hpp"
 #include "plugins/reference.hpp"
 #include "plugins/table.hpp"
@@ -247,6 +249,12 @@ auto make_sample_document()
         architecture.blocks(),
         "Because sections share the same ordered block sequence as ordinary content, this "
         "paragraph can appear after the preceding subsections."
+    );
+    auto& inset = architecture.blocks().add<Padding>(
+        PaddingInsets{.top_em = 1.0, .right_em = 2.0, .bottom_em = 1.0, .left_em = 2.0}
+    );
+    inset.content().add<Paragraph>(
+        "Padding is an ordinary compositional block exposing one named content sequence."
     );
 
     auto& lists = document.blocks().add<Section>("Semantic lists");
@@ -524,6 +532,9 @@ auto run(const int argc, char** argv) -> int
             std::make_unique<dans::document::connectors::latex::ParagraphLatexAdapter>(
                 inline_renderer
             )
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::PaddingLatexAdapter>()
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::TitlePageLatexAdapter>()

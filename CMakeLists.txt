@@ -205,6 +205,16 @@ target_link_libraries(table_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(padding_plugin STATIC
+  src/plugins/padding.cpp
+  src/plugins/padding.hpp
+)
+add_library(dans::padding_plugin ALIAS padding_plugin)
+target_link_libraries(padding_plugin
+  PUBLIC dans::document_core
+  PRIVATE typesetter_warnings
+)
+
 add_library(table_csv_plugin STATIC
   src/plugins/table_csv.cpp
   src/plugins/table_csv.hpp
@@ -465,6 +475,18 @@ target_link_libraries(table_latex_connector
     dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
+)
+
+add_library(padding_latex_connector STATIC
+  src/connectors/latex/padding.cpp
+  src/connectors/latex/padding.hpp
+)
+add_library(dans::padding_latex_connector ALIAS padding_latex_connector)
+target_link_libraries(padding_latex_connector
+  PUBLIC
+    dans::latex_writer
+    dans::padding_plugin
+  PRIVATE typesetter_warnings
 )
 
 add_library(latex_mixin_latex_connector STATIC
@@ -792,6 +814,18 @@ target_link_libraries(table_markdown_connector
   PRIVATE typesetter_warnings
 )
 
+add_library(padding_markdown_connector STATIC
+  src/connectors/markdown/padding.cpp
+  src/connectors/markdown/padding.hpp
+)
+add_library(dans::padding_markdown_connector ALIAS padding_markdown_connector)
+target_link_libraries(padding_markdown_connector
+  PUBLIC
+    dans::markdown_writer
+    dans::padding_plugin
+  PRIVATE typesetter_warnings
+)
+
 add_library(math_markdown_connector STATIC
   src/connectors/markdown/math.cpp
   src/connectors/markdown/math.hpp
@@ -854,6 +888,7 @@ target_link_libraries(document_example PRIVATE
   dans::code_listing_latex_connector
   dans::color_span_latex_connector
   dans::paragraph_latex_connector
+  dans::padding_latex_connector
   dans::document_shell_latex_connector
   dans::excalidraw_drawing_latex_connector
   dans::figure_pair_latex_connector
@@ -906,6 +941,18 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_document_shell_test COMMAND native_document_shell_test)
+
+  add_executable(native_padding_test
+    tests/native_padding_test.cpp
+  )
+  target_link_libraries(native_padding_test PRIVATE
+    dans::padding_latex_connector
+    dans::padding_markdown_connector
+    dans::paragraph_latex_connector
+    dans::paragraph_markdown_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_padding_test COMMAND native_padding_test)
 
   add_executable(native_excalidraw_drawing_test
     tests/native_excalidraw_drawing_test.cpp

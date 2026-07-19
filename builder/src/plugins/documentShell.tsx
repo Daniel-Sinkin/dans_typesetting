@@ -9,6 +9,8 @@ import {
   isTableOfContentsBlock,
   isTitlePageBlock,
   pageBreakTypeId,
+  sectionBody,
+  sectionBodySequenceId,
   sectionTypeId,
   tableOfContentsTypeId,
   titlePageTypeId,
@@ -58,7 +60,7 @@ export function deriveTableOfContentsEntries(
         depth,
         number: counters.slice(0, depth + 1).join("."),
       });
-      visit(block.blocks, depth + 1);
+      visit(sectionBody(block), depth + 1);
     }
   };
   visit(blocks, 0);
@@ -189,7 +191,9 @@ export const sectionPlugin: BuilderBlockPlugin = {
       typeId: sectionTypeId,
       title: "New section",
       referenceId: null,
-      blocks: Object.freeze([]),
+      childSequences: Object.freeze([
+        Object.freeze({ id: sectionBodySequenceId, blocks: Object.freeze([]) }),
+      ]),
     });
   },
   referenceTarget(block) {

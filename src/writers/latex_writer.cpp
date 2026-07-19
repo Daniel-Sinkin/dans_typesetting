@@ -206,6 +206,14 @@ auto LatexWriter::validate_blocks(const BlockSequence& blocks, const usize secti
                 + "'"
             };
         }
+        for (usize index{}; index < block->child_sequence_count(); ++index)
+        {
+            if (block->child_sequence_id(index).empty())
+            {
+                throw std::logic_error{"A nested block exposed an unnamed child sequence"};
+            }
+            validate_blocks(block->child_sequence(index), section_depth);
+        }
     }
 }
 
@@ -227,6 +235,7 @@ auto LatexWriter::emit_document(const Document& document, LatexOutput& output) c
     output.write_raw("\\usepackage{microtype}\n");
     output.write_raw("\\usepackage{xcolor}\n");
     output.write_raw("\\usepackage{booktabs}\n");
+    output.write_raw("\\usepackage{changepage}\n");
     output.write_raw("\\usepackage{listings}\n");
     output.write_raw(
         "\\lstdefinelanguage{Julia}{%\n"

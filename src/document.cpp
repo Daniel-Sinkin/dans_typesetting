@@ -4,6 +4,21 @@
 
 namespace dans::document
 {
+auto DocumentBlock::child_sequence_count() const noexcept -> usize
+{
+    return 0;
+}
+
+auto DocumentBlock::child_sequence_id(const usize) const -> std::string_view
+{
+    throw std::out_of_range{"A leaf document block does not expose child sequences"};
+}
+
+auto DocumentBlock::child_sequence(const usize) const -> const BlockSequence&
+{
+    throw std::out_of_range{"A leaf document block does not expose child sequences"};
+}
+
 auto BlockSequence::blocks() const noexcept -> std::span<const std::unique_ptr<DocumentBlock>>
 {
     return {blocks_.data(), blocks_.size()};
@@ -21,6 +36,29 @@ Section::Section(const std::string_view title, std::optional<ReferenceId> refere
 auto Section::type_id() const noexcept -> std::string_view
 {
     return k_type_id;
+}
+
+auto Section::child_sequence_count() const noexcept -> usize
+{
+    return 1;
+}
+
+auto Section::child_sequence_id(const usize index) const -> std::string_view
+{
+    if (index != 0)
+    {
+        throw std::out_of_range{"A section exposes only its body child sequence"};
+    }
+    return "body";
+}
+
+auto Section::child_sequence(const usize index) const -> const BlockSequence&
+{
+    if (index != 0)
+    {
+        throw std::out_of_range{"A section exposes only its body child sequence"};
+    }
+    return blocks_;
 }
 
 auto Section::title() const noexcept -> std::string_view

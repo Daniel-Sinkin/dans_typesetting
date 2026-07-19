@@ -74,6 +74,7 @@ interface CanvasViewport {
 
 interface Placement {
   readonly parentId: string | null;
+  readonly parentSequenceId: string | null;
   readonly index: number;
 }
 
@@ -210,7 +211,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     setPlacement((currentPlacement) => {
       if (
         currentPlacement?.index === nextPlacement?.index &&
-        currentPlacement?.parentId === nextPlacement?.parentId
+        currentPlacement?.parentId === nextPlacement?.parentId &&
+        currentPlacement?.parentSequenceId === nextPlacement?.parentSequenceId
       ) {
         return currentPlacement;
       }
@@ -302,6 +304,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           port.dispatch({
             kind: "insert",
             parentId: finalPlacement.parentId,
+            parentSequenceId: finalPlacement.parentSequenceId,
             index: finalPlacement.index,
             block: completedDrag.block,
           });
@@ -311,6 +314,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           port.dispatch({
             kind: "insert",
             parentId: finalPlacement.parentId,
+            parentSequenceId: finalPlacement.parentSequenceId,
             index: finalPlacement.index,
             block: copyBuilderBlockForInsert(completedDrag.block, registry),
           });
@@ -320,6 +324,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           kind: "move",
           blockId: completedDrag.block.id,
           parentId: finalPlacement.parentId,
+          parentSequenceId: finalPlacement.parentSequenceId,
           index: finalPlacement.index,
         });
         return;
@@ -425,6 +430,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     (
       block: BuilderBlock,
       parentId: string | null,
+      parentSequenceId: string | null,
       index: number,
       event: ReactPointerEvent<HTMLButtonElement>,
     ) => {
@@ -442,7 +448,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           clientY: event.clientY,
           copy: event.altKey,
         },
-        { parentId, index },
+        { parentId, parentSequenceId, index },
       );
     },
     [beginDrag],
@@ -467,6 +473,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         ? null
         : {
             parentId: placement.parentId,
+            parentSequenceId: placement.parentSequenceId,
             index: placement.index,
             block: activeDrag.block,
           },

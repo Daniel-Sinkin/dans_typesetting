@@ -29,6 +29,7 @@ import {
   latexMathInlineTransportCodec,
 } from "../plugins/latexMathTransport";
 import { paragraphBlockTransportCodec } from "../plugins/paragraphTransport";
+import { paddingTransportCodec } from "../plugins/paddingTransport";
 import { textInlineTransportCodec } from "../plugins/textTransport";
 import {
   CanonicalDocumentTransport,
@@ -50,6 +51,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     excalidrawDrawingTransportCodec,
     itemListTransportCodec,
     tableTransportCodec,
+    paddingTransportCodec,
     bibliographyBlockTransportCodec,
   ],
   [

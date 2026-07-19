@@ -39,6 +39,14 @@ export interface BuilderBlockRenderContext {
 export interface BuilderBlockMeasureContext {
   readonly documentBlocks: readonly BuilderBlock[];
   readonly sectionDepth: number;
+  measureChildSequence(sequenceId: string, availableWidth: number): number;
+}
+
+export interface BuilderChildSequencePlacement {
+  readonly sequenceId: string;
+  readonly offsetX: number;
+  readonly offsetY: number;
+  readonly width: number;
 }
 
 export type BuilderPaginationPolicy = "flow" | "page_break_after" | "isolated_page";
@@ -64,6 +72,13 @@ export interface BuilderBlockAdapter {
     | undefined;
   readonly documentResources?:
     | ((block: BuilderBlock) => readonly BuilderDocumentResourceDescriptor[])
+    | undefined;
+  readonly layoutChildSequences?:
+    | ((
+        block: BuilderBlock,
+        availableWidth: number,
+        context: BuilderBlockMeasureContext,
+      ) => readonly BuilderChildSequencePlacement[])
     | undefined;
   measure(
     block: BuilderBlock,
@@ -116,6 +131,13 @@ export interface BuilderFallbackAdapter {
     | undefined;
   readonly numberedOccurrences?:
     | ((block: BuilderBlock) => readonly NumberedBlockOccurrence[])
+    | undefined;
+  readonly layoutChildSequences?:
+    | ((
+        block: BuilderBlockEnvelope,
+        availableWidth: number,
+        context: BuilderBlockMeasureContext,
+      ) => readonly BuilderChildSequencePlacement[])
     | undefined;
   measure(
     block: BuilderBlockEnvelope,

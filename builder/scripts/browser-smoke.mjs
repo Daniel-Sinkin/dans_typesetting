@@ -25,7 +25,7 @@ const canonicalFixturePath = join(
 );
 const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
 const sampleBibtexPath = join(resultsDirectory, "sample-bibliography.bib");
-const initialBlockCount = 15;
+const initialBlockCount = 17;
 const initialParagraphSegmentCount = 20;
 
 function assert(condition, message) {
@@ -276,6 +276,8 @@ async function exerciseBuilder(client) {
       document.querySelector(".excalidraw"),
       document.querySelector(".document-control-layer"),
     ];
+    const padding = document.querySelector("[data-visual-block-id='sample-padding']")?.getBoundingClientRect();
+    const paddedParagraph = document.querySelector("[data-visual-block-id='sample-padding-paragraph']")?.getBoundingClientRect();
     return {
       blocks: document.querySelectorAll("[data-block-id]").length,
       imageLoaded: image instanceof HTMLImageElement && image.complete && image.naturalWidth === 1280,
@@ -311,6 +313,7 @@ async function exerciseBuilder(client) {
       tableMath: document.querySelector("[data-visual-block-id='sample-table'] .latex-math-inline .katex") !== null,
       tableFootnote: document.querySelector("[data-visual-block-id='sample-table'] .footnote-preview > sup > button")?.textContent.trim() === "2",
       tableReference: [...document.querySelectorAll(".inline-reference")].some((reference) => reference.textContent === "Table 1"),
+      paddingNested: padding !== undefined && paddedParagraph !== undefined && paddedParagraph.left > padding.left && paddedParagraph.right < padding.right && paddedParagraph.top > padding.top && paddedParagraph.bottom < padding.bottom,
       layers: layers.map((layer) => layer === null ? null : getComputedStyle(layer).zIndex),
     };
   })()`);
@@ -360,6 +363,7 @@ async function exerciseBuilder(client) {
   assert(initial.tableMath, "Table cells did not consume the shared inline-math adapter");
   assert(initial.tableFootnote, "Table cells did not join inline occurrence numbering");
   assert(initial.tableReference, "The semantic table did not publish a live reference target");
+  assert(initial.paddingNested, "Padding did not place its named child sequence inside its bounds");
   assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3"]), "Canvas layering is incorrect");
 
   await client.evaluate(`(() => {

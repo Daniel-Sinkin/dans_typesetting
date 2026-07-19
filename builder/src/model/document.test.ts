@@ -8,6 +8,8 @@ import {
   MemoryDocumentPort,
   paragraphTypeId,
   replaceBuilderBlockInTree,
+  sectionBody,
+  sectionBodySequenceId,
   sectionTypeId,
   type BuilderBlock,
   type MathDisplayBlock,
@@ -30,7 +32,7 @@ function section(id: string, blocks: readonly BuilderBlock[] = []): SectionBlock
     typeId: sectionTypeId,
     title: `Section ${id}`,
     referenceId: `sec:${id}`,
-    blocks,
+    childSequences: [{ id: sectionBodySequenceId, blocks }],
   };
 }
 
@@ -167,12 +169,49 @@ describe("MemoryDocumentPort", () => {
 
     const outer = port.getSnapshot().blocks[0];
     expect(outer?.typeId).toBe(sectionTypeId);
-    expect((outer as SectionBlock).blocks.map((block) => block.id)).toEqual([
+    expect(sectionBody(outer as SectionBlock).map((block) => block.id)).toEqual([
       "inside",
       "inserted",
       "after",
     ]);
     expect(port.getSnapshot().blocks).toHaveLength(1);
+  });
+
+  it("addresses multiple named child sequences without plugin-specific commands", () => {
+    const composite: BuilderBlock = {
+      id: "composite",
+      typeId: "test.composite",
+      childSequences: [
+        { id: "left", blocks: [paragraph("left-child")] },
+        { id: "right", blocks: [paragraph("right-child")] },
+      ],
+    };
+    const port = new MemoryDocumentPort([composite, paragraph("outside")]);
+
+    expect(() => {
+      port.dispatch({
+        kind: "insert",
+        parentId: "composite",
+        index: 1,
+        block: paragraph("ambiguous"),
+      });
+    }).toThrow(/explicit child sequence/u);
+
+    port.dispatch({
+      kind: "move",
+      blockId: "outside",
+      parentId: "composite",
+      parentSequenceId: "right",
+      index: 1,
+    });
+    const stored = port.getSnapshot().blocks[0];
+    expect(stored?.childSequences?.[0]?.blocks.map(({ id }) => id)).toEqual([
+      "left-child",
+    ]);
+    expect(stored?.childSequences?.[1]?.blocks.map(({ id }) => id)).toEqual([
+      "right-child",
+      "outside",
+    ]);
   });
 
   it("rejects recursive duplicate IDs and moving a section into itself", () => {
@@ -237,8 +276,8 @@ describe("MemoryDocumentPort", () => {
     } satisfies ParagraphBlock;
     const projected = replaceBuilderBlockInTree([original], "inside", replacement);
 
-    expect((projected[0] as SectionBlock).blocks[0]).toBe(replacement);
-    expect((original.blocks[0] as ParagraphBlock).inlines[0]).toMatchObject({
+    expect(sectionBody(projected[0] as SectionBlock)[0]).toBe(replacement);
+    expect((sectionBody(original)[0] as ParagraphBlock).inlines[0]).toMatchObject({
       text: "Paragraph inside",
     });
   });

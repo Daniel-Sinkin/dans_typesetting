@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { sectionTypeId, type BuilderBlock, type SectionBlock } from "../model/document";
+import {
+  sectionBodySequenceId,
+  sectionTypeId,
+  type BuilderBlock,
+  type SectionBlock,
+} from "../model/document";
 import {
   bibliographyResourceNamespace,
   createBibliographyBlock,
@@ -30,7 +35,14 @@ describe("document resources", () => {
       typeId: sectionTypeId,
       title: "Nested",
       referenceId: null,
-      blocks: Object.freeze([bibliography("nested-bib", "nested", "Nested paper")]),
+      childSequences: Object.freeze([
+        Object.freeze({
+          id: sectionBodySequenceId,
+          blocks: Object.freeze([
+            bibliography("nested-bib", "nested", "Nested paper"),
+          ]),
+        }),
+      ]),
     });
     const index = deriveDocumentResources(
       [bibliography("first-bib", "first", "First paper"), nested],

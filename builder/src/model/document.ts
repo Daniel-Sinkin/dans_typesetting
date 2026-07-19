@@ -34,8 +34,24 @@ export interface BuilderBlockEnvelope {
   readonly typeId: string;
 }
 
+export interface BuilderChildBlockSequence {
+  readonly id: string;
+  readonly blocks: readonly BuilderBlock[];
+}
+
+export function createChildBlockSequence(
+  id: string,
+  blocks: readonly BuilderBlock[] = [],
+): BuilderChildBlockSequence {
+  if (id.length === 0) {
+    throw new Error("A child block sequence requires a stable endpoint ID");
+  }
+  return Object.freeze({ id, blocks: Object.freeze([...blocks]) });
+}
+
 export interface BuilderBlock extends BuilderBlockEnvelope {
   readonly opaquePayload?: unknown;
+  readonly childSequences?: readonly BuilderChildBlockSequence[];
 }
 
 export interface BuilderInlineEnvelope {
@@ -98,8 +114,10 @@ export interface SectionBlock extends BuilderBlock {
   readonly typeId: typeof sectionTypeId;
   readonly title: string;
   readonly referenceId: string | null;
-  readonly blocks: readonly BuilderBlock[];
+  readonly childSequences: readonly BuilderChildBlockSequence[];
 }
+
+export const sectionBodySequenceId = "body";
 
 export interface TitlePageBlock extends BuilderBlock {
   readonly typeId: typeof titlePageTypeId;
@@ -128,12 +146,14 @@ export type DocumentCommand =
       index: number;
       block: BuilderBlock;
       parentId?: string | null;
+      parentSequenceId?: string | null;
     }>
   | Readonly<{
       kind: "move";
       blockId: string;
       index: number;
       parentId?: string | null;
+      parentSequenceId?: string | null;
     }>
   | Readonly<{
       kind: "replace";
@@ -289,6 +309,24 @@ export function isMathDisplayBlock(block: BuilderBlock): block is MathDisplayBlo
   );
 }
 
+function isChildBlockSequence(value: unknown): value is BuilderChildBlockSequence {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "blocks" in value &&
+    Array.isArray(value.blocks)
+  );
+}
+
+export function childBlockSequences(
+  block: BuilderBlock,
+): readonly BuilderChildBlockSequence[] {
+  return block.childSequences ?? [];
+}
+
 export function isSectionBlock(block: BuilderBlock): block is SectionBlock {
   return (
     block.typeId === sectionTypeId &&
@@ -296,9 +334,20 @@ export function isSectionBlock(block: BuilderBlock): block is SectionBlock {
     typeof block.title === "string" &&
     "referenceId" in block &&
     (block.referenceId === null || typeof block.referenceId === "string") &&
-    "blocks" in block &&
-    Array.isArray(block.blocks)
+    "childSequences" in block &&
+    Array.isArray(block.childSequences) &&
+    block.childSequences.length === 1 &&
+    block.childSequences.every(isChildBlockSequence) &&
+    block.childSequences[0]?.id === sectionBodySequenceId
   );
+}
+
+export function sectionBody(section: SectionBlock): readonly BuilderBlock[] {
+  const body = section.childSequences[0];
+  if (body?.id !== sectionBodySequenceId) {
+    throw new Error("A section must expose exactly one body block sequence");
+  }
+  return body.blocks;
 }
 
 export function isTitlePageBlock(block: BuilderBlock): block is TitlePageBlock {
@@ -326,6 +375,7 @@ export function isPageBreakBlock(block: BuilderBlock): block is PageBreakBlock {
 export interface BuilderBlockLocation {
   readonly block: BuilderBlock;
   readonly parentId: string | null;
+  readonly parentSequenceId: string | null;
   readonly index: number;
 }
 
@@ -336,8 +386,8 @@ export function flattenBuilderBlocks(
   const visit = (sequence: readonly BuilderBlock[]): void => {
     for (const block of sequence) {
       result.push(block);
-      if (isSectionBlock(block)) {
-        visit(block.blocks);
+      for (const childSequence of childBlockSequences(block)) {
+        visit(childSequence.blocks);
       }
     }
   };
@@ -349,13 +399,19 @@ export function findBuilderBlock(
   blocks: readonly BuilderBlock[],
   blockId: string,
   parentId: string | null = null,
+  parentSequenceId: string | null = null,
 ): BuilderBlockLocation | null {
   for (const [index, block] of blocks.entries()) {
     if (block.id === blockId) {
-      return { block, parentId, index };
+      return { block, parentId, parentSequenceId, index };
     }
-    if (isSectionBlock(block)) {
-      const nested = findBuilderBlock(block.blocks, blockId, block.id);
+    for (const childSequence of childBlockSequences(block)) {
+      const nested = findBuilderBlock(
+        childSequence.blocks,
+        blockId,
+        block.id,
+        childSequence.id,
+      );
       if (nested !== null) {
         return nested;
       }
@@ -451,6 +507,13 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
   if (block.typeId.length === 0) {
     throw new Error("A builder block requires a stable type ID");
   }
+  if (
+    block.childSequences !== undefined &&
+    (!Array.isArray(block.childSequences) ||
+      !block.childSequences.every(isChildBlockSequence))
+  ) {
+    throw new Error(`Block ${block.id} exposes malformed child sequences`);
+  }
 
   switch (block.typeId) {
     case paragraphTypeId:
@@ -458,7 +521,7 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
         throw new Error("A paragraph block has an invalid transport shape");
       }
       validateInlineSequence(block.inlines);
-      return;
+      break;
     case mathDisplayTypeId:
       if (!isMathDisplayBlock(block)) {
         throw new Error("A display-math block has an invalid transport shape");
@@ -487,7 +550,7 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
           }
         }
       }
-      return;
+      break;
     case sectionTypeId:
       if (!isSectionBlock(block)) {
         throw new Error("A section block has an invalid transport shape");
@@ -501,10 +564,7 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
       if (block.referenceId !== null) {
         validateOptionalReferenceId(block.referenceId, "Section reference ID");
       }
-      for (const child of block.blocks) {
-        validateBlock(child, sectionDepth + 1);
-      }
-      return;
+      break;
     case titlePageTypeId:
       if (!isTitlePageBlock(block)) {
         throw new Error("A title-page block has an invalid transport shape");
@@ -516,17 +576,32 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
       ) {
         throw new Error("A title page requires a title, author, and date");
       }
-      return;
+      break;
     case tableOfContentsTypeId:
       if (!isTableOfContentsBlock(block)) {
         throw new Error("A table-of-contents block has an invalid transport shape");
       }
-      return;
+      break;
     case pageBreakTypeId:
       if (!isPageBreakBlock(block)) {
         throw new Error("A page-break block has an invalid transport shape");
       }
-      return;
+      break;
+  }
+
+  const sequenceIds = new Set<string>();
+  const childSectionDepth = isSectionBlock(block) ? sectionDepth + 1 : sectionDepth;
+  for (const childSequence of childBlockSequences(block)) {
+    if (childSequence.id.length === 0) {
+      throw new Error(`Block ${block.id} exposes a child sequence without an ID`);
+    }
+    if (sequenceIds.has(childSequence.id)) {
+      throw new Error(`Block ${block.id} has duplicate child sequence ${childSequence.id}`);
+    }
+    sequenceIds.add(childSequence.id);
+    for (const child of childSequence.blocks) {
+      validateBlock(child, childSectionDepth);
+    }
   }
 }
 
@@ -556,15 +631,23 @@ function validateDocumentBlocks(blocks: readonly BuilderBlock[]): void {
 }
 
 function freezeBuilderBlock(block: BuilderBlock): BuilderBlock {
-  if (isSectionBlock(block)) {
-    return Object.freeze({
-      ...block,
-      blocks: Object.freeze(block.blocks.map(freezeBuilderBlock)),
-    });
-  }
+  const withFrozenChildren =
+    block.childSequences === undefined
+      ? block
+      : Object.freeze({
+          ...block,
+          childSequences: Object.freeze(
+            block.childSequences.map((sequence) =>
+              Object.freeze({
+                ...sequence,
+                blocks: Object.freeze(sequence.blocks.map(freezeBuilderBlock)),
+              }),
+            ),
+          ),
+        });
   if (isMathDisplayBlock(block)) {
     return Object.freeze({
-      ...block,
+      ...withFrozenChildren,
       lines: Object.freeze(
         block.lines.map((line) =>
           Object.freeze({
@@ -574,7 +657,7 @@ function freezeBuilderBlock(block: BuilderBlock): BuilderBlock {
       ),
     });
   }
-  return Object.freeze(block);
+  return Object.freeze(withFrozenChildren);
 }
 
 function freezeBuilderBlocks(blocks: readonly BuilderBlock[]): readonly BuilderBlock[] {
@@ -600,28 +683,81 @@ interface DetachedBlock {
   readonly blocks: readonly BuilderBlock[];
   readonly block: BuilderBlock;
   readonly parentId: string | null;
+  readonly parentSequenceId: string | null;
   readonly index: number;
+}
+
+function replaceChildSequenceBlocks(
+  block: BuilderBlock,
+  sequenceId: string,
+  blocks: readonly BuilderBlock[],
+): BuilderBlock {
+  const sequences = childBlockSequences(block);
+  if (!sequences.some((sequence) => sequence.id === sequenceId)) {
+    throw new Error(`Block ${block.id} does not expose child sequence ${sequenceId}`);
+  }
+  return Object.freeze({
+    ...block,
+    childSequences: Object.freeze(
+      sequences.map((sequence) =>
+        sequence.id === sequenceId
+          ? Object.freeze({ ...sequence, blocks: Object.freeze([...blocks]) })
+          : sequence,
+      ),
+    ),
+  });
+}
+
+function targetChildSequence(
+  block: BuilderBlock,
+  requestedSequenceId: string | null,
+): BuilderChildBlockSequence {
+  const sequences = childBlockSequences(block);
+  if (requestedSequenceId === null) {
+    if (sequences.length !== 1) {
+      throw new Error(
+        `Block ${block.id} requires an explicit child sequence because it exposes ${String(sequences.length)}`,
+      );
+    }
+    const onlySequence = sequences[0];
+    if (onlySequence === undefined) {
+      throw new Error(`Block ${block.id} does not expose a child sequence`);
+    }
+    return onlySequence;
+  }
+  const sequence = sequences.find((candidate) => candidate.id === requestedSequenceId);
+  if (sequence === undefined) {
+    throw new Error(`Block ${block.id} does not expose child sequence ${requestedSequenceId}`);
+  }
+  return sequence;
 }
 
 function detachBuilderBlock(
   blocks: readonly BuilderBlock[],
   blockId: string,
   parentId: string | null = null,
+  parentSequenceId: string | null = null,
 ): DetachedBlock | null {
   for (const [index, block] of blocks.entries()) {
     if (block.id === blockId) {
       const remaining = [...blocks];
       remaining.splice(index, 1);
-      return { blocks: remaining, block, parentId, index };
+      return { blocks: remaining, block, parentId, parentSequenceId, index };
     }
-    if (isSectionBlock(block)) {
-      const nested = detachBuilderBlock(block.blocks, blockId, block.id);
+    for (const childSequence of childBlockSequences(block)) {
+      const nested = detachBuilderBlock(
+        childSequence.blocks,
+        blockId,
+        block.id,
+        childSequence.id,
+      );
       if (nested !== null) {
         const updated = [...blocks];
-        updated[index] = Object.freeze({
-          ...block,
-          blocks: Object.freeze([...nested.blocks]),
-        });
+        updated[index] = replaceChildSequenceBlocks(
+          block,
+          childSequence.id,
+          nested.blocks,
+        );
         return { ...nested, blocks: updated };
       }
     }
@@ -636,31 +772,35 @@ export function removeBuilderBlockFromTree(
   return detachBuilderBlock(blocks, blockId)?.blocks ?? blocks;
 }
 
-function updateSectionChildren(
+function updateChildSequence(
   blocks: readonly BuilderBlock[],
   parentId: string,
+  parentSequenceId: string | null,
   update: (children: readonly BuilderBlock[]) => readonly BuilderBlock[],
 ): readonly BuilderBlock[] | null {
   for (const [index, block] of blocks.entries()) {
-    if (!isSectionBlock(block)) {
-      continue;
-    }
     if (block.id === parentId) {
+      const childSequence = targetChildSequence(block, parentSequenceId);
       const updated = [...blocks];
-      updated[index] = Object.freeze({
-        ...block,
-        blocks: Object.freeze([...update(block.blocks)]),
-      });
+      updated[index] = replaceChildSequenceBlocks(
+        block,
+        childSequence.id,
+        update(childSequence.blocks),
+      );
       return updated;
     }
-    const nested = updateSectionChildren(block.blocks, parentId, update);
-    if (nested !== null) {
-      const updated = [...blocks];
-      updated[index] = Object.freeze({
-        ...block,
-        blocks: Object.freeze([...nested]),
-      });
-      return updated;
+    for (const childSequence of childBlockSequences(block)) {
+      const nested = updateChildSequence(
+        childSequence.blocks,
+        parentId,
+        parentSequenceId,
+        update,
+      );
+      if (nested !== null) {
+        const updated = [...blocks];
+        updated[index] = replaceChildSequenceBlocks(block, childSequence.id, nested);
+        return updated;
+      }
     }
   }
   return null;
@@ -669,6 +809,7 @@ function updateSectionChildren(
 function insertBuilderBlock(
   blocks: readonly BuilderBlock[],
   parentId: string | null,
+  parentSequenceId: string | null,
   index: number,
   block: BuilderBlock,
 ): readonly BuilderBlock[] {
@@ -681,11 +822,14 @@ function insertBuilderBlock(
     return updated;
   };
   if (parentId === null) {
+    if (parentSequenceId !== null) {
+      throw new Error("The root block sequence cannot have a parent sequence ID");
+    }
     return insert(blocks);
   }
-  const updated = updateSectionChildren(blocks, parentId, insert);
+  const updated = updateChildSequence(blocks, parentId, parentSequenceId, insert);
   if (updated === null) {
-    throw new Error(`Unknown section parent ID: ${parentId}`);
+    throw new Error(`Unknown nested-block parent ID: ${parentId}`);
   }
   return updated;
 }
@@ -701,14 +845,11 @@ function replaceBuilderBlock(
       updated[index] = replacement;
       return updated;
     }
-    if (isSectionBlock(block)) {
-      const nested = replaceBuilderBlock(block.blocks, blockId, replacement);
+    for (const childSequence of childBlockSequences(block)) {
+      const nested = replaceBuilderBlock(childSequence.blocks, blockId, replacement);
       if (nested !== null) {
         const updated = [...blocks];
-        updated[index] = Object.freeze({
-          ...block,
-          blocks: Object.freeze([...nested]),
-        });
+        updated[index] = replaceChildSequenceBlocks(block, childSequence.id, nested);
         return updated;
       }
     }
@@ -754,10 +895,20 @@ export class MemoryDocumentPort implements DocumentPort {
   public dispatch(command: DocumentCommand): void {
     switch (command.kind) {
       case "insert":
-        this.#insert(command.parentId ?? null, command.index, command.block);
+        this.#insert(
+          command.parentId ?? null,
+          command.parentSequenceId ?? null,
+          command.index,
+          command.block,
+        );
         return;
       case "move":
-        this.#move(command.blockId, command.parentId ?? null, command.index);
+        this.#move(
+          command.blockId,
+          command.parentId ?? null,
+          command.parentSequenceId ?? null,
+          command.index,
+        );
         return;
       case "replace":
         this.#replace(command.blockId, command.block);
@@ -778,7 +929,12 @@ export class MemoryDocumentPort implements DocumentPort {
     };
   }
 
-  #insert(parentId: string | null, index: number, block: BuilderBlock): void {
+  #insert(
+    parentId: string | null,
+    parentSequenceId: string | null,
+    index: number,
+    block: BuilderBlock,
+  ): void {
     validateBlock(block);
     const candidateIds = new Set(
       flattenBuilderBlocks(this.#snapshot.blocks).map((candidate) => candidate.id),
@@ -786,27 +942,50 @@ export class MemoryDocumentPort implements DocumentPort {
     if (flattenBuilderBlocks([block]).some((candidate) => candidateIds.has(candidate.id))) {
       throw new Error(`Duplicate document block ID: ${block.id}`);
     }
-    const blocks = insertBuilderBlock(this.#snapshot.blocks, parentId, index, block);
+    const blocks = insertBuilderBlock(
+      this.#snapshot.blocks,
+      parentId,
+      parentSequenceId,
+      index,
+      block,
+    );
     validateDocumentBlocks(blocks);
     this.#publish(blocks);
   }
 
-  #move(blockId: string, parentId: string | null, index: number): void {
+  #move(
+    blockId: string,
+    parentId: string | null,
+    parentSequenceId: string | null,
+    index: number,
+  ): void {
     const detached = detachBuilderBlock(this.#snapshot.blocks, blockId);
     if (detached === null) {
       throw new Error(`Unknown document block ID: ${blockId}`);
     }
-    if (detached.parentId === parentId && detached.index === index) {
+    if (
+      detached.parentId === parentId &&
+      detached.parentSequenceId === parentSequenceId &&
+      detached.index === index
+    ) {
       return;
     }
     if (
-      isSectionBlock(detached.block) &&
+      childBlockSequences(detached.block).length > 0 &&
       (detached.block.id === parentId ||
-        flattenBuilderBlocks(detached.block.blocks).some((block) => block.id === parentId))
+        childBlockSequences(detached.block).some((sequence) =>
+          flattenBuilderBlocks(sequence.blocks).some((block) => block.id === parentId),
+        ))
     ) {
-      throw new Error("A section cannot be moved inside itself or one of its descendants");
+      throw new Error("A nested block cannot be moved inside itself or one of its descendants");
     }
-    const blocks = insertBuilderBlock(detached.blocks, parentId, index, detached.block);
+    const blocks = insertBuilderBlock(
+      detached.blocks,
+      parentId,
+      parentSequenceId,
+      index,
+      detached.block,
+    );
     validateDocumentBlocks(blocks);
     this.#publish(blocks);
   }

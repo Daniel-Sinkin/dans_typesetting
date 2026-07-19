@@ -14,6 +14,7 @@ import { sectionPlugin } from "../plugins/documentShell";
 import {
   createMathDisplayLine,
   mathDisplayTypeId,
+  sectionBodySequenceId,
   type BuilderBlock,
   type MathDisplayBlock,
   type SectionBlock,
@@ -42,7 +43,12 @@ function section(
   return Object.freeze({
     ...sectionPlugin.createDefault(id),
     referenceId,
-    blocks: Object.freeze([...blocks]),
+    childSequences: Object.freeze([
+      Object.freeze({
+        id: sectionBodySequenceId,
+        blocks: Object.freeze([...blocks]),
+      }),
+    ]),
   }) as SectionBlock;
 }
 

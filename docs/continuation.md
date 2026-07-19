@@ -71,6 +71,22 @@ reference-target publication across native and graphical writers.
 
 ## Current implementation slice
 
+The generic nesting and Padding slice adds:
+
+- stable named child block sequences as a backend-neutral topology contract;
+- generic recursive validation, lookup, mutation, cycle rejection, deep copy,
+  resource/numbering traversal, and canonical plugin-codec composition;
+- adapter-owned graphical measurement and placement of contained sequences,
+  including nested drag targets and preview reflow;
+- `dans.layout.padding` with four em-based insets, live graphical editing,
+  canonical transport, LaTeX lowering, and lossless Markdown flattening;
+- native and browser tests covering multi-endpoint addressing, nested copying,
+  transport idempotence, placement bounds, and compiled publication output.
+
+See `nested-block-sequences.md` and `padding.md` for the durable boundary.
+
+## Preceding implementation slice
+
 The graphical slide-development slice adds:
 
 - independent 1280×720 writer geometry alongside continuous and A4 paged

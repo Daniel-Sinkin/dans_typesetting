@@ -100,6 +100,7 @@ export function DocumentVisualPage({
             className={`document-block-visual${oversized ? " document-block-visual--oversized" : ""}`}
             data-section-depth={depth}
             data-visual-block-id={block.id}
+            data-visual-block-type={block.typeId}
             id={target?.anchorId ?? blockAnchorId(block.id)}
             key={block.id}
             style={positionStyle(layout, bounds)}
@@ -151,6 +152,7 @@ interface DocumentControlsProps {
   readonly onBeginMove: (
     block: BuilderBlock,
     parentId: string | null,
+    parentSequenceId: string | null,
     index: number,
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => void;
@@ -176,13 +178,14 @@ export function DocumentControls({
     <div className="document-controls" style={pageStyle} aria-label="Document block controls">
       {layout.blocks
         .filter(({ pageIndex }) => isPageVisible(layout, pageIndex))
-        .map(({ block, bounds, parentId, siblingIndex, depth }) => {
+        .map(({ block, bounds, parentId, parentSequenceId, siblingIndex, depth }) => {
           const adapter = registry.pluginForBlock(block);
           const activeEditor = inlineEditor?.blockId === block.id ? inlineEditor : null;
           return (
             <section
               className={`document-block-controls${activeEditor === null ? "" : " document-block-controls--editing"}`}
               data-block-id={block.id}
+              data-block-type={block.typeId}
               data-section-depth={depth}
               key={block.id}
               style={positionStyle(layout, bounds)}
@@ -194,7 +197,13 @@ export function DocumentControls({
                   aria-label={`Move ${adapter.palette.label} block`}
                   title="Drag to reorder or nest; hold Alt to copy"
                   onPointerDown={(event) => {
-                    onBeginMove(block, parentId, siblingIndex, event);
+                    onBeginMove(
+                      block,
+                      parentId,
+                      parentSequenceId,
+                      siblingIndex,
+                      event,
+                    );
                   }}
                 >
                   ⠿

@@ -1,7 +1,13 @@
 // Deterministic recursive document flow for continuous, paged, and slide surfaces.
-import type { BuilderPluginRegistry } from "./plugin";
+import type {
+  BuilderBlockMeasureContext,
+  BuilderPluginRegistry,
+} from "./plugin";
 import {
+  childBlockSequences,
   isSectionBlock,
+  sectionBody,
+  sectionBodySequenceId,
   type BuilderBlock,
 } from "../model/document";
 
@@ -71,6 +77,7 @@ export interface BlockLayout {
   readonly block: BuilderBlock;
   readonly bounds: LayoutBounds;
   readonly parentId: string | null;
+  readonly parentSequenceId: string | null;
   readonly siblingIndex: number;
   readonly depth: number;
   readonly pageIndex: number;
@@ -79,11 +86,13 @@ export interface BlockLayout {
 
 export interface BlockInsertionTarget {
   readonly parentId: string | null;
+  readonly parentSequenceId: string | null;
   readonly index: number;
 }
 
 export interface InsertionPreview {
   readonly parentId?: string | null;
+  readonly parentSequenceId?: string | null;
   readonly index: number;
   readonly block: BuilderBlock;
 }
@@ -184,6 +193,106 @@ export function computeDocumentLayout(
   let previewPageIndex: number | null = null;
   let previewWasPlaced = preview === null;
 
+  const sequenceWithPreview = (
+    sequence: readonly BuilderBlock[],
+    parentId: string,
+    parentSequenceId: string,
+  ): readonly BuilderBlock[] => {
+    if (
+      preview === null ||
+      (preview.parentId ?? null) !== parentId ||
+      (preview.parentSequenceId ?? null) !== parentSequenceId
+    ) {
+      return sequence;
+    }
+    if (preview.index < 0 || preview.index > sequence.length) {
+      throw new RangeError("The insertion preview targets an invalid child-sequence index");
+    }
+    const result = [...sequence];
+    result.splice(preview.index, 0, preview.block);
+    return result;
+  };
+
+  function measureSequenceHeight(
+    sequence: readonly BuilderBlock[],
+    parentId: string,
+    parentSequenceId: string,
+    availableWidth: number,
+    sectionDepth: number,
+  ): number {
+    const measuredBlocks = sequenceWithPreview(sequence, parentId, parentSequenceId);
+    let height = 0;
+    for (const [index, block] of measuredBlocks.entries()) {
+      if (index > 0) {
+        height += geometry.blockGap;
+      }
+      height += measureBlockHeight(block, availableWidth, sectionDepth);
+      if (isSectionBlock(block)) {
+        const childWidth = availableWidth - geometry.sectionIndent;
+        if (childWidth <= 0) {
+          throw new Error("Nested section indentation exhausted the available document width");
+        }
+        const bodyHeight = measureSequenceHeight(
+          sectionBody(block),
+          block.id,
+          sectionBodySequenceId,
+          childWidth,
+          sectionDepth + 1,
+        );
+        if (bodyHeight > 0) {
+          height += geometry.blockGap + bodyHeight;
+        }
+      }
+    }
+    return height;
+  }
+
+  function measureContextForBlock(
+    block: BuilderBlock,
+    sectionDepth: number,
+  ): BuilderBlockMeasureContext {
+    return {
+      documentBlocks: blocks,
+      sectionDepth,
+      measureChildSequence(sequenceId, availableWidth) {
+        if (!Number.isFinite(availableWidth) || availableWidth <= 0) {
+          throw new Error("A child block sequence requires a positive available width");
+        }
+        const sequence = childBlockSequences(block).find(
+          (candidate) => candidate.id === sequenceId,
+        );
+        if (sequence === undefined) {
+          throw new Error(`Block ${block.id} does not expose child sequence ${sequenceId}`);
+        }
+        return measureSequenceHeight(
+          sequence.blocks,
+          block.id,
+          sequence.id,
+          availableWidth,
+          sectionDepth,
+        );
+      },
+    };
+  }
+
+  function measureBlockHeight(
+    block: BuilderBlock,
+    availableWidth: number,
+    sectionDepth: number,
+  ): number {
+    const measuredHeight = registry
+      .pluginForBlock(block)
+      .measure(
+        block,
+        availableWidth,
+        measureContextForBlock(block, sectionDepth),
+      );
+    if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) {
+      throw new Error(`Builder adapter for ${block.typeId} returned an invalid block height`);
+    }
+    return measuredHeight;
+  }
+
   const ensurePage = (pageIndex: number): MutablePage => {
     while (pages.length <= pageIndex) {
       pages.push(pageAt(pages.length, geometry));
@@ -203,6 +312,7 @@ export function computeDocumentLayout(
   const place = (
     block: BuilderBlock,
     parentId: string | null,
+    parentSequenceId: string | null,
     siblingIndex: number,
     depth: number,
     isPreview: boolean,
@@ -223,13 +333,7 @@ export function computeDocumentLayout(
     if (availableWidth <= 0) {
       throw new Error("Nested section indentation exhausted the available document width");
     }
-    const measuredHeight = adapter.measure(block, availableWidth, {
-      documentBlocks: blocks,
-      sectionDepth: depth,
-    });
-    if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) {
-      throw new Error(`Builder adapter for ${block.typeId} returned an invalid block height`);
-    }
+    const measuredHeight = measureBlockHeight(block, availableWidth, depth);
 
     const oversized = paginated && measuredHeight > page.contentBounds.height;
     const height = oversized ? Math.min(180, page.contentBounds.height) : measuredHeight;
@@ -252,6 +356,7 @@ export function computeDocumentLayout(
       block,
       bounds,
       parentId,
+      parentSequenceId,
       siblingIndex,
       depth,
       pageIndex: currentPageIndex,
@@ -265,6 +370,9 @@ export function computeDocumentLayout(
       previewWasPlaced = true;
     } else {
       blockLayouts.push(result);
+      if (!oversized) {
+        layoutContainedChildSequences(result);
+      }
     }
 
     if (paginated && paginationPolicy !== "flow") {
@@ -275,6 +383,7 @@ export function computeDocumentLayout(
 
   const recordSlot = (
     parentId: string | null,
+    parentSequenceId: string | null,
     index: number,
     depth: number,
     pageIndex = currentPageIndex,
@@ -283,6 +392,7 @@ export function computeDocumentLayout(
     const page = ensurePage(pageIndex);
     insertionSlots.push({
       parentId,
+      parentSequenceId,
       index,
       depth,
       pageIndex,
@@ -291,35 +401,232 @@ export function computeDocumentLayout(
     });
   };
 
+  function layoutContainedSequence(
+    sequence: readonly BuilderBlock[],
+    parentId: string,
+    parentSequenceId: string,
+    x: number,
+    startY: number,
+    availableWidth: number,
+    sectionDepth: number,
+    pageIndex: number,
+  ): number {
+    let localCursorY = startY;
+
+    const placeContainedBlock = (
+      block: BuilderBlock,
+      siblingIndex: number,
+      isPreview: boolean,
+    ): LayoutBounds => {
+      const adapter = registry.pluginForBlock(block);
+      if ((adapter.paginationPolicy ?? "flow") !== "flow") {
+        throw new Error(
+          `Contained child sequence ${parentId}/${parentSequenceId} cannot host pagination block ${block.typeId}`,
+        );
+      }
+      const height = measureBlockHeight(block, availableWidth, sectionDepth);
+      const bounds = {
+        x,
+        y: localCursorY,
+        width: availableWidth,
+        height,
+      };
+      const result: BlockLayout = {
+        block,
+        bounds,
+        parentId,
+        parentSequenceId,
+        siblingIndex,
+        depth: sectionDepth,
+        pageIndex,
+        oversized: false,
+      };
+      localCursorY += height + geometry.blockGap;
+
+      if (isPreview) {
+        previewBounds = bounds;
+        previewPageIndex = pageIndex;
+        previewWasPlaced = true;
+      } else {
+        blockLayouts.push(result);
+        layoutContainedChildSequences(result);
+      }
+
+      if (!isPreview && isSectionBlock(block)) {
+        const childWidth = availableWidth - geometry.sectionIndent;
+        if (childWidth <= 0) {
+          throw new Error("Nested section indentation exhausted the available document width");
+        }
+        localCursorY = layoutContainedSequence(
+          sectionBody(block),
+          block.id,
+          sectionBodySequenceId,
+          x + geometry.sectionIndent,
+          localCursorY,
+          childWidth,
+          sectionDepth + 1,
+          pageIndex,
+        );
+      }
+      return bounds;
+    };
+
+    for (let index = 0; index <= sequence.length; index += 1) {
+      if (
+        preview !== null &&
+        (preview.parentId ?? null) === parentId &&
+        (preview.parentSequenceId ?? null) === parentSequenceId &&
+        preview.index === index
+      ) {
+        placeContainedBlock(preview.block, index, true);
+      }
+
+      const block = sequence[index];
+      if (block === undefined) {
+        insertionSlots.push({
+          parentId,
+          parentSequenceId,
+          index,
+          depth: sectionDepth,
+          pageIndex,
+          x,
+          y: localCursorY,
+        });
+        continue;
+      }
+      const bounds = placeContainedBlock(block, index, false);
+      insertionSlots.push({
+        parentId,
+        parentSequenceId,
+        index,
+        depth: sectionDepth,
+        pageIndex,
+        x,
+        y: bounds.y,
+      });
+    }
+    return localCursorY;
+  }
+
+  function layoutContainedChildSequences(parent: BlockLayout): void {
+    if (isSectionBlock(parent.block)) {
+      return;
+    }
+    const sequences = childBlockSequences(parent.block);
+    if (sequences.length === 0) {
+      return;
+    }
+    const adapter = registry.pluginForBlock(parent.block);
+    if (adapter.layoutChildSequences === undefined) {
+      throw new Error(
+        `Nested block adapter ${parent.block.typeId} does not place its child sequences`,
+      );
+    }
+    const context = measureContextForBlock(parent.block, parent.depth);
+    const placements = adapter.layoutChildSequences(
+      parent.block,
+      parent.bounds.width,
+      context,
+    );
+    const placedSequenceIds = new Set<string>();
+    for (const placement of placements) {
+      if (placedSequenceIds.has(placement.sequenceId)) {
+        throw new Error(
+          `Nested block adapter ${parent.block.typeId} placed child sequence ${placement.sequenceId} twice`,
+        );
+      }
+      placedSequenceIds.add(placement.sequenceId);
+      const sequence = sequences.find(
+        (candidate) => candidate.id === placement.sequenceId,
+      );
+      if (sequence === undefined) {
+        throw new Error(
+          `Nested block adapter ${parent.block.typeId} placed unknown child sequence ${placement.sequenceId}`,
+        );
+      }
+      if (
+        !Number.isFinite(placement.offsetX) ||
+        !Number.isFinite(placement.offsetY) ||
+        !Number.isFinite(placement.width) ||
+        placement.offsetX < 0 ||
+        placement.offsetY < 0 ||
+        placement.width <= 0 ||
+        placement.offsetX + placement.width > parent.bounds.width
+      ) {
+        throw new Error(
+          `Nested block adapter ${parent.block.typeId} returned invalid child-sequence bounds`,
+        );
+      }
+      const childHeight = context.measureChildSequence(
+        sequence.id,
+        placement.width,
+      );
+      if (placement.offsetY + childHeight > parent.bounds.height + 0.001) {
+        throw new Error(
+          `Nested block adapter ${parent.block.typeId} placed child sequence outside its block`,
+        );
+      }
+      layoutContainedSequence(
+        sequence.blocks,
+        parent.block.id,
+        sequence.id,
+        parent.bounds.x + placement.offsetX,
+        parent.bounds.y + placement.offsetY,
+        placement.width,
+        parent.depth,
+        parent.pageIndex,
+      );
+    }
+    if (placedSequenceIds.size !== sequences.length) {
+      throw new Error(
+        `Nested block adapter ${parent.block.typeId} did not place every child sequence`,
+      );
+    }
+  }
+
   const layoutSequence = (
     sequence: readonly BuilderBlock[],
     parentId: string | null,
+    parentSequenceId: string | null,
     depth: number,
   ): void => {
     for (let index = 0; index <= sequence.length; index += 1) {
       if (
         preview !== null &&
         (preview.parentId ?? null) === parentId &&
+        (preview.parentSequenceId ?? null) === parentSequenceId &&
         preview.index === index
       ) {
-        place(preview.block, parentId, index, depth, true);
+        place(preview.block, parentId, parentSequenceId, index, depth, true);
       }
 
       const block = sequence[index];
       if (block === undefined) {
-        recordSlot(parentId, index, depth);
+        recordSlot(parentId, parentSequenceId, index, depth);
         continue;
       }
 
-      const layout = place(block, parentId, index, depth, false);
-      recordSlot(parentId, index, depth, layout.pageIndex, layout.bounds.y);
+      const layout = place(block, parentId, parentSequenceId, index, depth, false);
+      recordSlot(
+        parentId,
+        parentSequenceId,
+        index,
+        depth,
+        layout.pageIndex,
+        layout.bounds.y,
+      );
       if (isSectionBlock(block)) {
-        layoutSequence(block.blocks, block.id, depth + 1);
+        layoutSequence(
+          sectionBody(block),
+          block.id,
+          sectionBodySequenceId,
+          depth + 1,
+        );
       }
     }
   };
 
-  layoutSequence(blocks, null, 0);
+  layoutSequence(blocks, null, null, 0);
   if (!previewWasPlaced) {
     throw new RangeError("The insertion preview targets an unknown section or sequence index");
   }
@@ -408,9 +715,13 @@ export function insertionTargetAtScenePoint(
     return score < currentScore ? candidate : current;
   }, null);
   if (closest === null) {
-    return { parentId: null, index: 0 };
+    return { parentId: null, parentSequenceId: null, index: 0 };
   }
-  return { parentId: closest.parentId, index: closest.index };
+  return {
+    parentId: closest.parentId,
+    parentSequenceId: closest.parentSequenceId,
+    index: closest.index,
+  };
 }
 
 export function insertionIndexAtSceneY(sceneY: number, layout: DocumentLayout): number {

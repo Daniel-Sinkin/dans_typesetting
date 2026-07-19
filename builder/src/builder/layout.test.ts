@@ -17,6 +17,12 @@ import {
   sectionPlugin,
   titlePagePlugin,
 } from "../plugins/documentShell";
+import { sectionBodySequenceId } from "../model/document";
+import { paddingPlugin } from "../plugins/padding";
+import {
+  createPaddingBlock,
+  paddingContentSequenceId,
+} from "../plugins/paddingModel";
 import {
   opaqueInlineAdapter,
   textInlinePlugin,
@@ -37,6 +43,7 @@ const registry = new BuilderPluginRegistry(
     pageBreakPlugin,
     sectionPlugin,
     titlePagePlugin,
+    paddingPlugin,
     {
       typeId: "test.oversized",
       palette: {
@@ -100,14 +107,52 @@ describe("document flow", () => {
     const child = paragraphPlugin.createDefault("child");
     const section = {
       ...sectionPlugin.createDefault("section"),
-      blocks: [child],
+      childSequences: [{ id: sectionBodySequenceId, blocks: [child] }],
     };
     const layout = computeDocumentLayout([section], registry);
 
     expect(layout.blocks.map(({ block }) => block.id)).toEqual(["section", "child"]);
     expect(layout.blocks[1]?.parentId).toBe("section");
+    expect(layout.blocks[1]?.parentSequenceId).toBe(sectionBodySequenceId);
     expect(layout.blocks[1]?.depth).toBe(1);
     expect(layout.blocks[1]?.bounds.x).toBeGreaterThan(layout.blocks[0]?.bounds.x ?? 0);
+  });
+
+  it("places and previews a named child sequence inside Padding", () => {
+    const nested = paragraphPlugin.createDefault("nested");
+    const padding = createPaddingBlock(
+      "padding",
+      { topEm: 2, rightEm: 3, bottomEm: 1, leftEm: 4 },
+      [nested],
+    );
+    const after = paragraphPlugin.createDefault("after-padding");
+    const base = computeDocumentLayout([padding, after], registry);
+    const paddingLayout = base.blocks.find(({ block }) => block.id === "padding");
+    const nestedLayout = base.blocks.find(({ block }) => block.id === "nested");
+    if (paddingLayout === undefined || nestedLayout === undefined) {
+      throw new Error("Padding layout lost its nested block");
+    }
+
+    expect(nestedLayout.parentId).toBe("padding");
+    expect(nestedLayout.parentSequenceId).toBe(paddingContentSequenceId);
+    expect(nestedLayout.bounds.x).toBeGreaterThan(paddingLayout.bounds.x);
+    expect(nestedLayout.bounds.y).toBeGreaterThan(paddingLayout.bounds.y);
+    expect(
+      nestedLayout.bounds.x + nestedLayout.bounds.width,
+    ).toBeLessThan(paddingLayout.bounds.x + paddingLayout.bounds.width);
+
+    const preview = computeDocumentLayout([padding, after], registry, {
+      parentId: "padding",
+      parentSequenceId: paddingContentSequenceId,
+      index: 1,
+      block: imagePlugin.createDefault("nested-preview"),
+    });
+    expect(preview.previewBounds).not.toBeNull();
+    expect(
+      preview.blocks.find(({ block }) => block.id === "after-padding")?.bounds.y,
+    ).toBeGreaterThan(
+      base.blocks.find(({ block }) => block.id === "after-padding")?.bounds.y ?? 0,
+    );
   });
 
   it("uses page breaks and keeps every ordinary block wholly on one page", () => {

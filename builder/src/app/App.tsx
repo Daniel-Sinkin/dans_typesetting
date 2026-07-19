@@ -9,6 +9,7 @@ import {
   MemoryDocumentPort,
   paragraphTypeId,
   pageBreakTypeId,
+  sectionBodySequenceId,
   sectionTypeId,
   tableOfContentsTypeId,
   titlePageTypeId,
@@ -73,6 +74,8 @@ import {
   createLatexMathDisplay,
   createLatexMathInline,
 } from "../plugins/latexMathModel";
+import { paddingPlugin } from "../plugins/padding";
+import { createPaddingBlock } from "../plugins/paddingModel";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -109,7 +112,9 @@ const initialBlocks = [
     typeId: sectionTypeId,
     title: "Interactive document blocks",
     referenceId: "sec:interactive-blocks",
-    blocks: Object.freeze([]),
+    childSequences: Object.freeze([
+      Object.freeze({ id: sectionBodySequenceId, blocks: Object.freeze([]) }),
+    ]),
   }),
   Object.freeze({
     id: "sample-introduction",
@@ -413,6 +418,22 @@ E &= T + V
       createText(" for the current measurements.", "sample-conclusion-tail"),
     ]),
   }),
+  createPaddingBlock(
+    "sample-padding",
+    { topEm: 1.5, rightEm: 2, bottomEm: 1.5, leftEm: 2 },
+    [
+      Object.freeze({
+        id: "sample-padding-paragraph",
+        typeId: paragraphTypeId,
+        inlines: Object.freeze([
+          createText(
+            "This paragraph is owned by a named nested content sequence.",
+            "sample-padding-paragraph-text",
+          ),
+        ]),
+      }),
+    ],
+  ),
   createBibliographyBlock(
     [
       createBibliographyEntry({
@@ -457,6 +478,7 @@ const pluginRegistry = new BuilderPluginRegistry(
     excalidrawDrawingPlugin,
     createItemListPlugin(inlinePluginRegistry),
     createTablePlugin(inlinePluginRegistry, tableCsvCapability),
+    paddingPlugin,
     createBibliographyPlugin(bibliographySourceCapability),
   ],
   opaqueBlockAdapter,

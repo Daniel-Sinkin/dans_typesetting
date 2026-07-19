@@ -26,6 +26,9 @@ model and does not own block data.
 
 - A document is an ordered sequence of semantic blocks.
 - A section is a structural block containing another ordered block sequence.
+- Any composite block may expose stable named ordered child block sequences.
+  Together they form an exclusively owned acyclic tree; semantic references
+  form a separate graph and never imply shared block ownership.
 - `InlineSequence` is a standalone ordered-inline foundation.
 - Ordinary text is an inline plugin and a paragraph is a semantic block plugin
   containing one `InlineSequence`.
@@ -70,6 +73,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Itemized/enumerated list | `dans.list` |
 | Rich table | `dans.table` |
 | References block | `dans.bibliography.references` |
+| Padding | `dans.layout.padding` |
 
 Adding a plugin is not complete merely because its native class exists. A
 complete vertical slice needs semantic data, validation, at least one useful
@@ -101,6 +105,21 @@ and tests at the boundaries it implements.
   optional source adapters.
 - The graphical writer may show an opaque placeholder for unsupported plugins.
   It must preserve their envelope and payload rather than dropping them.
+
+## Nested block-sequence boundary
+
+The core exposes only a read-only topology view: sequence count, stable endpoint
+name, and ordered children. A concrete plugin owns storage and semantics, while
+its writer connector owns placement and emission. Generic builder machinery can
+therefore validate, locate, move, copy, persist, and render controls for nested
+blocks without knowing whether their owner is Padding, Captioned, Grid, or a
+future composite.
+
+The graphical adapter must measure and place every endpoint it exposes. Section
+`body` remains structurally ordinary but is interpreted specially for heading
+depth and table-of-contents traversal. See
+[nested-block-sequences.md](nested-block-sequences.md) and
+[padding.md](padding.md).
 
 ## Canonical transport
 

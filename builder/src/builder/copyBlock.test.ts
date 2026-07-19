@@ -10,6 +10,8 @@ import { sectionPlugin } from "../plugins/documentShell";
 import {
   createText,
   paragraphTypeId,
+  sectionBody,
+  sectionBodySequenceId,
   sectionTypeId,
   type SectionBlock,
   type ParagraphBlock,
@@ -79,16 +81,18 @@ describe("plugin-aware block copies", () => {
       typeId: sectionTypeId,
       title: "Original section",
       referenceId: "sec:original",
-      blocks: Object.freeze([figure]),
+      childSequences: Object.freeze([
+        Object.freeze({ id: sectionBodySequenceId, blocks: Object.freeze([figure]) }),
+      ]),
     });
 
     const copied = copyBuilderBlockForInsert(source, registry, "section-copy");
 
     expect(copied).toMatchObject({ id: "section-copy", referenceId: null });
     const copiedSection = copied as SectionBlock;
-    expect(copiedSection.blocks[0]).toMatchObject({ referenceId: null });
-    expect(copiedSection.blocks[0]?.id).not.toBe(figure.id);
-    const copiedFigure = copiedSection.blocks[0] as ImageBlock;
+    expect(sectionBody(copiedSection)[0]).toMatchObject({ referenceId: null });
+    expect(sectionBody(copiedSection)[0]?.id).not.toBe(figure.id);
+    const copiedFigure = sectionBody(copiedSection)[0] as ImageBlock;
     expect(copiedFigure.captionInlines[0]?.id).not.toBe("figure-caption");
   });
 

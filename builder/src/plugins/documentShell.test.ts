@@ -4,7 +4,10 @@ import {
   deriveTableOfContentsEntries,
   sectionPlugin,
 } from "./documentShell";
-import type { SectionBlock } from "../model/document";
+import {
+  sectionBodySequenceId,
+  type SectionBlock,
+} from "../model/document";
 
 function section(
   id: string,
@@ -14,7 +17,9 @@ function section(
   return {
     ...(sectionPlugin.createDefault(id) as SectionBlock),
     title,
-    blocks,
+    childSequences: [
+      { id: sectionBodySequenceId, blocks },
+    ],
   };
 }
 

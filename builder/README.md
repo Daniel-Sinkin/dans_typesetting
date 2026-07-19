@@ -11,6 +11,13 @@ Document previews are rendered below Excalidraw, so sketches and free-form notes
 the pages; the small interaction controls are rendered above them. Document blocks are not stored as
 Excalidraw elements.
 
+Composite plugins expose stable named child block sequences. Generic builder
+machinery handles recursive lookup, validation, copy/move commands, insertion
+targets, and controls; the owning plugin adapter supplies measurement and
+placement. The Padding plugin is the first ordinary composite and makes its
+single inset `content` sequence directly draggable. See
+`../docs/nested-block-sequences.md`.
+
 The graphical writer may be incomplete by design. A registered block type uses its adapter; an
 unknown type is preserved by `DocumentPort` and rendered through one visible opaque-block fallback.
 The fallback reads only the common stable ID and type ID and never inspects plugin-owned payload.

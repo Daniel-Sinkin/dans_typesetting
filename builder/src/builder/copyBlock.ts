@@ -1,7 +1,7 @@
 // Copy a semantic block tree while letting each plugin reset identity-like payload fields.
 import {
+  childBlockSequences,
   createBlockId,
-  isSectionBlock,
   type BuilderBlock,
 } from "../model/document";
 import type { BuilderPluginRegistry } from "./plugin";
@@ -18,13 +18,33 @@ export function copyBuilderBlockForInsert(
   if (copied.id !== copiedBlockId || copied.typeId !== block.typeId) {
     throw new Error("A block copy adapter must preserve type and use the requested new ID");
   }
-  if (!isSectionBlock(block) || !isSectionBlock(copied)) {
+  const originalSequences = childBlockSequences(block);
+  if (originalSequences.length === 0) {
     return copied;
+  }
+  const copiedSequences = childBlockSequences(copied);
+  if (
+    copiedSequences.length !== originalSequences.length ||
+    originalSequences.some(
+      (sequence) =>
+        !copiedSequences.some((candidate) => candidate.id === sequence.id),
+    )
+  ) {
+    throw new Error("A nested-block copy adapter must preserve child sequence endpoints");
   }
   return Object.freeze({
     ...copied,
-    blocks: Object.freeze(
-      block.blocks.map((child) => copyBuilderBlockForInsert(child, registry)),
+    childSequences: Object.freeze(
+      originalSequences.map((sequence) =>
+        Object.freeze({
+          ...sequence,
+          blocks: Object.freeze(
+            sequence.blocks.map((child) =>
+              copyBuilderBlockForInsert(child, registry),
+            ),
+          ),
+        }),
+      ),
     ),
   });
 }

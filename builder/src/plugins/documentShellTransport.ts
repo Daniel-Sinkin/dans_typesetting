@@ -5,6 +5,8 @@ import {
   isTableOfContentsBlock,
   isTitlePageBlock,
   pageBreakTypeId,
+  sectionBody,
+  sectionBodySequenceId,
   sectionTypeId,
   tableOfContentsTypeId,
   titlePageTypeId,
@@ -26,7 +28,7 @@ export const sectionBlockTransportCodec: BlockTransportCodec = {
     return {
       title: block.title,
       referenceId: block.referenceId,
-      blocks: block.blocks.map((child) => registry.encodeBlock(child)),
+      blocks: sectionBody(block).map((child) => registry.encodeBlock(child)),
     };
   },
   decode(id, payload, registry): BuilderBlock {
@@ -40,11 +42,17 @@ export const sectionBlockTransportCodec: BlockTransportCodec = {
       typeId: sectionTypeId,
       title: requireTransportString(data, "title", "Section payload"),
       referenceId,
-      blocks: Object.freeze(
-        requireTransportArray(data, "blocks", "Section payload").map((child, index) =>
-          registry.decodeBlock(child, `Section block ${String(index)}`),
-        ),
-      ),
+      childSequences: Object.freeze([
+        Object.freeze({
+          id: sectionBodySequenceId,
+          blocks: Object.freeze(
+            requireTransportArray(data, "blocks", "Section payload").map(
+              (child, index) =>
+                registry.decodeBlock(child, `Section block ${String(index)}`),
+            ),
+          ),
+        }),
+      ]),
     });
   },
 };

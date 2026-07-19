@@ -2,6 +2,7 @@
 import {
   flattenBuilderBlocks,
   isSectionBlock,
+  sectionBody,
   type BuilderBlock,
 } from "../model/document";
 import { requireReferenceId } from "../model/referenceId";
@@ -49,7 +50,7 @@ function deriveSectionNumbers(
       counters[depth] = (counters[depth] ?? 0) + 1;
       counters.fill(0, depth + 1);
       result.set(block.id, counters.slice(0, depth + 1).join("."));
-      visit(block.blocks, depth + 1);
+      visit(sectionBody(block), depth + 1);
     }
   };
   visit(blocks, 0);
