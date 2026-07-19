@@ -93,6 +93,19 @@ auto make_matrix_vector_equation()
     );
 }
 
+auto make_fraction_radical_equation()
+{
+    using M = dans::document::plugins::Math;
+
+    return M::equal(
+        M::fraction(
+            M::id_x.subscript(M::id_i).superscript(M::id_2),
+            M::square_root(M::add(M::id_1, M::id_y))
+        ),
+        M::nth_root(M::id_3, M::id_z)
+    );
+}
+
 auto make_sample_document()
 {
     using namespace dans::document;
@@ -252,10 +265,14 @@ auto make_sample_document()
     const ReferenceId energy_equation_id{"eq:energy"};
     const ReferenceId gradient_equation_id{"eq:gradient"};
     const ReferenceId matrix_equation_id{"eq:matrix-vector"};
+    const ReferenceId fraction_radical_equation_id{"eq:fraction-radical"};
     mathematics.blocks()
         .add<M::Display>(make_energy_equation(), energy_equation_id)
         .add_equation(make_gradient_equation(), gradient_equation_id);
     mathematics.blocks().add<M::Display>(make_matrix_vector_equation(), matrix_equation_id);
+    mathematics.blocks().add<M::Display>(
+        make_fraction_radical_equation(), fraction_radical_equation_id
+    );
 
     auto& equation_references = mathematics.blocks().add<CoreParagraph>();
     equation_references.append_text("The aligned group retains distinct targets: ");
@@ -264,6 +281,8 @@ auto make_sample_document()
     equation_references.inlines().add<Reference>(gradient_equation_id);
     equation_references.append_text(", while rectangular matrix/vector composition appears in ");
     equation_references.inlines().add<Reference>(matrix_equation_id);
+    equation_references.append_text(" and structured fractions and roots appear in ");
+    equation_references.inlines().add<Reference>(fraction_radical_equation_id);
     equation_references.append_text(".");
 
     auto& listings = document.blocks().add<Section>("Source-code listings");

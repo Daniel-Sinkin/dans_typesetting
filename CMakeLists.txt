@@ -531,6 +531,15 @@ if(BUILD_TESTING)
   )
   add_test(NAME native_math_matvec_test COMMAND native_math_matvec_test)
 
+  add_executable(native_math_structures_test
+    tests/native_math_structures_test.cpp
+  )
+  target_link_libraries(native_math_structures_test PRIVATE
+    dans::math_latex_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_math_structures_test COMMAND native_math_structures_test)
+
   add_executable(native_code_listing_test
     tests/native_code_listing_test.cpp
   )

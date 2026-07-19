@@ -46,11 +46,12 @@ stores a preview together with the requested width and detected pixel dimensions
 support C++, CUDA, Julia, and raw text with caption and reference ID independently optional; a
 transparent textarea aligned over the syntax-coloured preview makes the rendered surface directly
 editable, and Tab inserts four spaces. Display and inline math share the nested expression editor:
-drag literals, operators, or a structured summation into empty slots; replace, parenthesize, park,
-copy, or detach a subtree. An independently registered basic input-parser capability can lower typed
-grouping, arithmetic, comma sequences, signed numbers, and identifiers into the same structured
-tree. Selection locks retain the bounds of the containing scope, making nested expressions
-addressable without flattening their structure.
+drag literals, operators, a summation, fraction, square/indexed root, or script template into empty
+slots; replace, parenthesize, park, copy, or detach any subtree. An independently registered basic
+input-parser capability lowers grouping, arithmetic, comma sequences, signed numbers, identifiers,
+`sqrt(...)`, and postfix `_`/`^` scripts into the same structured tree. Slash division remains
+distinct from a stacked fraction. Selection locks retain the bounds of the containing scope, making
+nested expressions addressable without flattening their structure.
 
 The optional MatVec editor extension contributes square and rectangular matrix plus row/column
 vector templates. They lower to the base math model's rectangular grid and delimiter primitives,

@@ -196,9 +196,11 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Continue structured mathematics with scripts, fractions, and roots. Keep the
-table, listing, and inline contracts stable while adding those independent
-capabilities.
+Add a semantic inline-code leaf, then begin the citation/bibliography contract.
+Keep the completed table, listing, inline, and structured-math contracts stable
+while adding those independent capabilities. Structured fractions, square and
+indexed roots, and sub/superscripts now have native LaTeX, graphical editing,
+typed-parser, clipboard, canonical-fixture, and browser-smoke coverage.
 Keep plugin payload codecs beside their plugin and extend the shared fixture
 whenever a new canonical type is completed.
 

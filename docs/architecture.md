@@ -208,6 +208,15 @@ cell would collide with the grid's own column separator. Row/column spans,
 determinants, cases, and matrix evaluation remain separate future extensions.
 See [math-matvec.md](math-matvec.md) for the concrete contract.
 
+Fractions, radicals, and scripts use the same recursive contract. A fraction
+owns numerator and denominator expressions, a radical owns its radicand and an
+optional degree, and a script owns a base plus at least one script. These are
+presentation nodes rather than evaluable arithmetic. The browser editor exposes
+each child through ordinary math paths, so selection, drag/drop, parking,
+clipboard transport, and canonical persistence require no structure-specific
+mutation channel. See [math-structures.md](math-structures.md) for the native and
+graphical authoring contract.
+
 ## Semantic target index
 
 Referenceable block plugins expose a small descriptor containing an optional

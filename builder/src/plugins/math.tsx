@@ -19,9 +19,12 @@ import type {
 import type { MathInputParserPlugin } from "../math/inputParser";
 import {
   createMathBinary,
+  createMathFraction,
   createMathInteger,
   createMathLeafFromInput,
   createMathParenthesized,
+  createMathRadical,
+  createMathScript,
   createMathSlot,
   createMathSummation,
   detachMathExpressionAtPath,
@@ -181,6 +184,65 @@ function selectionCandidatesForScope(
           4,
           lockedSelection,
         ),
+      ];
+    case "fraction":
+      return [
+        whole,
+        makeSelectionCandidate(
+          { kind: "node", path: [...scopePath, "numerator"] },
+          2,
+          lockedSelection,
+        ),
+        makeSelectionCandidate(
+          { kind: "node", path: [...scopePath, "denominator"] },
+          3,
+          lockedSelection,
+        ),
+      ];
+    case "radical":
+      return [
+        whole,
+        makeSelectionCandidate(
+          { kind: "node", path: [...scopePath, "body"] },
+          2,
+          lockedSelection,
+        ),
+        ...(expression.degree === null
+          ? []
+          : [
+              makeSelectionCandidate(
+                { kind: "node", path: [...scopePath, "degree"] },
+                3,
+                lockedSelection,
+              ),
+            ]),
+      ];
+    case "script":
+      return [
+        whole,
+        makeSelectionCandidate(
+          { kind: "node", path: [...scopePath, "base"] },
+          2,
+          lockedSelection,
+        ),
+        ...(expression.subscript === null
+          ? []
+          : [
+              makeSelectionCandidate(
+                { kind: "node", path: [...scopePath, "subscript"] },
+                3,
+                lockedSelection,
+              ),
+            ]),
+        ...(expression.superscript === null
+          ? []
+          : [
+              makeSelectionCandidate(
+                { kind: "node", path: [...scopePath, "superscript"] },
+                expression.subscript === null ? 3 : 4,
+                lockedSelection,
+              ),
+            ]),
       ];
     case "parenthesized":
     case "delimited":
@@ -400,6 +462,143 @@ function MathNode({
             onHoverSelection={onHoverSelection}
           />
         </span>
+      </span>
+    );
+  }
+  if (expression.kind === "fraction") {
+    return (
+      <span {...sharedProps}>
+        {selectionBadge}
+        <span className="math-fraction">
+          <span className="math-fraction__numerator">
+            <MathNode
+              expression={expression.numerator}
+              path={[...path, "numerator"]}
+              parentOperator={null}
+              parentBranch={null}
+              selectedPathKey={selectedPathKey}
+              onBeginDrag={onBeginDrag}
+              onHoverPath={onHoverPath}
+              renderSlot={renderSlot}
+              renderNodeEditor={renderNodeEditor}
+              selectionCandidates={selectionCandidates}
+              onHoverSelection={onHoverSelection}
+            />
+          </span>
+          <span className="math-fraction__denominator">
+            <MathNode
+              expression={expression.denominator}
+              path={[...path, "denominator"]}
+              parentOperator={null}
+              parentBranch={null}
+              selectedPathKey={selectedPathKey}
+              onBeginDrag={onBeginDrag}
+              onHoverPath={onHoverPath}
+              renderSlot={renderSlot}
+              renderNodeEditor={renderNodeEditor}
+              selectionCandidates={selectionCandidates}
+              onHoverSelection={onHoverSelection}
+            />
+          </span>
+        </span>
+      </span>
+    );
+  }
+  if (expression.kind === "radical") {
+    return (
+      <span {...sharedProps}>
+        {selectionBadge}
+        <span className="math-radical">
+          {expression.degree === null ? null : (
+            <span className="math-radical__degree">
+              <MathNode
+                expression={expression.degree}
+                path={[...path, "degree"]}
+                parentOperator={null}
+                parentBranch={null}
+                selectedPathKey={selectedPathKey}
+                onBeginDrag={onBeginDrag}
+                onHoverPath={onHoverPath}
+                renderSlot={renderSlot}
+                renderNodeEditor={renderNodeEditor}
+                selectionCandidates={selectionCandidates}
+                onHoverSelection={onHoverSelection}
+              />
+            </span>
+          )}
+          <span className="math-radical__symbol">√</span>
+          <span className="math-radical__body">
+            <MathNode
+              expression={expression.body}
+              path={[...path, "body"]}
+              parentOperator={null}
+              parentBranch={null}
+              selectedPathKey={selectedPathKey}
+              onBeginDrag={onBeginDrag}
+              onHoverPath={onHoverPath}
+              renderSlot={renderSlot}
+              renderNodeEditor={renderNodeEditor}
+              selectionCandidates={selectionCandidates}
+              onHoverSelection={onHoverSelection}
+            />
+          </span>
+        </span>
+      </span>
+    );
+  }
+  if (expression.kind === "script") {
+    return (
+      <span {...sharedProps}>
+        {selectionBadge}
+        <span className="math-script__base">
+          <MathNode
+            expression={expression.base}
+            path={[...path, "base"]}
+            parentOperator={null}
+            parentBranch={null}
+            selectedPathKey={selectedPathKey}
+            onBeginDrag={onBeginDrag}
+            onHoverPath={onHoverPath}
+            renderSlot={renderSlot}
+            renderNodeEditor={renderNodeEditor}
+            selectionCandidates={selectionCandidates}
+            onHoverSelection={onHoverSelection}
+          />
+        </span>
+        {expression.subscript === null ? null : (
+          <span className="math-script__subscript">
+            <MathNode
+              expression={expression.subscript}
+              path={[...path, "subscript"]}
+              parentOperator={null}
+              parentBranch={null}
+              selectedPathKey={selectedPathKey}
+              onBeginDrag={onBeginDrag}
+              onHoverPath={onHoverPath}
+              renderSlot={renderSlot}
+              renderNodeEditor={renderNodeEditor}
+              selectionCandidates={selectionCandidates}
+              onHoverSelection={onHoverSelection}
+            />
+          </span>
+        )}
+        {expression.superscript === null ? null : (
+          <span className="math-script__superscript">
+            <MathNode
+              expression={expression.superscript}
+              path={[...path, "superscript"]}
+              parentOperator={null}
+              parentBranch={null}
+              selectedPathKey={selectedPathKey}
+              onBeginDrag={onBeginDrag}
+              onHoverPath={onHoverPath}
+              renderSlot={renderSlot}
+              renderNodeEditor={renderNodeEditor}
+              selectionCandidates={selectionCandidates}
+              onHoverSelection={onHoverSelection}
+            />
+          </span>
+        )}
       </span>
     );
   }
@@ -678,6 +877,42 @@ const structurePalette: readonly MathEditorPaletteItem[] = [
     label: "∑",
     description: "Summation with lower, upper, and body slots",
     create: () => createMathSummation(),
+  },
+  {
+    id: "structure-fraction",
+    label: "a⁄b",
+    description: "Stacked fraction with numerator and denominator slots",
+    create: () => createMathFraction(),
+  },
+  {
+    id: "structure-square-root",
+    label: "√x",
+    description: "Square root with a radicand slot",
+    create: () => createMathRadical(),
+  },
+  {
+    id: "structure-indexed-root",
+    label: "ⁿ√x",
+    description: "Indexed root with degree and radicand slots",
+    create: () => createMathRadical(createMathSlot(), createMathSlot()),
+  },
+  {
+    id: "structure-subscript",
+    label: "xᵢ",
+    description: "Base with a subscript",
+    create: () => createMathScript(createMathSlot(), createMathSlot(), null),
+  },
+  {
+    id: "structure-superscript",
+    label: "xⁿ",
+    description: "Base with a superscript",
+    create: () => createMathScript(createMathSlot(), null, createMathSlot()),
+  },
+  {
+    id: "structure-scripts",
+    label: "xᵢⁿ",
+    description: "Base with both subscript and superscript",
+    create: () => createMathScript(createMathSlot(), createMathSlot(), createMathSlot()),
   },
 ];
 
@@ -1111,10 +1346,14 @@ export function MathExpressionEditor({
         if (
           expression?.kind === "binary" ||
           expression?.kind === "summation" ||
+          expression?.kind === "fraction" ||
+          expression?.kind === "radical" ||
+          expression?.kind === "script" ||
           expression?.kind === "parenthesized" ||
           expression?.kind === "delimited" ||
           expression?.kind === "negated" ||
-          expression?.kind === "comma_sequence"
+          expression?.kind === "comma_sequence" ||
+          expression?.kind === "grid"
         ) {
           setSelectionScopePath(candidate.target.path);
         }

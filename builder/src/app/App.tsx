@@ -20,8 +20,11 @@ import {
 } from "../model/document";
 import {
   createMathBinary,
+  createMathFraction,
   createMathIdentifier,
   createMathInteger,
+  createMathRadical,
+  createMathScript,
   createMathSummation,
 } from "../model/math";
 import { imagePlugin } from "../plugins/image";
@@ -136,7 +139,11 @@ const initialBlocks = [
           createMathBinary(
             "times",
             createMathIdentifier("m"),
-            createMathIdentifier("c"),
+            createMathScript(
+              createMathIdentifier("c"),
+              null,
+              createMathInteger(2),
+            ),
           ),
         ),
         "sample-introduction-inline-math",
@@ -222,16 +229,26 @@ const initialBlocks = [
           createMathInteger(1),
         ),
         createMathIdentifier("N"),
-        createMathBinary(
-          "times",
-          createMathMatrix([
+          createMathBinary(
+            "times",
+            createMathMatrix([
             [createMathInteger(2), createMathInteger(4)],
             [createMathInteger(1), createMathInteger(3)],
-          ]),
-          createMathColumnVector([
-            createMathIdentifier("x"),
-            createMathIdentifier("y"),
-          ]),
+            ]),
+          createMathFraction(
+            createMathColumnVector([
+              createMathIdentifier("x"),
+              createMathIdentifier("y"),
+            ]),
+            createMathRadical(
+              createMathScript(
+                createMathIdentifier("lambda"),
+                createMathIdentifier("i"),
+                createMathInteger(2),
+              ),
+              createMathInteger(3),
+            ),
+          ),
         ),
       ),
     ),

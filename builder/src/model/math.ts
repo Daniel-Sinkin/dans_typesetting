@@ -3,11 +3,17 @@
 export type MathBinaryOperator = "plus" | "minus" | "equals" | "times" | "divide";
 export type MathBinaryBranch = "left" | "right";
 export type MathSummationBranch = "lower" | "upper" | "body";
+export type MathFractionBranch = "numerator" | "denominator";
+export type MathRadicalBranch = "body" | "degree";
+export type MathScriptBranch = "base" | "subscript" | "superscript";
 export type MathSequenceBranch = `item:${number}`;
 export type MathGridBranch = `cell:${number}`;
 export type MathBranch =
   | MathBinaryBranch
   | MathSummationBranch
+  | MathFractionBranch
+  | MathRadicalBranch
+  | MathScriptBranch
   | MathSequenceBranch
   | MathGridBranch;
 export type MathPath = readonly MathBranch[];
@@ -49,6 +55,25 @@ export interface MathSummationExpression extends MathNodeBase {
   readonly body: MathExpression;
 }
 
+export interface MathFractionExpression extends MathNodeBase {
+  readonly kind: "fraction";
+  readonly numerator: MathExpression;
+  readonly denominator: MathExpression;
+}
+
+export interface MathRadicalExpression extends MathNodeBase {
+  readonly kind: "radical";
+  readonly body: MathExpression;
+  readonly degree: MathExpression | null;
+}
+
+export interface MathScriptExpression extends MathNodeBase {
+  readonly kind: "script";
+  readonly base: MathExpression;
+  readonly subscript: MathExpression | null;
+  readonly superscript: MathExpression | null;
+}
+
 export interface MathParenthesizedExpression extends MathNodeBase {
   readonly kind: "parenthesized";
   readonly body: MathExpression;
@@ -84,6 +109,9 @@ export type MathExpression =
   | MathIdentifier
   | MathBinaryExpression
   | MathSummationExpression
+  | MathFractionExpression
+  | MathRadicalExpression
+  | MathScriptExpression
   | MathParenthesizedExpression
   | MathDelimitedExpression
   | MathNegatedExpression
@@ -161,6 +189,34 @@ export function createMathSummation(
   id: string = createMathNodeId(),
 ): MathSummationExpression {
   return Object.freeze({ id, kind: "summation", lower, upper, body });
+}
+
+export function createMathFraction(
+  numerator: MathExpression = createMathSlot(),
+  denominator: MathExpression = createMathSlot(),
+  id: string = createMathNodeId(),
+): MathFractionExpression {
+  return Object.freeze({ id, kind: "fraction", numerator, denominator });
+}
+
+export function createMathRadical(
+  body: MathExpression = createMathSlot(),
+  degree: MathExpression | null = null,
+  id: string = createMathNodeId(),
+): MathRadicalExpression {
+  return Object.freeze({ id, kind: "radical", body, degree });
+}
+
+export function createMathScript(
+  base: MathExpression,
+  subscript: MathExpression | null,
+  superscript: MathExpression | null,
+  id: string = createMathNodeId(),
+): MathScriptExpression {
+  if (subscript === null && superscript === null) {
+    throw new Error("A math script requires a subscript or superscript");
+  }
+  return Object.freeze({ id, kind: "script", base, subscript, superscript });
 }
 
 export function createMathParenthesized(
@@ -255,6 +311,12 @@ export function parseMathPath(path: string): MathPath | null {
     branch === "lower" ||
     branch === "upper" ||
     branch === "body" ||
+    branch === "numerator" ||
+    branch === "denominator" ||
+    branch === "degree" ||
+    branch === "base" ||
+    branch === "subscript" ||
+    branch === "superscript" ||
     /^item:(?:0|[1-9]\d*)$/u.test(branch) ||
     /^cell:(?:0|[1-9]\d*)$/u.test(branch);
   if (!branches.every(isMathBranch)) {
@@ -286,6 +348,27 @@ function mathChildAtBranch(
       default:
         return null;
     }
+  }
+  if (expression.kind === "fraction") {
+    if (branch === "numerator") {
+      return expression.numerator;
+    }
+    return branch === "denominator" ? expression.denominator : null;
+  }
+  if (expression.kind === "radical") {
+    if (branch === "body") {
+      return expression.body;
+    }
+    return branch === "degree" ? expression.degree : null;
+  }
+  if (expression.kind === "script") {
+    if (branch === "base") {
+      return expression.base;
+    }
+    if (branch === "subscript") {
+      return expression.subscript;
+    }
+    return branch === "superscript" ? expression.superscript : null;
   }
   if (expression.kind === "parenthesized") {
     return branch === "body" ? expression.body : null;
@@ -358,6 +441,57 @@ export function replaceMathExpressionAtPath(
       branch === "body"
         ? replaceMathExpressionAtPath(expression.body, remainingPath, replacement)
         : expression.body,
+      expression.id,
+    );
+  }
+  if (
+    expression.kind === "fraction" &&
+    (branch === "numerator" || branch === "denominator")
+  ) {
+    return createMathFraction(
+      branch === "numerator"
+        ? replaceMathExpressionAtPath(expression.numerator, remainingPath, replacement)
+        : expression.numerator,
+      branch === "denominator"
+        ? replaceMathExpressionAtPath(expression.denominator, remainingPath, replacement)
+        : expression.denominator,
+      expression.id,
+    );
+  }
+  if (expression.kind === "radical" && (branch === "body" || branch === "degree")) {
+    if (branch === "degree" && expression.degree === null) {
+      throw new Error(`Math path '${mathPathKey(path)}' does not exist`);
+    }
+    return createMathRadical(
+      branch === "body"
+        ? replaceMathExpressionAtPath(expression.body, remainingPath, replacement)
+        : expression.body,
+      branch === "degree" && expression.degree !== null
+        ? replaceMathExpressionAtPath(expression.degree, remainingPath, replacement)
+        : expression.degree,
+      expression.id,
+    );
+  }
+  if (
+    expression.kind === "script" &&
+    (branch === "base" || branch === "subscript" || branch === "superscript")
+  ) {
+    if (branch === "subscript" && expression.subscript === null) {
+      throw new Error(`Math path '${mathPathKey(path)}' does not exist`);
+    }
+    if (branch === "superscript" && expression.superscript === null) {
+      throw new Error(`Math path '${mathPathKey(path)}' does not exist`);
+    }
+    return createMathScript(
+      branch === "base"
+        ? replaceMathExpressionAtPath(expression.base, remainingPath, replacement)
+        : expression.base,
+      branch === "subscript" && expression.subscript !== null
+        ? replaceMathExpressionAtPath(expression.subscript, remainingPath, replacement)
+        : expression.subscript,
+      branch === "superscript" && expression.superscript !== null
+        ? replaceMathExpressionAtPath(expression.superscript, remainingPath, replacement)
+        : expression.superscript,
       expression.id,
     );
   }
@@ -448,6 +582,25 @@ export function mathExpressionHasSlots(expression: MathExpression): boolean {
       mathExpressionHasSlots(expression.lower) ||
       mathExpressionHasSlots(expression.upper) ||
       mathExpressionHasSlots(expression.body)
+    );
+  }
+  if (expression.kind === "fraction") {
+    return (
+      mathExpressionHasSlots(expression.numerator) ||
+      mathExpressionHasSlots(expression.denominator)
+    );
+  }
+  if (expression.kind === "radical") {
+    return (
+      mathExpressionHasSlots(expression.body) ||
+      (expression.degree !== null && mathExpressionHasSlots(expression.degree))
+    );
+  }
+  if (expression.kind === "script") {
+    return (
+      mathExpressionHasSlots(expression.base) ||
+      (expression.subscript !== null && mathExpressionHasSlots(expression.subscript)) ||
+      (expression.superscript !== null && mathExpressionHasSlots(expression.superscript))
     );
   }
   if (expression.kind === "parenthesized") {
@@ -566,6 +719,25 @@ function renderMathExpression(
   if (expression.kind === "summation") {
     return `Σ_{${renderMathExpression(expression.lower, null, null)}}^{${renderMathExpression(expression.upper, null, null)}} ${renderMathExpression(expression.body, null, null)}`;
   }
+  if (expression.kind === "fraction") {
+    return `(${renderMathExpression(expression.numerator, null, null)}) / (${renderMathExpression(expression.denominator, null, null)})`;
+  }
+  if (expression.kind === "radical") {
+    const body = renderMathExpression(expression.body, null, null);
+    return expression.degree === null
+      ? `√(${body})`
+      : `root(${renderMathExpression(expression.degree, null, null)}, ${body})`;
+  }
+  if (expression.kind === "script") {
+    const base = renderMathExpression(expression.base, null, null);
+    const subscript = expression.subscript === null
+      ? ""
+      : `_{${renderMathExpression(expression.subscript, null, null)}}`;
+    const superscript = expression.superscript === null
+      ? ""
+      : `^{${renderMathExpression(expression.superscript, null, null)}}`;
+    return `${base}${subscript}${superscript}`;
+  }
   if (expression.kind === "parenthesized") {
     return `(${renderMathExpression(expression.body, null, null)})`;
   }
@@ -652,6 +824,28 @@ export function validateMathExpression(expression: MathExpression): void {
         visit(node.upper, depth + 1);
         visit(node.body, depth + 1);
         return;
+      case "fraction":
+        visit(node.numerator, depth + 1);
+        visit(node.denominator, depth + 1);
+        return;
+      case "radical":
+        visit(node.body, depth + 1);
+        if (node.degree !== null) {
+          visit(node.degree, depth + 1);
+        }
+        return;
+      case "script":
+        if (node.subscript === null && node.superscript === null) {
+          throw new Error("Builder math scripts require a subscript or superscript");
+        }
+        visit(node.base, depth + 1);
+        if (node.subscript !== null) {
+          visit(node.subscript, depth + 1);
+        }
+        if (node.superscript !== null) {
+          visit(node.superscript, depth + 1);
+        }
+        return;
       case "parenthesized":
       case "delimited":
       case "negated":
@@ -709,6 +903,22 @@ type SerializedMathExpression =
       upper: SerializedMathExpression;
       body: SerializedMathExpression;
     }>
+  | Readonly<{
+      kind: "fraction";
+      numerator: SerializedMathExpression;
+      denominator: SerializedMathExpression;
+    }>
+  | Readonly<{
+      kind: "radical";
+      body: SerializedMathExpression;
+      degree: SerializedMathExpression | null;
+    }>
+  | Readonly<{
+      kind: "script";
+      base: SerializedMathExpression;
+      subscript: SerializedMathExpression | null;
+      superscript: SerializedMathExpression | null;
+    }>
   | Readonly<{ kind: "parenthesized"; body: SerializedMathExpression }>
   | Readonly<{
       kind: "delimited";
@@ -750,6 +960,27 @@ function serializeMathNode(expression: MathExpression): SerializedMathExpression
         lower: serializeMathNode(expression.lower),
         upper: serializeMathNode(expression.upper),
         body: serializeMathNode(expression.body),
+      };
+    case "fraction":
+      return {
+        kind: "fraction",
+        numerator: serializeMathNode(expression.numerator),
+        denominator: serializeMathNode(expression.denominator),
+      };
+    case "radical":
+      return {
+        kind: "radical",
+        body: serializeMathNode(expression.body),
+        degree: expression.degree === null ? null : serializeMathNode(expression.degree),
+      };
+    case "script":
+      return {
+        kind: "script",
+        base: serializeMathNode(expression.base),
+        subscript:
+          expression.subscript === null ? null : serializeMathNode(expression.subscript),
+        superscript:
+          expression.superscript === null ? null : serializeMathNode(expression.superscript),
       };
     case "parenthesized":
       return { kind: "parenthesized", body: serializeMathNode(expression.body) };
@@ -845,6 +1076,22 @@ function parseSerializedMathNode(value: unknown): MathExpression {
         parseSerializedMathNode(node.lower),
         parseSerializedMathNode(node.upper),
         parseSerializedMathNode(node.body),
+      );
+    case "fraction":
+      return createMathFraction(
+        parseSerializedMathNode(node.numerator),
+        parseSerializedMathNode(node.denominator),
+      );
+    case "radical":
+      return createMathRadical(
+        parseSerializedMathNode(node.body),
+        node.degree === null ? null : parseSerializedMathNode(node.degree),
+      );
+    case "script":
+      return createMathScript(
+        parseSerializedMathNode(node.base),
+        node.subscript === null ? null : parseSerializedMathNode(node.subscript),
+        node.superscript === null ? null : parseSerializedMathNode(node.superscript),
       );
     case "parenthesized":
       return createMathParenthesized(parseSerializedMathNode(node.body));

@@ -319,6 +319,25 @@ auto write_expression(
                 output.write_raw("}");
             }
             return;
+        case Kind::fraction:
+            output.write_raw("\\frac{");
+            write_expression(expression.fraction_numerator(), output);
+            output.write_raw("}{");
+            write_expression(expression.fraction_denominator(), output);
+            output.write_raw("}");
+            return;
+        case Kind::radical:
+            output.write_raw("\\sqrt");
+            if (const auto* degree = expression.radical_degree(); degree != nullptr)
+            {
+                output.write_raw("[");
+                write_expression(*degree, output);
+                output.write_raw("]");
+            }
+            output.write_raw("{");
+            write_expression(expression.radical_radicand(), output);
+            output.write_raw("}");
+            return;
         case Kind::sequence:
             {
                 constexpr int k_sequence_precedence = 30;

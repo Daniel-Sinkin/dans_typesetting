@@ -47,12 +47,13 @@ references, and an optional CSV adapter. The audited thesis still requires
 spans, explicit width policy, composite layouts, and dedicated table-note
 placement before table parity is complete.
 
-The first matvec slice now covers arbitrary rectangular structured grids,
-square-bracketed matrices, row vectors, and column vectors in native LaTeX and
-the graphical writer. Cells retain recursive editing and canonical transport.
-The audited corpus still needs parentheses matrices, block separators, arrays,
-fractions, roots, scripts, and richer operators before mathematical parity is
-close.
+The structured-math slices now cover arbitrary rectangular grids,
+square-bracketed matrices, row vectors, column vectors, stacked fractions,
+square/indexed roots, and combined scripts in native LaTeX and the graphical
+writer. Every child retains recursive editing and canonical transport. The
+audited corpus still needs parentheses matrices, block separators, arrays,
+richer operators/relations, and several specialized environments before
+mathematical parity is close.
 
 The listing contract now covers C++, CUDA, Julia, and raw source with
 independently optional captions and reference targets in native LaTeX and the

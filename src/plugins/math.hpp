@@ -151,6 +151,8 @@ class Math final
         symbol,
         binary,
         script,
+        fraction,
+        radical,
         sequence,
         comma_separated,
         function,
@@ -178,6 +180,9 @@ class Math final
     [[nodiscard]] static auto product(Math left, Math right) -> Math;
     [[nodiscard]] static auto center_dot(Math left, Math right) -> Math;
     [[nodiscard]] static auto times(Math left, Math right) -> Math;
+    [[nodiscard]] static auto fraction(Math numerator, Math denominator) -> Math;
+    [[nodiscard]] static auto square_root(Math radicand) -> Math;
+    [[nodiscard]] static auto nth_root(Math degree, Math radicand) -> Math;
     [[nodiscard]] static auto sequence() -> Math;
     template <typename... Expressions>
         requires(sizeof...(Expressions) > 0 && (std::convertible_to<Expressions &&, Math> && ...))
@@ -232,6 +237,10 @@ class Math final
     [[nodiscard]] auto script_base() const -> const Math&;
     [[nodiscard]] auto script_subscript() const -> const Math*;
     [[nodiscard]] auto script_superscript() const -> const Math*;
+    [[nodiscard]] auto fraction_numerator() const -> const Math&;
+    [[nodiscard]] auto fraction_denominator() const -> const Math&;
+    [[nodiscard]] auto radical_radicand() const -> const Math&;
+    [[nodiscard]] auto radical_degree() const -> const Math*;
     [[nodiscard]] auto items() const -> std::span<const Math>;
     [[nodiscard]] auto function_name() const -> std::string_view;
     [[nodiscard]] auto function_is_named_operator() const -> bool;

@@ -195,30 +195,55 @@
             "name": "x"
           },
           "right": {
-            "kind": "delimited",
-            "delimiter": "brackets",
-            "body": {
-              "kind": "grid",
-              "rows": 2,
-              "columns": 2,
-              "cells": [
-                {
-                  "kind": "integer",
-                  "value": "1"
-                },
-                {
-                  "kind": "decimal",
-                  "value": "3.2"
-                },
-                {
+            "kind": "fraction",
+            "numerator": {
+              "kind": "delimited",
+              "delimiter": "brackets",
+              "body": {
+                "kind": "grid",
+                "rows": 2,
+                "columns": 2,
+                "cells": [
+                  {
+                    "kind": "integer",
+                    "value": "1"
+                  },
+                  {
+                    "kind": "decimal",
+                    "value": "3.2"
+                  },
+                  {
+                    "kind": "identifier",
+                    "name": "a"
+                  },
+                  {
+                    "kind": "integer",
+                    "value": "4"
+                  }
+                ]
+              }
+            },
+            "denominator": {
+              "kind": "radical",
+              "body": {
+                "kind": "script",
+                "base": {
                   "kind": "identifier",
-                  "name": "a"
+                  "name": "lambda"
                 },
-                {
+                "subscript": {
+                  "kind": "identifier",
+                  "name": "i"
+                },
+                "superscript": {
                   "kind": "integer",
-                  "value": "4"
+                  "value": "2"
                 }
-              ]
+              },
+              "degree": {
+                "kind": "integer",
+                "value": "3"
+              }
             }
           }
         },

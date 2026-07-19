@@ -9,6 +9,8 @@ import {
   createMathInteger,
   createMathNegated,
   createMathParenthesized,
+  createMathRadical,
+  createMathScript,
   validateMathExpression,
   type MathBinaryOperator,
   type MathExpression,
@@ -23,6 +25,8 @@ type TokenKind =
   | "divide"
   | "equals"
   | "comma"
+  | "subscript"
+  | "superscript"
   | "open_parenthesis"
   | "close_parenthesis"
   | "open_bracket"
@@ -61,6 +65,10 @@ function symbolTokenKind(symbol: string): TokenKind | null {
       return "equals";
     case ",":
       return "comma";
+    case "_":
+      return "subscript";
+    case "^":
+      return "superscript";
     case "(":
       return "open_parenthesis";
     case ")":
@@ -230,6 +238,47 @@ class BasicMathParser {
       this.#advance();
       return createMathNegated(this.#parseUnary());
     }
+    return this.#parsePostfix();
+  }
+
+  #parsePostfix(): MathExpression {
+    let expression = this.#parsePrimary();
+    while (
+      this.#current().kind === "subscript" ||
+      this.#current().kind === "superscript"
+    ) {
+      const operator = this.#advance();
+      const script = this.#parseScriptAtom();
+      const base = expression.kind === "script" ? expression.base : expression;
+      let subscript = expression.kind === "script" ? expression.subscript : null;
+      let superscript = expression.kind === "script" ? expression.superscript : null;
+      if (operator.kind === "subscript") {
+        if (subscript !== null) {
+          throw new MathInputParseError("A subscript was specified twice", operator.offset);
+        }
+        subscript = script;
+      } else {
+        if (superscript !== null) {
+          throw new MathInputParseError("A superscript was specified twice", operator.offset);
+        }
+        superscript = script;
+      }
+      expression = createMathScript(base, subscript, superscript);
+    }
+    return expression;
+  }
+
+  #parseScriptAtom(): MathExpression {
+    if (this.#current().kind === "minus") {
+      this.#advance();
+      return createMathNegated(this.#parseScriptAtom());
+    }
+    if (this.#current().kind === "open_brace") {
+      this.#advance();
+      const body = this.#parseCommaSequence();
+      this.#consume("close_brace", "'}'");
+      return body;
+    }
     return this.#parsePrimary();
   }
 
@@ -243,6 +292,12 @@ class BasicMathParser {
     }
     if (token.kind === "identifier") {
       this.#advance();
+      if (token.text === "sqrt" && this.#current().kind === "open_parenthesis") {
+        this.#advance();
+        const body = this.#parseCommaSequence();
+        this.#consume("close_parenthesis", "')'");
+        return createMathRadical(body);
+      }
       return createMathIdentifier(token.text);
     }
     if (token.kind === "open_parenthesis") {

@@ -281,6 +281,9 @@ async function exerciseBuilder(client) {
       structuredMath: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node") !== null,
       summation: document.querySelector("[data-visual-block-id='sample-display-math'] .math-summation-symbol")?.textContent === "∑",
       matrixGrid: document.querySelector("[data-visual-block-id='sample-display-math'] .math-grid")?.children.length === 4,
+      fraction: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--fraction") !== null,
+      radical: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--radical") !== null,
+      script: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--script") !== null,
       codeListing: document.querySelector("[data-visual-block-id='sample-code-listing'] code")?.textContent.includes("std::println") ?? false,
       opaqueFallback: document.body.textContent.includes("dans.future.block"),
       inlineMath: document.querySelector("[data-inline-math-id='sample-introduction-inline-math'] .math-node") !== null,
@@ -307,6 +310,7 @@ async function exerciseBuilder(client) {
   assert(initial.structuredMath, "Structured display math was not rendered");
   assert(initial.summation, "Structured summation was not rendered");
   assert(initial.matrixGrid, "The optional matrix/vector extension was not rendered");
+  assert(initial.fraction && initial.radical && initial.script, "Structured fraction, radical, or script rendering is missing");
   assert(initial.codeListing, "The C++ code-listing plugin was not rendered");
   assert(initial.opaqueFallback, "The opaque block fallback was not rendered");
   assert(initial.inlineMath, "Structured inline mathematics was not rendered");
@@ -964,6 +968,17 @@ async function exerciseBuilder(client) {
     await client.evaluate(`document.querySelector("[data-math-editor-extension='dans.math.matvec'] [data-math-palette='matvec-matrix-2x3']") !== null`),
     "The optional matrix/vector extension did not contribute its editor palette",
   );
+  assert(
+    await client.evaluate(`[
+      "structure-fraction",
+      "structure-square-root",
+      "structure-indexed-root",
+      "structure-subscript",
+      "structure-superscript",
+      "structure-scripts"
+    ].every((id) => document.querySelector(\`[data-math-palette='\${id}']\`) !== null)`),
+    "The core math structures did not contribute their complete editor palette",
+  );
   const heldNode = await client.evaluate(`(() => {
     const node = document.querySelector(".math-editor-canvas [data-math-path='left.left']");
     const bounds = node.getBoundingClientRect();
@@ -1143,7 +1158,7 @@ async function exerciseBuilder(client) {
   await client.evaluate(`(() => {
     const input = document.querySelector("input[data-math-slot-input='left.right']");
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    setter.call(input, "-56.321/(a+[B,{c,-3}])");
+    setter.call(input, "sqrt(x_2^3)/(-56.321/(a+[B,{c,-3}]))");
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
   })()`);
@@ -1153,7 +1168,9 @@ async function exerciseBuilder(client) {
       return replacement.textContent.includes("56.321") &&
         replacement.querySelector(".math-node--negated") !== null &&
         replacement.querySelector(".math-node--delimited") !== null &&
-        replacement.querySelector(".math-node--comma_sequence") !== null;
+        replacement.querySelector(".math-node--comma_sequence") !== null &&
+        replacement.querySelector(".math-node--radical") !== null &&
+        replacement.querySelector(".math-node--script") !== null;
     })()`),
     "The registered basic-expression parser did not replace a math slot with structured input",
   );
@@ -1220,6 +1237,26 @@ async function exerciseBuilder(client) {
     await client.evaluate(`document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")?.textContent.includes("7") ?? false`),
     "A matrix cell did not accept the ordinary recursive math drop contract",
   );
+  const fractionInsertPoints = await client.evaluate(`(() => {
+    const center = (element) => {
+      const bounds = element.getBoundingClientRect();
+      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    };
+    return {
+      start: center(document.querySelector("[data-math-palette='structure-fraction']")),
+      end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")),
+    };
+  })()`);
+  await pointerDrag(client, fractionInsertPoints.start, fractionInsertPoints.end);
+  assert(
+    await client.evaluate(`(() => {
+      const fraction = document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0'].math-node--fraction");
+      return fraction !== null &&
+        fraction.querySelector("[data-math-path='left.left.left.body.cell:0.numerator'] .math-slot-action") !== null &&
+        fraction.querySelector("[data-math-path='left.left.left.body.cell:0.denominator'] .math-slot-action") !== null;
+    })()`),
+    "A palette fraction did not expose recursive numerator and denominator slots",
+  );
   await screenshot(client, "math-matvec-editor.png");
 
   await reloadBuilder(client);
@@ -1242,7 +1279,10 @@ async function exerciseBuilder(client) {
         document.body.textContent.includes("A styled canonical paragraph") &&
         document.body.textContent.includes("third.party.block") &&
         document.querySelector("button[data-testid='save-document']") !== null &&
-        document.querySelector("[data-visual-block-id='fixture-equation'] .math-grid")?.children.length === 4;
+        document.querySelector("[data-visual-block-id='fixture-equation'] .math-grid")?.children.length === 4 &&
+        document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--fraction") !== null &&
+        document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--radical") !== null &&
+        document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--script") !== null;
     })()`),
     "Canonical document loading did not transactionally replace the graphical document",
   );

@@ -6,11 +6,14 @@ import {
   createMathCommaSequence,
   createMathDecimal,
   createMathDelimited,
+  createMathFraction,
   createMathIdentifier,
   createMathInteger,
   createMathLeafFromInput,
   createMathParenthesized,
   createMathNegated,
+  createMathRadical,
+  createMathScript,
   createMathSlot,
   createMathSummation,
   detachMathExpressionAtPath,
@@ -21,6 +24,7 @@ import {
   mathExpressionToText,
   parseMathPath,
   replaceMathExpressionAtPath,
+  validateMathExpression,
 } from "./math";
 
 function sampleExpression() {
@@ -91,6 +95,16 @@ describe("structured math", () => {
     expect(parseMathPath("left.body.upper")).toEqual(["left", "body", "upper"]);
     expect(parseMathPath("body.item:12.right")).toEqual(["body", "item:12", "right"]);
     expect(parseMathPath("body.cell:12.right")).toEqual(["body", "cell:12", "right"]);
+    expect(parseMathPath("numerator.base.subscript")).toEqual([
+      "numerator",
+      "base",
+      "subscript",
+    ]);
+    expect(parseMathPath("degree.body.denominator")).toEqual([
+      "degree",
+      "body",
+      "denominator",
+    ]);
     expect(parseMathPath("item:-1")).toBeNull();
     expect(parseMathPath("left.argument")).toBeNull();
   });
@@ -131,5 +145,59 @@ describe("structured math", () => {
     const restored = mathExpressionFromString(mathExpressionToString(grouped));
 
     expect(mathExpressionToText(restored)).toBe("{A / 4, −56.321}");
+  });
+
+  it("replaces and detaches every slot of fractions, radicals, and scripts", () => {
+    const expression = createMathFraction(
+      createMathRadical(createMathIdentifier("x"), createMathInteger(3)),
+      createMathScript(
+        createMathIdentifier("A"),
+        createMathInteger(4),
+        createMathInteger(2),
+      ),
+    );
+    expect(mathExpressionAtPath(expression, ["numerator", "degree"])?.kind).toBe("integer");
+    expect(mathExpressionAtPath(expression, ["denominator", "subscript"])?.kind).toBe(
+      "integer",
+    );
+
+    const detached = detachMathExpressionAtPath(expression, ["denominator", "superscript"]);
+    expect(mathExpressionToText(detached.detached)).toBe("2");
+    expect(mathExpressionToText(detached.expression)).toBe("(root(3, x)) / (A_{4}^{□})");
+    expect(mathExpressionHasSlots(detached.expression)).toBe(true);
+
+    const repaired = replaceMathExpressionAtPath(
+      detached.expression,
+      ["denominator", "superscript"],
+      createMathInteger(5),
+    );
+    expect(mathExpressionToText(repaired)).toBe("(root(3, x)) / (A_{4}^{5})");
+  });
+
+  it("canonically round-trips nested fractions, roots, and combined scripts", () => {
+    const expression = createMathFraction(
+      createMathRadical(
+        createMathScript(createMathIdentifier("x"), createMathInteger(1), createMathInteger(2)),
+      ),
+      createMathRadical(createMathIdentifier("y"), createMathInteger(3)),
+    );
+    const serialized = mathExpressionToString(expression);
+    const restored = mathExpressionFromString(serialized);
+
+    expect(mathExpressionToString(restored)).toBe(serialized);
+    expect(mathExpressionToText(restored)).toBe("(√(x_{1}^{2})) / (root(3, y))");
+    validateMathExpression(restored);
+  });
+
+  it("rejects script nodes without scripts and duplicate node ownership", () => {
+    expect(() => createMathScript(createMathIdentifier("x"), null, null)).toThrow(
+      /requires a subscript or superscript/u,
+    );
+    const shared = createMathInteger(1);
+    expect(() => {
+      validateMathExpression(createMathFraction(shared, shared));
+    }).toThrow(
+      /unique/u,
+    );
   });
 });

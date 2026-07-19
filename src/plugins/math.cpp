@@ -207,6 +207,18 @@ struct Math::Node
         std::optional<Math> superscript{};
     };
 
+    struct Fraction
+    {
+        Math numerator;
+        Math denominator;
+    };
+
+    struct Radical
+    {
+        Math radicand;
+        std::optional<Math> degree{};
+    };
+
     struct Sequence
     {
         std::vector<Math> items{};
@@ -256,6 +268,8 @@ struct Math::Node
         Symbol,
         BinaryExpression,
         Script,
+        Fraction,
+        Radical,
         Sequence,
         CommaSeparated,
         Function,
@@ -280,22 +294,32 @@ Math::~Math() = default;
 Math::Math(Math&& other) noexcept = default;
 auto Math::operator=(Math&& other) noexcept -> Math& = default;
 
+// GCC 16 otherwise reports a false positive from -Wnull-dereference after
+// inlining this moved-from guard into the recursive variant visitors.
+#if defined(__GNUC__) && !defined(__clang__)
+[[gnu::noinline]]
+#endif
 auto Math::node() -> Node&
 {
-    if (node_ == nullptr)
+    auto* const value = node_.get();
+    if (value == nullptr)
     {
         throw std::logic_error{"Cannot use a moved-from math expression"};
     }
-    return *node_;
+    return *value;
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
+[[gnu::noinline]]
+#endif
 auto Math::node() const -> const Node&
 {
-    if (node_ == nullptr)
+    const auto* const value = node_.get();
+    if (value == nullptr)
     {
         throw std::logic_error{"Cannot use a moved-from math expression"};
     }
-    return *node_;
+    return *value;
 }
 
 auto Math::integer(const i64 value) -> Math
@@ -362,6 +386,30 @@ auto Math::center_dot(Math left, Math right) -> Math
 auto Math::times(Math left, Math right) -> Math
 {
     return binary(std::move(left), BinaryOperator::times, std::move(right));
+}
+
+auto Math::fraction(Math numerator, Math denominator) -> Math
+{
+    return Math{std::make_unique<Node>(Node::Fraction{
+        .numerator = std::move(numerator),
+        .denominator = std::move(denominator),
+    })};
+}
+
+auto Math::square_root(Math radicand) -> Math
+{
+    return Math{std::make_unique<Node>(Node::Radical{
+        .radicand = std::move(radicand),
+        .degree = std::nullopt,
+    })};
+}
+
+auto Math::nth_root(Math degree, Math radicand) -> Math
+{
+    return Math{std::make_unique<Node>(Node::Radical{
+        .radicand = std::move(radicand),
+        .degree = std::move(degree),
+    })};
 }
 
 auto Math::sequence() -> Math
@@ -666,6 +714,14 @@ auto Math::kind() const -> Kind
             {
                 return Kind::script;
             }
+            else if constexpr (std::is_same_v<Value, Node::Fraction>)
+            {
+                return Kind::fraction;
+            }
+            else if constexpr (std::is_same_v<Value, Node::Radical>)
+            {
+                return Kind::radical;
+            }
             else if constexpr (std::is_same_v<Value, Node::Sequence>)
             {
                 return Kind::sequence;
@@ -734,6 +790,27 @@ auto Math::script_subscript() const -> const Math*
 auto Math::script_superscript() const -> const Math*
 {
     const auto& value = std::get<Node::Script>(node().value).superscript;
+    return value.has_value() ? &*value : nullptr;
+}
+
+auto Math::fraction_numerator() const -> const Math&
+{
+    return std::get<Node::Fraction>(node().value).numerator;
+}
+
+auto Math::fraction_denominator() const -> const Math&
+{
+    return std::get<Node::Fraction>(node().value).denominator;
+}
+
+auto Math::radical_radicand() const -> const Math&
+{
+    return std::get<Node::Radical>(node().value).radicand;
+}
+
+auto Math::radical_degree() const -> const Math*
+{
+    const auto& value = std::get<Node::Radical>(node().value).degree;
     return value.has_value() ? &*value : nullptr;
 }
 
@@ -849,6 +926,13 @@ auto Math::explicit_alignment_points() const -> usize
                 }
                 return count;
             }
+        case Kind::fraction:
+            return fraction_numerator().explicit_alignment_points()
+                   + fraction_denominator().explicit_alignment_points();
+        case Kind::radical:
+            return radical_radicand().explicit_alignment_points()
+                   + (radical_degree() == nullptr ? usize{0}
+                                                  : radical_degree()->explicit_alignment_points());
         case Kind::sequence:
         case Kind::comma_separated:
         case Kind::inner_product:
@@ -922,6 +1006,17 @@ auto Math::validate() const -> void
             if (script_subscript() == nullptr && script_superscript() == nullptr)
             {
                 throw std::logic_error{"A math script requires a subscript or superscript"};
+            }
+            return;
+        case Kind::fraction:
+            fraction_numerator().validate();
+            fraction_denominator().validate();
+            return;
+        case Kind::radical:
+            radical_radicand().validate();
+            if (const auto* degree = radical_degree(); degree != nullptr)
+            {
+                degree->validate();
             }
             return;
         case Kind::sequence:
