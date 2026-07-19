@@ -57,6 +57,7 @@ import { createSampleExcalidrawScene } from "../plugins/drawingScene";
 import { createItemListPlugin } from "../plugins/itemListPlugin";
 import { createBuilderListItem, itemListTypeId } from "../plugins/itemListModel";
 import { footnoteInlinePlugin } from "../plugins/footnote";
+import { createInlineCode, inlineCodePlugin } from "../plugins/inlineCode";
 import { createFootnoteInline } from "../plugins/footnoteModel";
 import { tableCsvCapability } from "../plugins/tableCsv";
 import {
@@ -79,6 +80,7 @@ const inlinePluginRegistry = new BuilderInlinePluginRegistry(
     hyperlinkInlinePlugin,
     referenceInlinePlugin,
     footnoteInlinePlugin,
+    inlineCodePlugin,
   ],
   opaqueInlineAdapter,
 );
@@ -191,6 +193,12 @@ const initialBlocks = [
         "sample-introduction-footnote",
       ),
       createParagraphText(".", "sample-introduction-footnote-period"),
+      createParagraphText(" CUDA synchronization uses ", "sample-introduction-code-join"),
+      createInlineCode(
+        "cudaDeviceSynchronize()",
+        "sample-introduction-inline-code",
+      ),
+      createParagraphText(".", "sample-introduction-code-period"),
     ]),
   }),
   Object.freeze({

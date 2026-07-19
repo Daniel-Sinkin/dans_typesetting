@@ -36,9 +36,10 @@ table of contents derives its numbered entries from the live section tree, and e
 advance following content. The page-range controls project at most five pages at once.
 
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
-live composed preview. Normal/bold/italic/bold-italic text, semantic RGB colour spans, hyperlinks,
-live cross-references, numbered footnotes, and structured inline math are editable while unsupported
-inline nodes remain visible as named read-only chips. Footnotes render as live superscript markers
+live composed preview. Normal/bold/italic/bold-italic text, semantic single-line code, semantic RGB
+colour spans, hyperlinks, live cross-references, numbered footnotes, and structured inline math are
+editable while unsupported inline nodes remain visible as named read-only chips. Footnotes render
+as live superscript markers
 with hover/focus previews; their editor composes, adds, removes, and reorders a nested inline
 sequence. Markers are derived from current document traversal rather than stored in the payload,
 including when a footnote is hosted by a list item. Image editing uses the native file picker and

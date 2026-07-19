@@ -1,6 +1,7 @@
 // Assemble canonical transport codecs without coupling the transport core to plugins.
 import { codeListingBlockTransportCodec } from "../plugins/codeListingTransport";
 import { colorSpanInlineTransportCodec } from "../plugins/colorSpanTransport";
+import { inlineCodeTransportCodec } from "../plugins/inlineCodeTransport";
 import { hyperlinkInlineTransportCodec } from "../plugins/hyperlinkTransport";
 import { referenceInlineTransportCodec } from "../plugins/referenceTransport";
 import { footnoteInlineTransportCodec } from "../plugins/footnoteTransport";
@@ -48,6 +49,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     hyperlinkInlineTransportCodec,
     referenceInlineTransportCodec,
     footnoteInlineTransportCodec,
+    inlineCodeTransportCodec,
   ],
 );
 

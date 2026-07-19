@@ -282,6 +282,18 @@ button {
   line-height: 1.5;
 }
 
+.inline-code-content {
+  margin: 0 0.1em;
+  padding: 0.08em 0.3em;
+  color: #0b5967;
+  background: #e3fafc;
+  border: 1px solid #c5f6fa;
+  border-radius: 0.25em;
+  font-family: "Iosevka", "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.88em;
+  white-space: pre-wrap;
+}
+
 .item-list-content {
   display: grid;
   margin: 0;
@@ -1627,6 +1639,27 @@ button {
   display: flex;
   flex-direction: column;
   gap: 7px;
+}
+
+.inline-code-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inline-code-editor > span {
+  color: #495057;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.inline-code-editor input {
+  font-family: "Iosevka", "JetBrains Mono", "Fira Code", monospace;
+}
+
+.inline-code-editor small {
+  color: #868e96;
+  font-size: 9px;
 }
 
 .inline-text-editor label,

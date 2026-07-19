@@ -25,7 +25,7 @@ const canonicalFixturePath = join(
 );
 const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
 const initialBlockCount = 13;
-const initialParagraphSegmentCount = 14;
+const initialParagraphSegmentCount = 17;
 
 function assert(condition, message) {
   if (!condition) {
@@ -289,6 +289,7 @@ async function exerciseBuilder(client) {
       inlineMath: document.querySelector("[data-inline-math-id='sample-introduction-inline-math'] .math-node") !== null,
       hyperlink: document.querySelector("a[href='https://example.com/typesetting']")?.textContent.includes("clickable links") ?? false,
       styledText: document.querySelector("[data-visual-block-id='sample-introduction'] strong em")?.textContent === "Styled text",
+      inlineCode: document.querySelector("[data-visual-block-id='sample-introduction'] .inline-code-content")?.textContent === "cudaDeviceSynchronize()",
       figureNumber: document.querySelector("[data-visual-block-id='sample-figure'] figcaption")?.textContent.includes("Figure 1:") ?? false,
       equationNumber: document.querySelector("[data-visual-block-id='sample-display-math'] .math-equation-number")?.textContent === "(1)",
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
@@ -316,6 +317,7 @@ async function exerciseBuilder(client) {
   assert(initial.inlineMath, "Structured inline mathematics was not rendered");
   assert(initial.hyperlink, "The semantic hyperlink was not rendered as a clickable link");
   assert(initial.styledText, "Styled Core Text was not rendered");
+  assert(initial.inlineCode, "Semantic inline code was not rendered");
   assert(initial.figureNumber && initial.equationNumber && initial.listingNumber, "Live numbering is incorrect");
   assert(initial.drawingPreview, "The Excalidraw scene was not projected through SVG");
   assert(initial.drawingNumber, "The embedded drawing did not join figure numbering");
@@ -697,6 +699,9 @@ async function exerciseBuilder(client) {
     const footnoteText = document.querySelector("textarea[data-inline-id='sample-introduction-footnote-text']");
     textareaSetter.call(footnoteText, "Updated footnote with ");
     footnoteText.dispatchEvent(new Event("input", { bubbles: true }));
+    const inlineCode = document.querySelector("input[data-inline-code-id='sample-introduction-inline-code']");
+    inputSetter.call(inlineCode, "cudaGetLastError()");
+    inlineCode.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(80);
   const paragraphLive = await client.evaluate(`(() => {
@@ -712,6 +717,7 @@ async function exerciseBuilder(client) {
       reference: preview.querySelector("a.inline-reference")?.textContent === "Figure 1",
       footnote: preview.querySelector(".footnote-preview > sup > button")?.textContent.trim() === "1"
         && preview.querySelector(".footnote-preview__popover")?.textContent.includes("Updated footnote"),
+      inlineCode: preview.querySelector(".inline-code-content")?.textContent === "cudaGetLastError()",
     };
   })()`);
   assert(paragraphLive.text, "Paragraph live preview did not update before save");
@@ -725,6 +731,7 @@ async function exerciseBuilder(client) {
   assert(paragraphLive.styled, "Core Text style did not live-update");
   assert(paragraphLive.reference, "Semantic reference numbering did not resolve live");
   assert(paragraphLive.footnote, "Footnote numbering or nested editing did not update live");
+  assert(paragraphLive.inlineCode, "Inline-code editing did not update the live preview");
 
   await client.evaluate(`(() => {
     document.querySelector(".footnote-editor__add button").click();
@@ -805,9 +812,11 @@ async function exerciseBuilder(client) {
     [...item.querySelectorAll("button")].find((button) => button.textContent.trim() === "Remove").click();
     [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Save paragraph")).click();
   })()`);
-  const paragraphEdited = await client.evaluate(
-    `document.querySelector("[data-visual-block-id='sample-introduction']").textContent.includes("Edited by the browser smoke test")`,
-  );
+  const paragraphEdited = await client.evaluate(`(() => {
+    const paragraph = document.querySelector("[data-visual-block-id='sample-introduction']");
+    return paragraph.textContent.includes("Edited by the browser smoke test") &&
+      paragraph.querySelector(".inline-code-content")?.textContent === "cudaGetLastError()";
+  })()`);
   assert(paragraphEdited, "Paragraph sequence-text editing did not commit");
 
   await reloadBuilder(client);

@@ -84,6 +84,13 @@
             }
           },
           {
+            "id": "fixture-inline-code",
+            "type": "dans.code.inline",
+            "payload": {
+              "code": "std::span<const float>"
+            }
+          },
+          {
             "id": "fixture-link",
             "type": "dans.inline.hyperlink",
             "payload": {

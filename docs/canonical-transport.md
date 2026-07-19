@@ -70,3 +70,7 @@ nodes encode a recursive `body` plus a nullable `degree`. Script nodes encode a
 recursive `base` plus nullable `subscript` and `superscript` values, with at
 least one script required. These kinds use the existing schema-version-1 math
 payload and are covered by exact fixture normalization.
+
+Inline source code uses `dans.code.inline` with one string-valued `code` field.
+CR and LF are rejected because multiline source belongs to the listing plugin;
+all other code punctuation is stored semantically rather than writer-escaped.

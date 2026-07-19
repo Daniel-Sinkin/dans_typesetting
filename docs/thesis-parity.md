@@ -38,8 +38,8 @@ parity priorities than tables, lists, footnotes, section references, and CUDA
 listings.
 
 The base footnote contract is now implemented in both graphical and LaTeX
-writers, including nested styled text and hyperlinks. Table-note anchoring and
-inline-code leaves remain separate parity work.
+writers, including nested styled text and hyperlinks. Table-note anchoring
+remains separate parity work.
 
 The first rich-table contract is also implemented in both writers. It covers
 rectangular inline-rich cells, headers, alignment, captions, numbering,
@@ -58,8 +58,9 @@ mathematical parity is close.
 The listing contract now covers C++, CUDA, Julia, and raw source with
 independently optional captions and reference targets in native LaTeX and the
 graphical writer. Captionless listings retain consistent writer-derived
-ordinals. Rich inline captions, external-file/range inclusion, and code leaves
-inside prose remain separate parity work.
+ordinals. Semantic single-line code leaves inside prose are also complete in
+native LaTeX, canonical transport, and the graphical editor. Rich inline
+captions and external-file/range inclusion remain separate parity work.
 
 ## Representative port slices
 

@@ -31,9 +31,38 @@ numbering.
 Commit `39e89eb` adds semantic rich tables and the optional plain-text CSV
 capability.
 
+Commit `9cdd1df` adds the structured rectangular math-grid primitive and MatVec
+authoring extension.
+
+Commit `bdf0fdf` completes semantic code listings across native, canonical,
+graphical, browser-smoke, and PDF paths.
+
+Commit `ab2c589` adds structured fractions, radicals, and scripts across native
+and graphical math composition.
+
 ## Current verified slice
 
-The semantic code-listing completion slice adds:
+The semantic inline-code slice adds:
+
+- `dans.code.inline` as an independent Core Paragraph extension rather than a
+  prose style or raw-LaTeX escape;
+- a single-line validated native model and escaped `\texttt{...}` LaTeX
+  connector;
+- a draggable graphical segment with distinct preview and live payload editor;
+- plugin-owned canonical transport, shared-fixture coverage, and exact
+  encode/decode normalization;
+- malformed-payload tests, dual-compiler native coverage, and real-browser
+  preview/edit/commit coverage.
+
+Multiline source remains `dans.code.listing`; an empty inline-code value is
+allowed as transient authoring data.
+
+The preceding structured-math composition slice adds native and graphical
+fractions, square/indexed radicals, and subscript/superscript nodes with parser,
+clipboard, canonical transport, nested editor, browser smoke, and compiled-PDF
+coverage. See `math-structures.md`.
+
+The preceding semantic code-listing completion slice adds:
 
 - C++, CUDA, Julia, and raw language hints across native, canonical, graphical,
   and LaTeX representations;
@@ -196,7 +225,7 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Add a semantic inline-code leaf, then begin the citation/bibliography contract.
+Begin the citation/bibliography contract.
 Keep the completed table, listing, inline, and structured-math contracts stable
 while adding those independent capabilities. Structured fractions, square and
 indexed roots, and sub/superscripts now have native LaTeX, graphical editing,

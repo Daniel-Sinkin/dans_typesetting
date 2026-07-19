@@ -2,13 +2,16 @@
 #include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/footnote.hpp"
 #include "connectors/latex/hyperlink.hpp"
+#include "connectors/latex/inline_code.hpp"
 #include "document.hpp"
 #include "plugins/core_paragraph.hpp"
 #include "plugins/footnote.hpp"
 #include "plugins/hyperlink.hpp"
+#include "plugins/inline_code.hpp"
 #include "writers/latex_writer.hpp"
 
 #include <memory>
+#include <print>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -51,6 +54,8 @@ auto render_sample() -> std::string
     footnote.append_text("See ");
     auto& footnote_link = footnote.inlines().add<Hyperlink>("https://example.com/source");
     footnote_link.label().add<CoreText>("source", TextStyle::italic);
+    paragraph.append_text("; code ");
+    paragraph.inlines().add<InlineCode>(R"(block_size<&>{}_50%$#~^\)");
 
     auto inline_renderer =
         std::make_shared<dans::document::connectors::latex::CoreParagraphInlineLatexRenderer>();
@@ -62,6 +67,9 @@ auto render_sample() -> std::string
     );
     inline_renderer->register_inline_adapter(
         std::make_unique<dans::document::connectors::latex::FootnoteLatexAdapter>()
+    );
+    inline_renderer->register_inline_adapter(
+        std::make_unique<dans::document::connectors::latex::InlineCodeLatexAdapter>()
     );
 
     dans::document::writers::LatexWriter writer;
@@ -145,30 +153,83 @@ auto expect_invalid_footnote_content() -> void
         throw std::runtime_error{"An empty or directly nested footnote was accepted"};
     }
 }
+
+auto expect_invalid_inline_code() -> void
+{
+    using dans::document::plugins::InlineCode;
+
+    const InlineCode empty_code{""};
+    if (empty_code.type_id() != InlineCode::k_type_id || !empty_code.code().empty())
+    {
+        throw std::runtime_error{"An empty transient inline-code value was not preserved"};
+    }
+
+    for (const std::string_view code : {"first\nsecond", "first\rsecond"})
+    {
+        auto rejected = false;
+        try
+        {
+            [[maybe_unused]] InlineCode inline_code{code};
+        }
+        catch (const std::invalid_argument&)
+        {
+            rejected = true;
+        }
+        if (!rejected)
+        {
+            throw std::runtime_error{"Inline code with a line break was accepted"};
+        }
+    }
+}
 }  // namespace
 
-auto main() -> int
+auto main() noexcept -> int
 {
-    const auto rendered = render_sample();
-    expect_contains(rendered, "plain \\& safe", "ordinary text escaping");
-    expect_contains(rendered, "\\textbf{bold}", "bold Core Text");
-    expect_contains(rendered, "\\textit{italic}", "italic Core Text");
-    expect_contains(rendered, "\\textbf{\\textit{both}}", "bold italic Core Text");
-    expect_contains(
-        rendered,
-        "\\href{https://example.com/a\\_b?x=1\\&y=2\\#result}{https://example.com/"
-        "a\\_b?x=1\\&y=2\\#result}",
-        "visible hyperlink target"
-    );
-    expect_contains(
-        rendered, "\\href{www.example.com/results}{\\textbf{label}}", "styled hyperlink label"
-    );
-    expect_contains(
-        rendered,
-        R"(\footnote{See \href{https://example.com/source}{\textit{source}}})",
-        "semantic footnote"
-    );
-    expect_invalid_hyperlink_targets();
-    expect_invalid_footnote_content();
-    return 0;
+    try
+    {
+        const auto rendered = render_sample();
+        expect_contains(rendered, "plain \\& safe", "ordinary text escaping");
+        expect_contains(rendered, "\\textbf{bold}", "bold Core Text");
+        expect_contains(rendered, "\\textit{italic}", "italic Core Text");
+        expect_contains(rendered, "\\textbf{\\textit{both}}", "bold italic Core Text");
+        expect_contains(
+            rendered,
+            "\\href{https://example.com/a\\_b?x=1\\&y=2\\#result}{https://example.com/"
+            "a\\_b?x=1\\&y=2\\#result}",
+            "visible hyperlink target"
+        );
+        expect_contains(
+            rendered, "\\href{www.example.com/results}{\\textbf{label}}", "styled hyperlink label"
+        );
+        expect_contains(
+            rendered,
+            R"(\footnote{See \href{https://example.com/source}{\textit{source}}})",
+            "semantic footnote"
+        );
+        expect_contains(
+            rendered,
+            R"(\texttt{block\_size<\&>\{\}\_50\%\$\#\textasciitilde{}\textasciicircum{}\textbackslash{}})",
+            "escaped semantic inline code"
+        );
+        expect_invalid_hyperlink_targets();
+        expect_invalid_footnote_content();
+        expect_invalid_inline_code();
+        return 0;
+    }
+    catch (const std::exception& error)
+    {
+        try
+        {
+            std::println("native_inline_test failed: {}", error.what());
+        }
+        catch (...)
+        {
+            return 1;
+        }
+        return 1;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }

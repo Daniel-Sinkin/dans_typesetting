@@ -42,6 +42,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | --- | --- |
 | Paragraph | `dans.core.paragraph` |
 | Ordinary text | `dans.core.text` |
+| Inline code | `dans.code.inline` |
 | Inline math | `dans.math.inline` |
 | Display math | `dans.math.display` |
 | Hyperlink | `dans.inline.hyperlink` |
@@ -75,6 +76,8 @@ and tests at the boundaries it implements.
   values, not a compiler/parser contract. Caption and target identity are
   independent, while every listing remains in one writer-owned numbering
   series.
+- Inline code is a semantic single-line source leaf, not a Core Text style.
+  Multiline source remains a listing, and each writer owns its code syntax.
 - The graphical writer may show an opaque placeholder for unsupported plugins.
   It must preserve their envelope and payload rather than dropping them.
 

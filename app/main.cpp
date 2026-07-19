@@ -6,6 +6,7 @@
 #include "connectors/latex/footnote.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/image.hpp"
+#include "connectors/latex/inline_code.hpp"
 #include "connectors/latex/item_list.hpp"
 #include "connectors/latex/latex_mixin.hpp"
 #include "connectors/latex/math.hpp"
@@ -20,6 +21,7 @@
 #include "plugins/footnote.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
+#include "plugins/inline_code.hpp"
 #include "plugins/item_list.hpp"
 #include "plugins/latex_mixin.hpp"
 #include "plugins/math.hpp"
@@ -150,6 +152,8 @@ auto make_sample_document()
     inline_paragraph.append_text("A paragraph can combine ordinary text, inline math such as ");
     inline_paragraph.inlines().add<Math::Inline>(M::id_x.subscript(M::id_i).superscript(M::id_2));
     inline_paragraph.append_text(", and ");
+    inline_paragraph.inlines().add<InlineCode>("cudaDeviceSynchronize()");
+    inline_paragraph.append_text(" as semantic inline code, plus ");
     auto& color_span =
         inline_paragraph.inlines().add<ColorSpan>(RgbColor{.red = 38, .green = 96, .blue = 168});
     color_span.inlines().add<CoreText>("a coloured span containing both text and ");
@@ -371,6 +375,9 @@ auto run(const int argc, char** argv) -> int
         );
         inline_renderer->register_inline_adapter(
             std::make_unique<dans::document::connectors::latex::FootnoteLatexAdapter>()
+        );
+        inline_renderer->register_inline_adapter(
+            std::make_unique<dans::document::connectors::latex::InlineCodeLatexAdapter>()
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(

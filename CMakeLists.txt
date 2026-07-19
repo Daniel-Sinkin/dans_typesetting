@@ -243,6 +243,16 @@ target_link_libraries(code_listing_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(inline_code_plugin STATIC
+  src/plugins/inline_code.cpp
+  src/plugins/inline_code.hpp
+)
+add_library(dans::inline_code_plugin ALIAS inline_code_plugin)
+target_link_libraries(inline_code_plugin
+  PUBLIC dans::core_paragraph
+  PRIVATE typesetter_warnings
+)
+
 add_library(document_shell_plugin STATIC
   src/plugins/document_shell.cpp
   src/plugins/document_shell.hpp
@@ -421,6 +431,19 @@ target_link_libraries(code_listing_latex_connector
     typesetter_warnings
 )
 
+add_library(inline_code_latex_connector STATIC
+  src/connectors/latex/inline_code.cpp
+  src/connectors/latex/inline_code.hpp
+)
+add_library(dans::inline_code_latex_connector ALIAS inline_code_latex_connector)
+target_link_libraries(inline_code_latex_connector
+  PUBLIC
+    dans::inline_code_plugin
+    dans::core_paragraph_latex_connector
+  PRIVATE
+    typesetter_warnings
+)
+
 add_library(document_shell_latex_connector STATIC
   src/connectors/latex/document_shell.cpp
   src/connectors/latex/document_shell.hpp
@@ -445,6 +468,7 @@ target_link_libraries(document_example PRIVATE
   dans::excalidraw_drawing_latex_connector
   dans::footnote_latex_connector
   dans::image_latex_connector
+  dans::inline_code_latex_connector
   dans::item_list_latex_connector
   dans::hyperlink_latex_connector
   dans::latex_mixin_latex_connector
@@ -464,6 +488,7 @@ if(BUILD_TESTING)
     dans::core_paragraph_latex_connector
     dans::footnote_latex_connector
     dans::hyperlink_latex_connector
+    dans::inline_code_latex_connector
     typesetter_warnings
   )
   add_test(NAME native_inline_test COMMAND native_inline_test)
