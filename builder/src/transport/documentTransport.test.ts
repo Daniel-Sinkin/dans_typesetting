@@ -21,6 +21,10 @@ import {
 import { createColorSpanInline } from "../plugins/colorSpanModel";
 import { createImageBlock } from "../plugins/imageModel";
 import {
+  figurePairTypeId,
+  requireFigurePairBlock,
+} from "../plugins/figurePairModel";
+import {
   canonicalDocumentFormat,
   CanonicalDocumentTransport,
   DocumentTransportRegistry,
@@ -95,6 +99,14 @@ describe("canonical document transport", () => {
         new MemoryDocumentPort(decoded.blocks, decoded.metadata).getSnapshot(),
       ),
     ).toBe(normalizedFixture);
+    const pair = decoded.blocks.find((block) => block.typeId === figurePairTypeId);
+    if (pair === undefined) {
+      throw new Error("The shared fixture lost its figure-pair block");
+    }
+    expect(requireFigurePairBlock(pair).referenceId).toBeNull();
+    expect(requireFigurePairBlock(pair).panels[0].referenceId).toBe(
+      "fig:canonical-pair:left",
+    );
   });
 
   it("is exactly idempotent after normalization and preserves unknown payloads", () => {

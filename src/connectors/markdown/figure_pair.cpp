@@ -33,7 +33,8 @@ auto FigurePairMarkdownAdapter::targets(const DocumentBlock& block) const
     }
 
     std::vector<writers::MarkdownTargetDescriptor> result{{
-        .reference_id = &figure->reference_id(),
+        .reference_id =
+            figure->reference_id().has_value() ? &figure->reference_id().value() : nullptr,
         .label = "Figure",
         .numbering_series = "figure",
     }};
@@ -76,7 +77,10 @@ auto FigurePairMarkdownAdapter::serialize(
     }
     const auto group_caption = inline_renderer_->render(figure->caption(), output);
 
-    output.write_anchor(figure->reference_id());
+    if (figure->reference_id().has_value())
+    {
+        output.write_anchor(figure->reference_id().value());
+    }
     for (const auto& panel : panels)
     {
         const auto& reference_id = panel.reference_id();

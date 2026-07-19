@@ -95,7 +95,10 @@ export const figurePairTransportCodec: BlockTransportCodec = {
           `Figure-pair caption inline ${String(index)}`,
         ),
       ),
-      requireTransportString(data, "referenceId", "Figure-pair payload"),
+      decodeOptionalReferenceId(
+        data.referenceId,
+        "Figure-pair payload.referenceId",
+      ),
       requireTransportNumber(
         data,
         "panelWidthFraction",

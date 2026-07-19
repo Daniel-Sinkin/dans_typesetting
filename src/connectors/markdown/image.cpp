@@ -50,7 +50,8 @@ auto FigureMarkdownAdapter::targets(const DocumentBlock& block) const
         throw std::invalid_argument{"The figure adapter received a different block type"};
     }
     return {{
-        .reference_id = &figure->reference_id(),
+        .reference_id =
+            figure->reference_id().has_value() ? &figure->reference_id().value() : nullptr,
         .label = "Figure",
         .numbering_series = "figure",
     }};
@@ -66,7 +67,10 @@ auto FigureMarkdownAdapter::serialize(
         throw std::invalid_argument{"The figure adapter received a different block type"};
     }
     const auto caption = inline_renderer_->render(figure->caption(), output);
-    output.write_anchor(figure->reference_id());
+    if (figure->reference_id().has_value())
+    {
+        output.write_anchor(figure->reference_id().value());
+    }
     output.write_raw("![](");
     output.write_raw(writers::markdown_link_destination(figure->source().path().generic_string()));
     output.write_raw(")\n\n*Figure ");

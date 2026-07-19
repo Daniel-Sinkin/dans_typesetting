@@ -87,9 +87,9 @@ class InlineImage final : public InlineNode
     InlineImageHeight height_{};
 };
 
-// A referenceable block image. Captions use the Core Paragraph inline contract,
-// so inline extensions such as math and colour work there without Figure
-// depending on their concrete implementations.
+// A captioned block image with an optional semantic reference target. Captions
+// use the Core Paragraph inline contract, so inline extensions such as math and
+// colour work there without Figure depending on their concrete implementations.
 class Figure final : public DocumentBlock
 {
   public:
@@ -97,7 +97,13 @@ class Figure final : public DocumentBlock
 
     Figure(
         ImageSource source,
-        ReferenceId reference_id,
+        std::string_view caption,
+        RelativeWidth width = {},
+        std::optional<PixelExtent> preferred_pixel_extent = std::nullopt
+    );
+    Figure(
+        ImageSource source,
+        std::optional<ReferenceId> reference_id,
         std::string_view caption,
         RelativeWidth width = {},
         std::optional<PixelExtent> preferred_pixel_extent = std::nullopt
@@ -105,7 +111,7 @@ class Figure final : public DocumentBlock
 
     [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
     [[nodiscard]] auto source() const noexcept -> const ImageSource&;
-    [[nodiscard]] auto reference_id() const noexcept -> const ReferenceId&;
+    [[nodiscard]] auto reference_id() const noexcept -> const std::optional<ReferenceId>&;
     [[nodiscard]] auto width() const noexcept -> RelativeWidth;
     [[nodiscard]] auto preferred_pixel_extent() const noexcept -> const std::optional<PixelExtent>&;
     [[nodiscard]] auto caption() noexcept -> InlineSequence&;
@@ -113,7 +119,7 @@ class Figure final : public DocumentBlock
 
   private:
     ImageSource source_;
-    ReferenceId reference_id_;
+    std::optional<ReferenceId> reference_id_{};
     RelativeWidth width_{};
     std::optional<PixelExtent> preferred_pixel_extent_{};
     InlineSequence caption_{};

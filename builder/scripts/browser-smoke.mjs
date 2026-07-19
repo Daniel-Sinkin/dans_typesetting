@@ -405,6 +405,9 @@ async function exerciseBuilder(client) {
     const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
     inputSetter.call(slider, "40");
     slider.dispatchEvent(new Event("input", { bubbles: true }));
+    const groupReference = editor.querySelector(".figure-pair-editor__metadata input:not([type='range'])");
+    inputSetter.call(groupReference, "");
+    groupReference.dispatchEvent(new Event("input", { bubbles: true }));
     const textarea = editor.querySelector("textarea[data-inline-id='sample-pair-left-text']");
     const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
     textareaSetter.call(textarea, "Edited panel ");
@@ -416,7 +419,9 @@ async function exerciseBuilder(client) {
       const editor = document.querySelector(".figure-pair-editor");
       const firstPanel = editor.querySelector(".figure-pair-content__panels > figure");
       return firstPanel?.style.width === "40%" &&
-        firstPanel.textContent.includes("Edited panel");
+        firstPanel.textContent.includes("Edited panel") &&
+        editor.querySelector(".figure-pair-content")?.id === "" &&
+        editor.querySelector(".figure-pair-content__caption")?.textContent.includes("Figure 2:");
     })()`),
     "The paired-figure width and rich caption did not live-update",
   );
@@ -430,7 +435,10 @@ async function exerciseBuilder(client) {
     await client.evaluate(`(() => {
       const pair = document.querySelector("[data-visual-block-id='sample-figure-pair']");
       return pair.textContent.includes("Edited panel") &&
-        pair.querySelector(".figure-pair-content__panels > figure")?.style.width === "40%";
+        pair.querySelector(".figure-pair-content__panels > figure")?.style.width === "40%" &&
+        pair.querySelector(".figure-pair-content__caption")?.textContent.includes("Figure 2:") &&
+        document.getElementById("dans-reference-fig%3Apaired-models") === null &&
+        document.getElementById("dans-reference-fig%3Apaired-models%3Aleft") !== null;
     })()`),
     "The paired-figure editor did not commit its draft",
   );

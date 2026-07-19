@@ -10,48 +10,52 @@ The corpus contains 84 figures and 89 assets, 31 table floats plus 7 standalone
 tabulars, 22 `lstlisting` plus 8 `verbatim` blocks, 24 `pmatrix`, 5 `bmatrix`,
 5 arrays, 14 align/equation groups, and 12 lists.
 
-## Ranked work
+## Completed first slice
 
-1. **Optional figure and figure-pair targets.** Forty-six figures have captions
-   without labels and four of five figure pairs have no group label. Keep
-   numbering independent of target publication and omit anchors when the
-   optional target is absent. Representative source: `content/experiments.tex`,
-   “Plots”.
-2. **Lossless native numeric literals and unary negation.** The browser already
+**Optional figure and figure-pair targets** are implemented. Forty-six figures
+have captions without labels and four of five figure pairs have no group label.
+Ordinary figures and pair groups now keep their writer-owned numbering while
+omitting anchors for absent targets; panel-only references reuse the pair
+ordinal. Native LaTeX/Markdown/Jupyter, graphical editing, canonical transport,
+the shared fixture, and mixed-numbering tests cover the contract.
+
+## Remaining ranked work
+
+1. **Lossless native numeric literals and unary negation.** The browser already
    owns decimal and negation nodes, while native math does not. Preserve literal
    spelling, including leading zeroes. Representative source:
    `content/implementation_details.tex`, “Using QR subspace projection to
    simplify SVD”, which contains negative-decimal matrices.
-3. **Multiline display groups with numbering independent of labels.** Model
+2. **Multiline display groups with numbering independent of labels.** Model
    ordered lines as `{expression, numbered, referenceId?}` plus a constrained
    alignment policy. Normalize the existing single-expression browser payload.
    Representative source: `content/documentation.tex`, “Local E/O” and “minSR”.
-4. **Recursive math colour.** There are 139 `\textcolor` and 73 grouped
+3. **Recursive math colour.** There are 139 `\textcolor` and 73 grouped
    `\color` uses. Add one RGB-owned unary math node rather than leaking paragraph
    colour or raw LaTeX into an expression. Representative source:
    `content/hpc_fundamentals.tex`, “Memory Representations”.
-5. **Caption-optional semantic tables.** Six table floats are captionless and
+4. **Caption-optional semantic tables.** Six table floats are captionless and
    seven tabulars are standalone. Make caption and numbering policy explicit
    rather than manufacturing `Table N`. Representative source:
    `content/documentation.tex`, “Parameters”.
-6. **Round-matrix and bare-array authoring.** Reuse grid plus delimiter nodes
+5. **Round-matrix and bare-array authoring.** Reuse grid plus delimiter nodes
    for `pmatrix`; then add optional per-column alignment for the five arrays.
-7. **Header-only table column spans.** Constrain the first span contract to
+6. **Header-only table column spans.** Constrain the first span contract to
    header cells, validate row coverage, and provide merge/split commands. The
    corpus contains 12 `\multicolumn` and 13 `\cmidrule` uses.
-8. **Table-aware footnote placement.** Reuse semantic footnotes, but let the
+7. **Table-aware footnote placement.** Reuse semantic footnotes, but let the
    LaTeX table connector place cell markers and hoist note bodies after the
    tabular.
-9. **Remaining operator vocabulary.** Add definition equality, left arrow,
+8. **Remaining operator vocabulary.** Add definition equality, left arrow,
    much-less/much-greater, equivalence, union, and bitwise AND/OR through the
    existing binary-node contract.
-10. **Math decorations and delimiters.** Add constrained underline/tilde nodes
-    and absolute-value/norm delimiters, followed by the small missing symbol
-    family.
-11. **Large operators and labelled arrows.** Generalize summation only after its
+9. **Math decorations and delimiters.** Add constrained underline/tilde nodes
+   and absolute-value/norm delimiters, followed by the small missing symbol
+   family.
+10. **Large operators and labelled arrows.** Generalize summation only after its
     child contract is clear; add labelled arrows separately because their label
     is a recursive annotation child.
-12. **Structural polish.** Rich list labels, block-bearing list items, generated
+11. **Structural polish.** Rich list labels, block-bearing list items, generated
     lists of figures/tables/listings, rich section titles, then table width and
     wrapping policy.
 

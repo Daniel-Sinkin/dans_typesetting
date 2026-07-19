@@ -32,6 +32,8 @@ model and does not own block data.
 - A reference ID names a semantic target. A graphical authoring ID identifies
   an editable node. They are different concepts even when a future transport
   stores both as strings.
+- A numbered occurrence may omit its optional reference ID. Traversal-derived
+  numbering and visible captions do not depend on publishing an anchor.
 
 ## Compatibility rule
 

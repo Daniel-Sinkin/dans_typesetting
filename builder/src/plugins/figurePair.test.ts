@@ -29,7 +29,7 @@ const inlineRegistry = new BuilderInlinePluginRegistry(
 const figurePairPlugin = createFigurePairPlugin(inlineRegistry);
 const imagePlugin = createImagePlugin(inlineRegistry);
 
-function samplePair() {
+function samplePair(referenceId: string | null = "fig:pair") {
   return createFigurePairBlock(
     "pair",
     createFigurePanel(
@@ -49,15 +49,22 @@ function samplePair() {
       1280,
     ),
     [createParagraphText("Comparison", "pair-caption", "bold")],
-    "fig:pair",
+    referenceId,
     0.47,
   );
 }
 
 describe("semantic figure pairs", () => {
+  it("creates new pairs without publishing an implicit group target", () => {
+    expect(
+      requireFigurePairBlock(figurePairPlugin.createDefault("default-pair"))
+        .referenceId,
+    ).toBeNull();
+  });
+
   it("round-trips its rich canonical payload exactly", () => {
     const source = projectDocumentTransport.toString(
-      new MemoryDocumentPort([samplePair()]).getSnapshot(),
+      new MemoryDocumentPort([samplePair(null)]).getSnapshot(),
     );
     const decoded = projectDocumentTransport.fromString(source);
     const normalized = projectDocumentTransport.toString(
@@ -75,6 +82,7 @@ describe("semantic figure pairs", () => {
       preferredPixelWidth: 720,
       preferredPixelHeight: 1280,
     });
+    expect(requireFigurePairBlock(decodedPair).referenceId).toBeNull();
   });
 
   it("publishes a group target and suffixed panel targets on one ordinal", () => {
@@ -100,6 +108,26 @@ describe("semantic figure pairs", () => {
     expect(targets.get("fig:ordinary")?.displayText).toBe("Figure 2");
   });
 
+  it("numbers an unreferenced group while preserving optional panel targets", () => {
+    const registry = new BuilderPluginRegistry(
+      [figurePairPlugin, imagePlugin],
+      opaqueBlockAdapter,
+    );
+    const ordinaryFigure = Object.freeze({
+      ...imagePlugin.createDefault("ordinary"),
+      referenceId: "fig:ordinary",
+    });
+    const targets = deriveReferenceTargets(
+      [samplePair(null), ordinaryFigure],
+      registry,
+    );
+
+    expect(targets.has("fig:pair")).toBe(false);
+    expect(targets.get("fig:pair:left")?.displayText).toBe("Figure 1a");
+    expect(targets.get("fig:pair:right")?.displayText).toBe("Figure 1b");
+    expect(targets.get("fig:ordinary")?.displayText).toBe("Figure 2");
+  });
+
   it("copies nested identity while preventing duplicate semantic targets", () => {
     const registry = new BuilderPluginRegistry(
       [figurePairPlugin],
@@ -109,7 +137,7 @@ describe("semantic figure pairs", () => {
       copyBuilderBlockForInsert(samplePair(), registry, "copied"),
     );
 
-    expect(copied.referenceId).toBe("fig:copied");
+    expect(copied.referenceId).toBeNull();
     expect(copied.panels.map((panel) => panel.referenceId)).toEqual([null, null]);
     expect(copied.panels.map((panel) => panel.id)).not.toEqual(["left", "right"]);
     expect(copied.captionInlines[0]?.id).not.toBe("pair-caption");

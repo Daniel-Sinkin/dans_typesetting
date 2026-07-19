@@ -14,7 +14,6 @@ import type {
 } from "../builder/inlinePlugin";
 import type { BuilderBlockEditorProps } from "../builder/plugin";
 import { editableReferenceIdError } from "../builder/referenceEditing";
-import { referenceIdPattern } from "../model/referenceId";
 import { readFileAsDataUrl, readImageDimensions } from "./imageFile";
 import {
   createFigurePairBlock,
@@ -48,8 +47,12 @@ export function FigurePairPreview({
   context: BuilderInlineRenderContext;
   ordinal: number;
 }>) {
+  const groupTarget =
+    pair.referenceId === null
+      ? null
+      : context.referenceTargets.get(pair.referenceId) ?? null;
   return (
-    <figure className="figure-pair-content">
+    <figure className="figure-pair-content" id={groupTarget?.anchorId}>
       <div className="figure-pair-content__panels">
         {pair.panels.map((panel, index) => {
           const target =
@@ -124,7 +127,7 @@ export function FigurePairEditor({
   const pair = requireFigurePairBlock(block);
   const [panels, setPanels] = useState<FigurePairBlock["panels"]>(pair.panels);
   const [captionInlines, setCaptionInlines] = useState(pair.captionInlines);
-  const [referenceId, setReferenceId] = useState(pair.referenceId);
+  const [referenceId, setReferenceId] = useState(pair.referenceId ?? "");
   const [panelWidthFraction, setPanelWidthFraction] = useState(
     pair.panelWidthFraction,
   );
@@ -140,7 +143,7 @@ export function FigurePairEditor({
     panelReferenceError(panel.referenceId ?? "", pair, referenceTargets),
   );
   const localReferenceIds = [
-    referenceId,
+    ...(referenceId.length === 0 ? [] : [referenceId]),
     ...panels.flatMap((panel) =>
       panel.referenceId === null || panel.referenceId.length === 0
         ? []
@@ -150,7 +153,6 @@ export function FigurePairEditor({
   const hasDuplicateLocalReferences =
     new Set(localReferenceIds).size !== localReferenceIds.length;
   const valid =
-    referenceIdPattern.test(referenceId) &&
     groupReferenceError === null &&
     panelReferenceErrors.every((message) => message === null) &&
     !hasDuplicateLocalReferences &&
@@ -167,7 +169,7 @@ export function FigurePairEditor({
         typeId: pair.typeId,
         panels,
         captionInlines: Object.freeze([...captionInlines]),
-        referenceId,
+        referenceId: referenceId.length === 0 ? null : referenceId,
         panelWidthFraction,
       }),
     [captionInlines, pair.id, pair.typeId, panelWidthFraction, panels, referenceId],
@@ -261,7 +263,7 @@ export function FigurePairEditor({
 
       <div className="figure-pair-editor__metadata">
         <label className="editor-field">
-          <span>Group reference ID · required</span>
+          <span>Group reference ID · optional</span>
           <input
             value={referenceId}
             pattern="[A-Za-z][A-Za-z0-9_.:-]*"

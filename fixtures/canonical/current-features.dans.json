@@ -211,6 +211,60 @@
       }
     },
     {
+      "id": "fixture-figure-pair",
+      "type": "dans.image.figure_pair",
+      "payload": {
+        "panels": [
+          {
+            "id": "fixture-figure-pair-left",
+            "source": "/sample-domain-decomposition.svg",
+            "captionInlines": [
+              {
+                "id": "fixture-figure-pair-left-caption",
+                "type": "dans.core.text",
+                "payload": {
+                  "text": "Referenceable left panel.",
+                  "style": "normal"
+                }
+              }
+            ],
+            "referenceId": "fig:canonical-pair:left",
+            "preferredPixelWidth": 1280,
+            "preferredPixelHeight": 720
+          },
+          {
+            "id": "fixture-figure-pair-right",
+            "source": "/sample-domain-decomposition.svg",
+            "captionInlines": [
+              {
+                "id": "fixture-figure-pair-right-caption",
+                "type": "dans.core.text",
+                "payload": {
+                  "text": "Unlabelled right panel.",
+                  "style": "italic"
+                }
+              }
+            ],
+            "referenceId": null,
+            "preferredPixelWidth": 1280,
+            "preferredPixelHeight": 720
+          }
+        ],
+        "captionInlines": [
+          {
+            "id": "fixture-figure-pair-caption",
+            "type": "dans.core.text",
+            "payload": {
+              "text": "A numbered pair without a group target.",
+              "style": "normal"
+            }
+          }
+        ],
+        "referenceId": null,
+        "panelWidthFraction": 0.48
+      }
+    },
+    {
       "id": "fixture-equation",
       "type": "dans.math.display",
       "payload": {

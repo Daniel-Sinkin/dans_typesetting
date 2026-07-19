@@ -887,6 +887,8 @@ if(BUILD_TESTING)
   target_link_libraries(native_figure_pair_test PRIVATE
     dans::figure_pair_latex_connector
     dans::figure_pair_markdown_connector
+    dans::image_latex_connector
+    dans::image_markdown_connector
     dans::reference_markdown_connector
     typesetter_warnings
   )

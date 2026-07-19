@@ -66,6 +66,12 @@ codecs normalize the earlier plain `caption` string into one deterministic Core
 Text node, and an omitted legacy listing caption into `null`. New files emit
 only the rich spelling. See [rich-captions.md](rich-captions.md).
 
+Ordinary figures and two-panel figure groups store nullable `referenceId`
+values independently from their required captions. Each panel target is also
+nullable. Null means that no anchor is published; it does not suppress the
+writer-owned figure ordinal. The shared fixture includes a numbered pair with a
+null group target and one named panel to exercise this distinction.
+
 Structured-math expressions are recursively encoded inside their block or
 inline plugin payload. The core `grid` node uses positive numeric `rows` and
 `columns` plus exactly `rows * columns` recursive `cells`. MatVec does not add a

@@ -63,7 +63,23 @@ physics-symbol vocabulary across native and graphical writers.
 Commit `58c48ed` adds decorated identifiers and ordinary/named mathematical
 function applications across native and graphical writers.
 
+Commit `de37e9d` adds upright math identifiers, semantic math text, and
+recursive underbraces across native and graphical writers.
+
 ## Current implementation slice
+
+The optional figure-target slice adds:
+
+- nullable semantic targets for ordinary figures and two-panel figure groups;
+- figure numbering and captions that remain independent from target publication;
+- panel-only references that retain the enclosing pair ordinal and suffix;
+- conditional LaTeX/Markdown anchors without synthetic hidden IDs;
+- graphical creation, copying, editing, canonical transport, and fixture parity;
+- focused native/browser tests covering mixed labelled and unlabelled figures.
+
+See `composite-figures.md` for the exact numbered-occurrence contract.
+
+## Preceding verified slice
 
 The structured math-annotation slice adds:
 
@@ -76,8 +92,6 @@ The structured math-annotation slice adds:
   samples, and real-browser fixture/interaction assertions.
 
 See `math-annotations.md` for the exact contract and deliberate limits.
-
-## Preceding verified slice
 
 The decorated-identifier and mathematical-function slice adds atomic italic,
 blackboard, and calligraphic styles; recursive ordinary/named functions;
@@ -123,8 +137,8 @@ The preceding paired-figure slice adds:
 
 - `dans.image.figure_pair` as an exactly two-panel semantic figure rather than
   a generic layout grid;
-- stable group and optional panel reference targets sharing one writer-owned
-  figure ordinal, with `a` and `b` suffixes for panel references;
+- optional group and panel reference targets sharing one writer-owned figure
+  ordinal, with `a` and `b` suffixes for panel references;
 - rich Core Paragraph captions for the group and both panels, independent
   image sources, optional pixel-size hints, and a shared relative-width hint;
 - native LaTeX lowering through `subcaption`, semantic Markdown lowering as a

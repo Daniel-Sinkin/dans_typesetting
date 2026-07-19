@@ -101,7 +101,17 @@ auto InlineImage::height() const noexcept -> InlineImageHeight
 
 Figure::Figure(
     ImageSource source,
-    ReferenceId reference_id,
+    const std::string_view caption,
+    const RelativeWidth width,
+    std::optional<PixelExtent> preferred_pixel_extent
+)
+    : Figure{std::move(source), std::nullopt, caption, width, preferred_pixel_extent}
+{
+}
+
+Figure::Figure(
+    ImageSource source,
+    std::optional<ReferenceId> reference_id,
     const std::string_view caption,
     const RelativeWidth width,
     std::optional<PixelExtent> preferred_pixel_extent
@@ -111,7 +121,7 @@ Figure::Figure(
 {
     if (caption.empty())
     {
-        throw std::invalid_argument{"A referenceable figure must have a caption"};
+        throw std::invalid_argument{"A figure must have a caption"};
     }
     caption_.add<CoreText>(caption);
 }
@@ -126,7 +136,7 @@ auto Figure::source() const noexcept -> const ImageSource&
     return source_;
 }
 
-auto Figure::reference_id() const noexcept -> const ReferenceId&
+auto Figure::reference_id() const noexcept -> const std::optional<ReferenceId>&
 {
     return reference_id_;
 }

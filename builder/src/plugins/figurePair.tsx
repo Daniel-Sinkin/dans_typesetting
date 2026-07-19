@@ -32,7 +32,7 @@ export function createFigurePairPlugin(
     numberingSeries: "figure",
     palette: {
       label: "Figure pair",
-      description: "Two horizontal panels with rich captions and subfigure targets",
+      description: "Two horizontal panels with rich captions and optional targets",
       glyph: "▥",
       accentColor: "#228be6",
     },
@@ -50,7 +50,6 @@ export function createFigurePairPlugin(
           [createParagraphText("Right panel.")],
         ),
         [createParagraphText("A new paired figure caption.")],
-        `fig:${blockId}`,
       );
     },
     referenceTargets(block) {
@@ -101,7 +100,7 @@ export function createFigurePairPlugin(
         copyPanel(0),
         copyPanel(1),
         copyCaption(pair.captionInlines),
-        `fig:${copiedBlockId}`,
+        null,
         pair.panelWidthFraction,
       );
     },

@@ -19,6 +19,8 @@ host validates root identity, exposes the roots for writer-owned occurrence
 numbering, and delegates rendering to the writer's inline registry. It never
 switches on concrete inline type IDs. Copying a host recursively refreshes the
 inline IDs through plugin copy hooks while clearing the host's reference target.
+Figures and paired figures remain captioned and numbered after that target is
+cleared; target publication is not the condition for joining a numbering series.
 
 ## Graphical editing
 

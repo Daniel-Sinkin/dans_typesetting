@@ -58,8 +58,13 @@ auto FigurePairLatexAdapter::serialize(
     }
     output.write_raw("\\caption{");
     inline_renderer_->serialize(figure->caption(), output);
-    output.write_raw("}\n\\label{");
-    output.write_raw(figure->reference_id().value());
-    output.write_raw("}\n\\end{figure}\n\n");
+    output.write_raw("}\n");
+    if (figure->reference_id().has_value())
+    {
+        output.write_raw("\\label{");
+        output.write_raw(figure->reference_id().value().value());
+        output.write_raw("}\n");
+    }
+    output.write_raw("\\end{figure}\n\n");
 }
 }  // namespace dans::document::connectors::latex

@@ -47,7 +47,13 @@ class FigurePair final : public DocumentBlock
     FigurePair(
         FigurePanel first,
         FigurePanel second,
-        ReferenceId reference_id,
+        std::string_view caption,
+        RelativeWidth panel_width = RelativeWidth::from_percent(48.0)
+    );
+    FigurePair(
+        FigurePanel first,
+        FigurePanel second,
+        std::optional<ReferenceId> reference_id,
         std::string_view caption,
         RelativeWidth panel_width = RelativeWidth::from_percent(48.0)
     );
@@ -55,14 +61,14 @@ class FigurePair final : public DocumentBlock
     [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
     [[nodiscard]] auto panels() noexcept -> std::span<FigurePanel, 2>;
     [[nodiscard]] auto panels() const noexcept -> std::span<const FigurePanel, 2>;
-    [[nodiscard]] auto reference_id() const noexcept -> const ReferenceId&;
+    [[nodiscard]] auto reference_id() const noexcept -> const std::optional<ReferenceId>&;
     [[nodiscard]] auto panel_width() const noexcept -> RelativeWidth;
     [[nodiscard]] auto caption() noexcept -> InlineSequence&;
     [[nodiscard]] auto caption() const noexcept -> const InlineSequence&;
 
   private:
     std::array<FigurePanel, 2> panels_;
-    ReferenceId reference_id_;
+    std::optional<ReferenceId> reference_id_{};
     RelativeWidth panel_width_{};
     InlineSequence caption_{};
 };

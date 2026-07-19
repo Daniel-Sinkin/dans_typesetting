@@ -15,7 +15,7 @@ A pair owns exactly two horizontal panels. Each panel owns:
 - an optional semantic reference ID;
 - a preferred positive integer pixel extent.
 
-The group owns another non-empty inline caption, a required semantic reference
+The group owns another non-empty inline caption, an optional semantic reference
 ID, and one relative width shared by both panels. The width must be in
 `(0, 0.5]`; it describes each panel relative to the available line width and
 leaves the writer control over the inter-panel gap. Pixel extents are authoring
@@ -28,21 +28,23 @@ behavior is understood.
 
 ## Numbering and references
 
-A pair advances the shared `figure` numbering series exactly once. Its group
-target renders as `Figure 3`; optional first and second panel targets render as
-`Figure 3a` and `Figure 3b`. Neither the visible ordinal nor the letters are
-stored in semantic data.
+A pair advances the shared `figure` numbering series exactly once whether or
+not it publishes a group target. When present, its group target renders as
+`Figure 3`; optional first and second panel targets render as `Figure 3a` and
+`Figure 3b`. A panel target still receives the pair's ordinal when the group is
+unlabelled. Neither the visible ordinal nor the letters are stored in semantic
+data, and no writer manufactures an anchor for a missing target.
 
-The generic graphical target descriptor now permits one block to publish
-several targets with suffixes. Existing plugins continue to use the singular
+The generic graphical target descriptor permits one block to publish several
+optional targets with suffixes. Existing plugins continue to use the singular
 target callback. The Markdown writer has the corresponding producer contract:
-a subordinate target reuses the current series ordinal and appends its suffix
-without advancing the counter.
+the first descriptor advances the series even when its reference pointer is
+null, while a subordinate target reuses that ordinal and appends its suffix.
 
-Copying a pair refreshes the block, panel, and nested inline authoring IDs. It
-assigns a fresh group reference based on the copied block ID and clears both
-optional panel references, preventing an Alt-drag copy from creating ambiguous
-targets.
+Copying a pair refreshes the block, panel, and nested inline authoring IDs and
+clears the optional group and panel references. This matches ordinary figures
+and prevents an Alt-drag copy from silently publishing targets the author did
+not choose.
 
 ## Writers
 
@@ -53,8 +55,9 @@ targets.
   representation through its configured Markdown writer.
 - The graphical writer shows both images, rich captions, live figure numbering,
   and real nested panel anchors. Its editor provides immediate width feedback,
-  independent image selection and pixel discovery, group/panel reference IDs,
-  and the existing plugin-aware inline sequence editor for all three captions.
+  independent image selection and pixel discovery, optional group/panel
+  reference IDs, and the existing plugin-aware inline sequence editor for all
+  three captions.
 
 Markdown deliberately ignores the physical pixel hints and cannot guarantee
 the requested percentage in every viewer. It preserves the side-by-side
@@ -63,8 +66,9 @@ relationship, content, captions, and reference topology.
 ## Verification
 
 `native_figure_pair_test` checks validation, pixel-hint retention, rich LaTeX
-captions, `subfigure` output, shared Markdown numbering, and group/panel links.
-The browser suite checks canonical round-trip idempotence, impossible payloads,
+captions, `subfigure` output, shared Markdown numbering, optional ordinary/group
+targets, and panel-only links. The browser suite and shared conformance fixture
+check exact canonical round trips with a null group target, impossible payloads,
 copy identity, and multi-target numbering. The browser smoke workflow edits a
 caption and width through the real UI, verifies live preview and commit, and
 captures `builder/test-results/figure-pair-editor.png`.

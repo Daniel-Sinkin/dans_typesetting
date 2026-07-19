@@ -69,9 +69,11 @@ struct MarkdownResourceDescriptor
     std::string_view key{};
 };
 
-// A connector may publish target descriptors in addition to serializing its
-// block. The writer can then derive stable visible ordinals and resolve cross
-// references without learning the concrete plugin type.
+// A connector publishes one descriptor for each numbered occurrence in
+// addition to serializing its block. The reference pointer is optional: every
+// descriptor participates in numbering, while only named occurrences become
+// cross-reference targets. This keeps visible numbering independent from the
+// author's decision to publish a label.
 class MarkdownBlockAdapter
 {
   public:

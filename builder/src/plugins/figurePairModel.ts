@@ -17,7 +17,7 @@ export interface FigurePairBlock extends BuilderBlock {
   readonly typeId: typeof figurePairTypeId;
   readonly panels: readonly [BuilderFigurePanel, BuilderFigurePanel];
   readonly captionInlines: readonly BuilderInlineNode[];
-  readonly referenceId: string;
+  readonly referenceId: string | null;
   readonly panelWidthFraction: number;
 }
 
@@ -44,7 +44,7 @@ export function createFigurePairBlock(
   first: BuilderFigurePanel,
   second: BuilderFigurePanel,
   captionInlines: readonly BuilderInlineNode[],
-  referenceId: string,
+  referenceId: string | null = null,
   panelWidthFraction = 0.48,
 ): FigurePairBlock {
   const panels: FigurePairBlock["panels"] = Object.freeze([first, second]);
@@ -69,7 +69,7 @@ export function isFigurePairBlock(block: BuilderBlock): block is FigurePairBlock
     "captionInlines" in block &&
     Array.isArray(block.captionInlines) &&
     "referenceId" in block &&
-    typeof block.referenceId === "string" &&
+    (block.referenceId === null || typeof block.referenceId === "string") &&
     "panelWidthFraction" in block &&
     typeof block.panelWidthFraction === "number"
   );
@@ -127,9 +127,6 @@ export function validateFigurePairBlock(block: FigurePairBlock): void {
     throw new Error("A figure pair requires a stable ID");
   }
   validateOptionalReferenceId(block.referenceId, "Figure-pair reference ID");
-  if (block.referenceId.length === 0) {
-    throw new Error("A figure pair requires a group reference ID");
-  }
   if (
     !Number.isFinite(block.panelWidthFraction) ||
     block.panelWidthFraction <= 0 ||
@@ -141,7 +138,7 @@ export function validateFigurePairBlock(block: FigurePairBlock): void {
     throw new Error("Figure-pair panels require distinct stable IDs");
   }
   const referenceIds = [
-    block.referenceId,
+    ...(block.referenceId === null ? [] : [block.referenceId]),
     ...block.panels.flatMap((panel) =>
       panel.referenceId === null ? [] : [panel.referenceId],
     ),
