@@ -675,6 +675,18 @@ function replaceBuilderBlock(
   return null;
 }
 
+export function replaceBuilderBlockInTree(
+  blocks: readonly BuilderBlock[],
+  blockId: string,
+  replacement: BuilderBlock,
+): readonly BuilderBlock[] {
+  const updated = replaceBuilderBlock(blocks, blockId, replacement);
+  if (updated === null) {
+    throw new Error(`Unknown document block ID: ${blockId}`);
+  }
+  return updated;
+}
+
 export class MemoryDocumentPort implements DocumentPort {
   readonly #listeners = new Set<DocumentListener>();
   #snapshot: DocumentSnapshot;

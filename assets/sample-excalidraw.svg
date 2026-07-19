@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="240" viewBox="0 0 640 240">
+  <rect width="640" height="240" fill="#ffffff"/>
+  <rect x="42" y="54" width="240" height="126" rx="18" fill="#dbe4ff" stroke="#4263eb" stroke-width="4"/>
+  <text x="162" y="126" text-anchor="middle" font-family="sans-serif" font-size="25" fill="#1c3f94">Editable drawing</text>
+  <path d="M282 117 H430" fill="none" stroke="#4263eb" stroke-width="4"/>
+  <path d="M430 117 l-16 -10 v20 z" fill="#4263eb"/>
+  <ellipse cx="510" cy="117" rx="62" ry="58" fill="#fff4e6" stroke="#e8590c" stroke-width="4"/>
+</svg>

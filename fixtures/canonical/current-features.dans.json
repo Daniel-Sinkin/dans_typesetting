@@ -170,6 +170,26 @@
       }
     },
     {
+      "id": "fixture-excalidraw-drawing",
+      "type": "dans.drawing.excalidraw",
+      "payload": {
+        "caption": "A canonical embedded drawing.",
+        "referenceId": "fig:canonical-drawing",
+        "widthFraction": 0.9,
+        "canvasHeight": 380,
+        "scene": {
+          "type": "excalidraw",
+          "version": 2,
+          "source": "dans.typesetting",
+          "elements": [],
+          "appState": {
+            "viewBackgroundColor": "#ffffff"
+          },
+          "files": {}
+        }
+      }
+    },
+    {
       "id": "fixture-unknown-block",
       "type": "third.party.block",
       "payload": {

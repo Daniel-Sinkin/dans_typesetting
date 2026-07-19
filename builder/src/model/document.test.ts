@@ -6,6 +6,7 @@ import {
   createParagraphText,
   MemoryDocumentPort,
   paragraphTypeId,
+  replaceBuilderBlockInTree,
   sectionTypeId,
   type BuilderBlock,
   type ParagraphBlock,
@@ -210,5 +211,19 @@ describe("MemoryDocumentPort", () => {
     expect(copy.id).toBe("outer-copy");
     expect(copy.blocks[0]?.id).not.toBe("inside");
     expect(copy.blocks[0]?.typeId).toBe(paragraphTypeId);
+  });
+
+  it("projects an editor draft into a recursive tree without publishing it", () => {
+    const original = section("outer", [paragraph("inside")]);
+    const replacement = {
+      ...paragraph("inside"),
+      inlines: [createParagraphText("Draft preview", "inside-text")],
+    } satisfies ParagraphBlock;
+    const projected = replaceBuilderBlockInTree([original], "inside", replacement);
+
+    expect((projected[0] as SectionBlock).blocks[0]).toBe(replacement);
+    expect((original.blocks[0] as ParagraphBlock).inlines[0]).toMatchObject({
+      text: "Paragraph inside",
+    });
   });
 });

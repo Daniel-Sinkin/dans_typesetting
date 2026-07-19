@@ -2,6 +2,7 @@
 #include "connectors/latex/color_span.hpp"
 #include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/document_shell.hpp"
+#include "connectors/latex/excalidraw_drawing.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/image.hpp"
 #include "connectors/latex/latex_mixin.hpp"
@@ -12,6 +13,7 @@
 #include "plugins/color_span.hpp"
 #include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
+#include "plugins/excalidraw_drawing.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
 #include "plugins/latex_mixin.hpp"
@@ -164,6 +166,13 @@ auto make_sample_document()
     figure.caption().add<Math::Inline>(M::id_A.subscript(M::csv(M::id_4, M::id_3)));
     figure.caption().add<CoreText>(".");
 
+    media.blocks().add<ExcalidrawDrawing>(
+        R"({"type":"excalidraw","version":2,"source":"dans.typesetting","elements":[],"appState":{"viewBackgroundColor":"#ffffff"},"files":{}})",
+        ReferenceId{"fig:embedded-drawing"},
+        "An embedded Excalidraw scene resolved to a writer-owned vector asset.",
+        DrawingWidth::from_percent(72.0)
+    );
+
     auto& figure_reference = media.blocks().add<CoreParagraph>();
     figure_reference.append_text("The visible number in ");
     figure_reference.inlines().add<Reference>(sample_figure_id);
@@ -275,6 +284,13 @@ auto main(const int argc, char* argv[]) -> int
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::FigureLatexAdapter>(inline_renderer)
+        );
+        const auto drawing_asset_path = output_path.parent_path() / "sample-excalidraw.pdf";
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::ExcalidrawDrawingLatexAdapter>(
+                [drawing_asset_path](const dans::document::plugins::ExcalidrawDrawing&)
+                { return drawing_asset_path; }
+            )
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::CodeListingLatexAdapter>(

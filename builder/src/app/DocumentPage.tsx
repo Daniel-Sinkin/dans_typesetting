@@ -1,5 +1,9 @@
 // Project paged/continuous document visuals below Excalidraw and controls above it.
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from "react";
 
 import type { DocumentLayout, LayoutBounds } from "../builder/layout";
 import type { BuilderPluginRegistry } from "../builder/plugin";
@@ -118,6 +122,11 @@ interface DocumentControlsProps {
   ) => void;
   readonly onDelete: (blockId: string) => void;
   readonly onEdit: (block: BuilderBlock) => void;
+  readonly inlineEditor: Readonly<{
+    blockId: string;
+    title: string;
+    content: ReactNode;
+  }> | null;
 }
 
 export function DocumentControls({
@@ -127,6 +136,7 @@ export function DocumentControls({
   onBeginMove,
   onDelete,
   onEdit,
+  inlineEditor,
 }: DocumentControlsProps) {
   return (
     <div className="document-controls" style={pageStyle} aria-label="Document block controls">
@@ -134,9 +144,10 @@ export function DocumentControls({
         .filter(({ pageIndex }) => isPageVisible(layout, pageIndex))
         .map(({ block, bounds, parentId, siblingIndex, depth }) => {
           const adapter = registry.pluginForBlock(block);
+          const activeEditor = inlineEditor?.blockId === block.id ? inlineEditor : null;
           return (
             <section
-              className="document-block-controls"
+              className={`document-block-controls${activeEditor === null ? "" : " document-block-controls--editing"}`}
               data-block-id={block.id}
               data-section-depth={depth}
               key={block.id}
@@ -159,11 +170,12 @@ export function DocumentControls({
                 <div className="document-block__actions">
                   <button
                     type="button"
+                    disabled={activeEditor !== null}
                     onClick={() => {
                       onEdit(block);
                     }}
                   >
-                    Edit
+                    {activeEditor === null ? "Edit" : "Editing"}
                   </button>
                   <button
                     className="danger-action"
@@ -176,6 +188,11 @@ export function DocumentControls({
                   </button>
                 </div>
               </div>
+              {activeEditor === null ? null : (
+                <div className="inline-block-editor" aria-label={activeEditor.title}>
+                  {activeEditor.content}
+                </div>
+              )}
             </section>
           );
         })}

@@ -173,6 +173,16 @@ target_link_libraries(image_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(excalidraw_drawing_plugin STATIC
+  src/plugins/excalidraw_drawing.cpp
+  src/plugins/excalidraw_drawing.hpp
+)
+add_library(dans::excalidraw_drawing_plugin ALIAS excalidraw_drawing_plugin)
+target_link_libraries(excalidraw_drawing_plugin
+  PUBLIC dans::document_core
+  PRIVATE typesetter_warnings
+)
+
 add_library(code_listing_plugin STATIC
   src/plugins/code_listing.cpp
   src/plugins/code_listing.hpp
@@ -295,6 +305,20 @@ target_link_libraries(image_latex_connector
     typesetter_warnings
 )
 
+add_library(excalidraw_drawing_latex_connector STATIC
+  src/connectors/latex/excalidraw_drawing.cpp
+  src/connectors/latex/excalidraw_drawing.hpp
+  src/connectors/latex/graphics.hpp
+)
+add_library(dans::excalidraw_drawing_latex_connector ALIAS excalidraw_drawing_latex_connector)
+target_link_libraries(excalidraw_drawing_latex_connector
+  PUBLIC
+    dans::excalidraw_drawing_plugin
+    dans::latex_writer
+  PRIVATE
+    typesetter_warnings
+)
+
 add_library(code_listing_latex_connector STATIC
   src/connectors/latex/code_listing.cpp
   src/connectors/latex/code_listing.hpp
@@ -329,6 +353,7 @@ target_link_libraries(document_example PRIVATE
   dans::color_span_latex_connector
   dans::core_paragraph_latex_connector
   dans::document_shell_latex_connector
+  dans::excalidraw_drawing_latex_connector
   dans::image_latex_connector
   dans::hyperlink_latex_connector
   dans::latex_mixin_latex_connector
@@ -369,17 +394,29 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_document_shell_test COMMAND native_document_shell_test)
+
+  add_executable(native_excalidraw_drawing_test
+    tests/native_excalidraw_drawing_test.cpp
+  )
+  target_link_libraries(native_excalidraw_drawing_test PRIVATE
+    dans::excalidraw_drawing_latex_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_excalidraw_drawing_test COMMAND native_excalidraw_drawing_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source
 # with LuaLaTeX.
 find_program(TYPESETTING_LATEXMK_EXECUTABLE NAMES latexmk REQUIRED)
 find_program(TYPESETTING_LUALATEX_EXECUTABLE NAMES lualatex REQUIRED)
+find_program(TYPESETTING_RSVG_CONVERT_EXECUTABLE NAMES rsvg-convert REQUIRED)
 
 set(TYPESETTING_SAMPLE_TEX "${CMAKE_CURRENT_BINARY_DIR}/sample-document.tex")
 set(TYPESETTING_SAMPLE_PDF "${CMAKE_CURRENT_BINARY_DIR}/sample-document.pdf")
 set(TYPESETTING_SAMPLE_IMAGE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/assets/sample-image.tex")
 set(TYPESETTING_SAMPLE_IMAGE_PDF "${CMAKE_CURRENT_BINARY_DIR}/sample-image.pdf")
+set(TYPESETTING_SAMPLE_EXCALIDRAW_SVG "${CMAKE_CURRENT_SOURCE_DIR}/assets/sample-excalidraw.svg")
+set(TYPESETTING_SAMPLE_EXCALIDRAW_PDF "${CMAKE_CURRENT_BINARY_DIR}/sample-excalidraw.pdf")
 
 add_custom_command(
   OUTPUT "${TYPESETTING_SAMPLE_IMAGE_PDF}"
@@ -408,6 +445,17 @@ add_custom_command(
 )
 
 add_custom_command(
+  OUTPUT "${TYPESETTING_SAMPLE_EXCALIDRAW_PDF}"
+  COMMAND "${TYPESETTING_RSVG_CONVERT_EXECUTABLE}"
+    --format pdf
+    --output "${TYPESETTING_SAMPLE_EXCALIDRAW_PDF}"
+    "${TYPESETTING_SAMPLE_EXCALIDRAW_SVG}"
+  DEPENDS "${TYPESETTING_SAMPLE_EXCALIDRAW_SVG}"
+  COMMENT "Rendering the sample Excalidraw scene asset"
+  VERBATIM
+)
+
+add_custom_command(
   OUTPUT "${TYPESETTING_SAMPLE_PDF}"
   COMMAND "${TYPESETTING_LATEXMK_EXECUTABLE}"
     -lualatex
@@ -418,6 +466,7 @@ add_custom_command(
     "${TYPESETTING_SAMPLE_TEX}"
   DEPENDS
     "${TYPESETTING_SAMPLE_TEX}"
+    "${TYPESETTING_SAMPLE_EXCALIDRAW_PDF}"
     "${TYPESETTING_SAMPLE_IMAGE_PDF}"
   BYPRODUCTS
     "${CMAKE_CURRENT_BINARY_DIR}/sample-document.aux"

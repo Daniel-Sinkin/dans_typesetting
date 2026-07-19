@@ -51,6 +51,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Title page | `dans.document.title_page` |
 | Table of contents | `dans.document.table_of_contents` |
 | Page break | `dans.document.page_break` |
+| Embedded Excalidraw drawing | `dans.drawing.excalidraw` |
 
 Adding a plugin is not complete merely because its native class exists. A
 complete vertical slice needs semantic data, validation, at least one useful
@@ -118,11 +119,30 @@ Page dimensions and policies remain writer concerns. Other writers may ignore
 preferred sizes or implement fragmentable paragraphs without changing the
 semantic contracts.
 
-## Next architectural gate: embedded drawing block
+## Embedded drawing boundary
 
-The next vertical slice should make an Excalidraw drawing an ordinary,
-referenceable document block. Its semantic payload owns a bounded drawing scene;
-the graphical connector edits that scene in place, while the LaTeX connector
-exports it to a deterministic vector or raster asset. The surrounding canvas
-must remain implementation state rather than leaking into the canonical
-document format.
+An Excalidraw drawing is an ordinary, referenceable semantic block. Its plugin
+owns a bounded scene, caption, reference ID, preferred width, and development
+canvas height. The graphical connector mounts an isolated Excalidraw instance
+inside the document page and publishes immutable scene drafts through the same
+transactional editor contract as every other block.
+
+The LaTeX connector does not know how Excalidraw renders. It receives an asset
+resolver that materializes the opaque scene as a PDF, PNG, or JPEG and then
+lowers that asset to an ordinary numbered figure. The resolved cache path is
+writer-owned state and never enters the semantic document. The example build
+uses a committed SVG converted to PDF as a deterministic stand-in; the browser
+editor can export the live scene to SVG.
+
+Excalidraw's scene schema is deliberately contained inside this one plugin. It
+may require a plugin-payload migration when Excalidraw changes, but it does not
+version or contaminate the document core. The free-form scene surrounding the
+document is still application state and is not copied into drawing blocks.
+
+## Next architectural gate: semantic lists
+
+The next bounded slice is a list plugin with ordered item content and explicit
+ordered/unordered presentation. It should establish how a semantic block owns
+repeated nested content without teaching the document core about that shape,
+and it should be complete in canonical transport, LaTeX, graphical preview,
+editing, and tests before richer tables reuse the pattern.

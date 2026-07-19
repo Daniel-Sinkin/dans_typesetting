@@ -39,11 +39,13 @@ export interface BuilderBlockAdapter {
 
 export interface BuilderBlockEditorProps {
   readonly block: BuilderBlock;
+  readonly onPreview: (block: BuilderBlock) => void;
   readonly onCommit: (block: BuilderBlock) => void;
   readonly onCancel: () => void;
 }
 
 export interface BuilderBlockEditor {
+  readonly presentation?: "dialog" | "inline";
   title(block: BuilderBlock): string;
   render(props: BuilderBlockEditorProps): ReactNode;
 }

@@ -158,6 +158,22 @@ button {
   pointer-events: none;
 }
 
+.document-block-controls--editing {
+  z-index: 20;
+}
+
+.inline-block-editor {
+  position: absolute;
+  z-index: 1;
+  inset: 38px 5px 5px;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid #4c6ef5;
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgb(28 48 94 / 22%);
+  pointer-events: auto;
+}
+
 .document-block__toolbar {
   position: absolute;
   z-index: 2;
@@ -317,6 +333,157 @@ button {
   font-size: 15px;
   font-style: italic;
   text-align: center;
+}
+
+.drawing-content {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  gap: 12px;
+}
+
+.drawing-content__scene {
+  display: grid;
+  min-height: 120px;
+  flex: 1;
+  overflow: hidden;
+  place-items: center;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  box-shadow: 0 5px 18px rgb(32 52 72 / 12%);
+}
+
+.drawing-content__scene img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.drawing-content figcaption {
+  color: #495057;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  font-style: italic;
+  text-align: center;
+}
+
+.drawing-preview-status {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #868e96;
+  background:
+    linear-gradient(45deg, #f8f9fa 25%, transparent 25%) 0 0 / 18px 18px,
+    linear-gradient(-45deg, #f8f9fa 25%, transparent 25%) 0 0 / 18px 18px,
+    #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.drawing-preview-status--error {
+  color: #c92a2a;
+  background: #fff5f5;
+}
+
+.drawing-editor {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr) 205px;
+  color: #343a40;
+  background: #fff;
+}
+
+.drawing-editor__canvas {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid #ced4da;
+}
+
+.drawing-editor__canvas > .excalidraw {
+  width: 100%;
+  height: 100%;
+}
+
+.drawing-editor__settings {
+  display: flex;
+  min-width: 0;
+  padding: 12px;
+  gap: 10px;
+  flex-direction: column;
+  overflow: auto;
+  background: #f8f9fa;
+  pointer-events: auto;
+}
+
+.drawing-editor__settings header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawing-editor__settings header strong {
+  font-size: 12px;
+}
+
+.drawing-editor__settings header small,
+.drawing-editor__settings > small {
+  color: #868e96;
+  font-size: 9px;
+}
+
+.drawing-editor__settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.drawing-editor__settings textarea {
+  min-height: 54px;
+  resize: vertical;
+}
+
+.drawing-editor__settings input,
+.drawing-editor__settings textarea,
+.drawing-editor__settings button {
+  max-width: 100%;
+  padding: 7px 8px;
+  color: #343a40;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 7px;
+  font: inherit;
+}
+
+.drawing-editor__settings input[type="range"] {
+  padding: 2px;
+}
+
+.drawing-editor__settings button {
+  cursor: pointer;
+}
+
+.drawing-editor__actions {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 7px;
+  margin-top: auto;
+}
+
+.drawing-editor__actions .primary-action {
+  color: #fff;
+  background: #4263eb;
+  border-color: #364fc7;
 }
 
 .math-display-content {

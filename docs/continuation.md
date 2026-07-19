@@ -15,9 +15,25 @@ inline structured math editing, and direct syntax-coloured listing editing.
 Commit `5ffef61` adds the canonical, versioned transport boundary shared by the
 native and graphical implementations.
 
+Commit `a249217` adds the semantic document shell, recursive sections, and
+continuous/paged whole-block projection.
+
 ## Current verified slice
 
-The semantic document-shell and page-projection slice adds:
+The embedded Excalidraw drawing slice adds:
+
+- `dans.drawing.excalidraw` as an ordinary referenceable semantic block;
+- a plugin-owned, validated and canonically round-trippable scene payload;
+- a real isolated Excalidraw editor mounted directly inside the document page;
+- transactional draft preview, live width/height reflow, cancel restoration,
+  scene editing, image-file preservation, and explicit SVG export;
+- safe asynchronous SVG previews that cannot publish a stale scene;
+- a native semantic plugin and a LaTeX adapter with an injected asset resolver;
+- PDF/PNG/JPEG path validation shared with the ordinary image connector;
+- a deterministic SVG-to-PDF example asset and generated-PDF coverage;
+- unit, transport, native, and browser interaction tests.
+
+The preceding semantic document-shell and page-projection slice adds:
 
 - ordinary title-page, table-of-contents, and page-break plugin blocks;
 - referenceable structural sections with recursive ordered child sequences;
@@ -64,11 +80,10 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Implement the embedded Excalidraw drawing block as a complete plugin slice:
-canonical payload, in-document graphical editing, deterministic asset export,
-LaTeX inclusion, and round-trip tests. Keep plugin payload codecs beside their
-plugin and extend the shared fixture whenever a new canonical type is
-completed.
+Implement semantic itemized/enumerated lists as the next complete vertical
+slice, then use the repeated nested-content lessons for tables, footnotes, and
+referenceable statement blocks. Keep plugin payload codecs beside their plugin
+and extend the shared fixture whenever a new canonical type is completed.
 
 Current deliberate compromises to reassess later:
 
@@ -80,3 +95,9 @@ Current deliberate compromises to reassess later:
   interaction tuning with denser documents;
 - title-page isolation is a graphical plugin policy, while the LaTeX connector
   delegates exact page mechanics to LaTeX.
+- a drawing scene currently follows Excalidraw's plugin-private schema and will
+  need a payload migration if that upstream schema changes incompatibly;
+- the native sample resolves a deterministic pre-rendered asset; production
+  native export still needs an Excalidraw scene materializer process;
+- nested Excalidraw instances materially increase the eager browser bundle, so
+  editor lazy-loading belongs in a later shell/performance slice.

@@ -46,6 +46,9 @@ import {
   tableOfContentsPlugin,
   titlePagePlugin,
 } from "../plugins/documentShell";
+import { excalidrawDrawingPlugin } from "../plugins/drawing";
+import { excalidrawDrawingTypeId } from "../plugins/drawingModel";
+import { createSampleExcalidrawScene } from "../plugins/drawingScene";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -144,6 +147,15 @@ const initialBlocks = [
     preferredPixelHeight: 720,
   }),
   Object.freeze({
+    id: "sample-excalidraw-drawing",
+    typeId: excalidrawDrawingTypeId,
+    caption: "An Excalidraw scene stored as semantic plugin data.",
+    referenceId: "fig:embedded-drawing",
+    widthFraction: 0.9,
+    canvasHeight: 390,
+    scene: createSampleExcalidrawScene(),
+  }),
+  Object.freeze({
     id: "sample-display-math",
     typeId: mathDisplayTypeId,
     expression: createMathBinary(
@@ -206,6 +218,7 @@ const pluginRegistry = new BuilderPluginRegistry(
     tableOfContentsPlugin,
     pageBreakPlugin,
     sectionPlugin,
+    excalidrawDrawingPlugin,
   ],
   opaqueBlockAdapter,
 );

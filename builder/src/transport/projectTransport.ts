@@ -3,6 +3,7 @@ import { codeListingBlockTransportCodec } from "../plugins/codeListingTransport"
 import { colorSpanInlineTransportCodec } from "../plugins/colorSpanTransport";
 import { hyperlinkInlineTransportCodec } from "../plugins/hyperlinkTransport";
 import { imageBlockTransportCodec } from "../plugins/imageTransport";
+import { excalidrawDrawingTransportCodec } from "../plugins/drawingTransport";
 import {
   pageBreakBlockTransportCodec,
   sectionBlockTransportCodec,
@@ -32,6 +33,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     titlePageBlockTransportCodec,
     tableOfContentsBlockTransportCodec,
     pageBreakBlockTransportCodec,
+    excalidrawDrawingTransportCodec,
   ],
   [
     paragraphTextInlineTransportCodec,

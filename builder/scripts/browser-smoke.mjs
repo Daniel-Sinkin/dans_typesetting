@@ -23,7 +23,7 @@ const canonicalFixturePath = join(
   "canonical",
   "current-features.dans.json",
 );
-const initialBlockCount = 10;
+const initialBlockCount = 11;
 
 function assert(condition, message) {
   if (!condition) {
@@ -286,6 +286,8 @@ async function exerciseBuilder(client) {
       figureNumber: document.querySelector("[data-visual-block-id='sample-figure'] figcaption")?.textContent.includes("Figure 1:") ?? false,
       equationNumber: document.querySelector("[data-visual-block-id='sample-display-math'] .math-equation-number")?.textContent === "(1)",
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
+      drawingPreview: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] img")?.src.startsWith("blob:") ?? false,
+      drawingNumber: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] figcaption")?.textContent.includes("Figure 2:") ?? false,
       layers: layers.map((layer) => layer === null ? null : getComputedStyle(layer).zIndex),
     };
   })()`);
@@ -299,6 +301,8 @@ async function exerciseBuilder(client) {
   assert(initial.hyperlink, "The semantic hyperlink was not rendered as a clickable link");
   assert(initial.styledText, "Styled Core Text was not rendered");
   assert(initial.figureNumber && initial.equationNumber && initial.listingNumber, "Live numbering is incorrect");
+  assert(initial.drawingPreview, "The Excalidraw scene was not projected through SVG");
+  assert(initial.drawingNumber, "The embedded drawing did not join figure numbering");
   assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3"]), "Canvas layering is incorrect");
 
   await client.evaluate(`(() => {
@@ -312,6 +316,85 @@ async function exerciseBuilder(client) {
   );
 
   await screenshot(client, "document-builder.png");
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-excalidraw-drawing']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(700);
+  const drawingEditorInitial = await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-excalidraw-drawing']");
+    return {
+      inlineEditor: block.querySelector("[data-testid='excalidraw-drawing-editor']") !== null,
+      excalidrawInstances: document.querySelectorAll(".excalidraw").length,
+      height: Number.parseFloat(block.style.height),
+    };
+  })()`);
+  assert(drawingEditorInitial.inlineEditor, "The drawing editor was not mounted in its document block");
+  assert(drawingEditorInitial.excalidrawInstances === 2, "The bounded drawing scene was not isolated from the notes canvas");
+  await client.evaluate(`(() => {
+    const slider = document.querySelector("input[data-testid='drawing-height']");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    setter.call(slider, "520");
+    slider.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(180);
+  assert(
+    (await client.evaluate(`Number.parseFloat(document.querySelector("[data-block-id='sample-excalidraw-drawing']").style.height)`)) > drawingEditorInitial.height + 100,
+    "A drawing height draft did not reflow the document immediately",
+  );
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='excalidraw-drawing-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.trim() === "Cancel").click();
+  })()`);
+  await delay(150);
+  assert(
+    Math.abs((await client.evaluate(`Number.parseFloat(document.querySelector("[data-block-id='sample-excalidraw-drawing']").style.height)`)) - drawingEditorInitial.height) < 1,
+    "Cancelling an inline drawing draft did not restore the semantic layout",
+  );
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-excalidraw-drawing']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(650);
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='excalidraw-drawing-editor']");
+    const caption = editor.querySelector("textarea");
+    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    textareaSetter.call(caption, "Edited directly inside the document.");
+    caption.dispatchEvent(new Event("input", { bubbles: true }));
+    const rectangle = editor.querySelector(".drawing-editor__canvas input[aria-label='Rectangle']");
+    rectangle.click();
+  })()`);
+  const embeddedDrawingPoints = await client.evaluate(`(() => {
+    const canvas = document.querySelector(".drawing-editor__canvas").getBoundingClientRect();
+    return {
+      start: { x: canvas.x + canvas.width * 0.48, y: canvas.y + canvas.height * 0.55 },
+      end: { x: canvas.x + canvas.width * 0.76, y: canvas.y + canvas.height * 0.78 },
+    };
+  })()`);
+  await pointerDrag(client, embeddedDrawingPoints.start, embeddedDrawingPoints.end);
+  assert(
+    !(await client.evaluate(`document.querySelector(".drawing-editor__canvas button[aria-label='Undo']").disabled`)),
+    "The nested Excalidraw editor did not receive drawing input",
+  );
+  await screenshot(client, "inline-excalidraw-editor.png");
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='excalidraw-drawing-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Save drawing")).click();
+  })()`);
+  await delay(450);
+  assert(
+    await client.evaluate(`(() => {
+      const drawing = document.querySelector("[data-visual-block-id='sample-excalidraw-drawing']");
+      return drawing.textContent.includes("Edited directly inside the document") &&
+        drawing.querySelector("img")?.src.startsWith("blob:");
+    })()`),
+    "The inline drawing editor did not commit its scene and caption",
+  );
+
+  await reloadBuilder(client);
 
   await client.evaluate(`(() => {
     const block = document.querySelector("[data-block-id='sample-section']");
@@ -891,7 +974,7 @@ async function exerciseBuilder(client) {
   assert(
     await client.evaluate(`(() => {
       const blocks = [...document.querySelectorAll("[data-block-id]")];
-      return blocks.length >= 9 &&
+      return blocks.length >= 10 &&
         document.body.textContent.includes("Canonical document") &&
         document.body.textContent.includes("A styled canonical paragraph") &&
         document.body.textContent.includes("third.party.block") &&

@@ -7,6 +7,7 @@ import {
   newElementWith,
   sceneCoordsToViewportCoords,
   viewportCoordsToSceneCoords,
+  zoomToFitBounds,
 } from "@excalidraw/excalidraw";
 import type { AppState, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import {
@@ -35,6 +36,7 @@ import {
   createBlockId,
   flattenBuilderBlocks,
   removeBuilderBlockFromTree,
+  replaceBuilderBlockInTree,
   type BuilderBlock,
   type DocumentPort,
 } from "../model/document";
@@ -148,6 +150,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [pendingDetach, setPendingDetach] = useState<PendingDetach | null>(null);
   const [editingBlock, setEditingBlock] = useState<BuilderBlock | null>(null);
+  const [editingDraft, setEditingDraft] = useState<BuilderBlock | null>(null);
   const [transportError, setTransportError] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<DocumentLayoutMode>("continuous");
   const [pageRange, setPageRange] = useState<PageRange>({ start: 1, end: 3 });
@@ -371,6 +374,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
 
   const beginDrag = useCallback(
     (drag: ActiveDrag, initialPlacement: Placement | null) => {
+      setEditingBlock(null);
+      setEditingDraft(null);
       dragRef.current = drag;
       setActiveDrag(drag);
       setPlacement(initialPlacement);
@@ -433,8 +438,11 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     if (pendingDetach !== null) {
       return removeBuilderBlockFromTree(snapshot.blocks, pendingDetach.block.id);
     }
+    if (editingBlock !== null && editingDraft !== null) {
+      return replaceBuilderBlockInTree(snapshot.blocks, editingBlock.id, editingDraft);
+    }
     return snapshot.blocks;
-  }, [activeDrag, pendingDetach, snapshot.blocks]);
+  }, [activeDrag, editingBlock, editingDraft, pendingDetach, snapshot.blocks]);
 
   const insertionPreview = useMemo<InsertionPreview | null>(
     () =>
@@ -519,9 +527,13 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
 
   const deleteBlock = useCallback(
     (blockId: string) => {
+      if (editingBlock?.id === blockId) {
+        setEditingBlock(null);
+        setEditingDraft(null);
+      }
       port.dispatch({ kind: "delete", blockId });
     },
-    [port],
+    [editingBlock, port],
   );
 
   const beginEdit = useCallback(
@@ -531,12 +543,77 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         return;
       }
       setEditingBlock(block);
+      setEditingDraft(block);
+      const blockLayout = layout.blocks.find(({ block: candidate }) => candidate.id === block.id);
+      if (canvasApi !== null && blockLayout !== undefined) {
+        const { x, y, width, height } = blockLayout.bounds;
+        const fitted = zoomToFitBounds({
+          bounds: [x, y, x + width, y + height],
+          appState: canvasApi.getAppState(),
+          canvasOffsets: { top: 70, right: 340, bottom: 70, left: 50 },
+          fitToViewport: true,
+          viewportZoomFactor: 0.82,
+          minZoom: 0.45,
+          maxZoom: 1,
+        });
+        canvasApi.updateScene({
+          appState: {
+            scrollX: fitted.appState.scrollX,
+            scrollY: fitted.appState.scrollY,
+            zoom: fitted.appState.zoom,
+          },
+          captureUpdate: CaptureUpdateAction.NEVER,
+        });
+      }
     },
-    [registry],
+    [canvasApi, layout.blocks, registry],
   );
 
   const editingDescriptor =
     editingBlock === null ? null : registry.editorForBlock(editingBlock);
+  const closeEditor = useCallback(() => {
+    setEditingBlock(null);
+    setEditingDraft(null);
+  }, []);
+  const previewEditorBlock = useCallback(
+    (replacement: BuilderBlock) => {
+      if (
+        replacement.id !== editingBlock?.id ||
+        replacement.typeId !== editingBlock.typeId
+      ) {
+        throw new Error("An editor preview must preserve its block ID and semantic type");
+      }
+      setEditingDraft(replacement);
+    },
+    [editingBlock],
+  );
+  const commitEditorBlock = useCallback(
+    (replacement: BuilderBlock) => {
+      if (editingBlock === null) {
+        throw new Error("Cannot commit a block after its editor was closed");
+      }
+      port.dispatch({ kind: "replace", blockId: editingBlock.id, block: replacement });
+      closeEditor();
+    },
+    [closeEditor, editingBlock, port],
+  );
+  const editorProps =
+    editingBlock === null || editingDraft === null
+      ? null
+      : {
+          block: editingDraft,
+          onPreview: previewEditorBlock,
+          onCancel: closeEditor,
+          onCommit: commitEditorBlock,
+        };
+  const inlineEditor =
+    editingDescriptor?.presentation === "inline" && editorProps !== null
+      ? {
+          blockId: editorProps.block.id,
+          title: editingDescriptor.title(editorProps.block),
+          content: editingDescriptor.render(editorProps),
+        }
+      : null;
 
   const saveDocument = useCallback((): void => {
     try {
@@ -566,6 +643,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         clearDrag();
         setPendingDetach(null);
         setEditingBlock(null);
+        setEditingDraft(null);
         port.dispatch({ kind: "replace_all", ...decoded });
         setTransportError(null);
       } catch (error) {
@@ -631,6 +709,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
               onBeginMove={beginDocumentDrag}
               onDelete={deleteBlock}
               onEdit={beginEdit}
+              inlineEditor={inlineEditor}
             />
           )}
         </div>
@@ -672,27 +751,14 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           </>
         )}
 
-        {editingBlock === null || editingDescriptor === null ? null : (
+        {editingDescriptor === null ||
+        editingDescriptor.presentation === "inline" ||
+        editorProps === null ? null : (
           <EditorDialog
-            title={editingDescriptor.title(editingBlock)}
-            onClose={() => {
-              setEditingBlock(null);
-            }}
+            title={editingDescriptor.title(editorProps.block)}
+            onClose={closeEditor}
           >
-            {editingDescriptor.render({
-              block: editingBlock,
-              onCancel: () => {
-                setEditingBlock(null);
-              },
-              onCommit: (replacement) => {
-                port.dispatch({
-                  kind: "replace",
-                  blockId: editingBlock.id,
-                  block: replacement,
-                });
-                setEditingBlock(null);
-              },
-            })}
+            {editingDescriptor.render(editorProps)}
           </EditorDialog>
         )}
       </section>

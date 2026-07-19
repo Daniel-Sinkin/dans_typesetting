@@ -1,79 +1,10 @@
 // src/connectors/latex/image.cpp — render inline images and figures as LaTeX.
 #include "connectors/latex/image.hpp"
 
-#include <array>
-#include <charconv>
-#include <filesystem>
+#include "connectors/latex/graphics.hpp"
+
 #include <stdexcept>
-#include <string>
-#include <system_error>
 #include <utility>
-
-namespace
-{
-auto is_ascii_letter(const char character) noexcept -> bool
-{
-    return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
-}
-
-auto is_ascii_digit(const char character) noexcept -> bool
-{
-    return character >= '0' && character <= '9';
-}
-
-auto is_safe_latex_path_character(const char character) noexcept -> bool
-{
-    return is_ascii_letter(character) || is_ascii_digit(character) || character == '/'
-           || character == '.' || character == '_' || character == '-' || character == ':'
-           || character == ' ';
-}
-
-auto lowercase_ascii(std::string text) -> std::string
-{
-    for (char& character : text)
-    {
-        if (character >= 'A' && character <= 'Z')
-        {
-            character = static_cast<char>(character - 'A' + 'a');
-        }
-    }
-    return text;
-}
-
-auto latex_image_path(const std::filesystem::path& path) -> std::string
-{
-    const auto extension = lowercase_ascii(path.extension().string());
-    if (extension != ".pdf" && extension != ".png" && extension != ".jpg" && extension != ".jpeg")
-    {
-        throw std::runtime_error{
-            "The LaTeX image connector supports only PDF, PNG, and JPEG assets: " + path.string()
-        };
-    }
-
-    auto result = path.generic_string();
-    for (const char character : result)
-    {
-        if (!is_safe_latex_path_character(character))
-        {
-            throw std::runtime_error{
-                "The LaTeX image connector cannot safely encode this image path: " + path.string()
-            };
-        }
-    }
-    return result;
-}
-
-auto decimal(const dans::f64 value) -> std::string
-{
-    std::array<char, 64> buffer{};
-    const auto result = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
-    if (result.ec != std::errc{})
-    {
-        throw std::runtime_error{"Could not format an image layout measurement"};
-    }
-    return {buffer.data(), result.ptr};
-}
-}  // namespace
 
 namespace dans::document::connectors::latex
 {
@@ -93,9 +24,9 @@ auto InlineImageLatexAdapter::serialize(
     }
 
     output.write_raw("\\raisebox{-0.15em}{\\includegraphics[height=");
-    output.write_raw(decimal(image->height().em()));
+    output.write_raw(detail::decimal(image->height().em()));
     output.write_raw("em]{");
-    output.write_raw(latex_image_path(image->source().path()));
+    output.write_raw(detail::graphics_path(image->source().path()));
     output.write_raw("}}");
 }
 
@@ -125,9 +56,9 @@ auto FigureLatexAdapter::serialize(const DocumentBlock& block, writers::LatexOut
     }
 
     output.write_raw("\\begin{figure}[htbp]\n\\centering\n\\includegraphics[width=");
-    output.write_raw(decimal(figure->width().fraction()));
+    output.write_raw(detail::decimal(figure->width().fraction()));
     output.write_raw("\\linewidth]{");
-    output.write_raw(latex_image_path(figure->source().path()));
+    output.write_raw(detail::graphics_path(figure->source().path()));
     output.write_raw("}\n\\caption{");
     inline_renderer_->serialize(figure->caption(), output);
     output.write_raw("}\n\\label{");

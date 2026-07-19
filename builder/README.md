@@ -2,7 +2,8 @@
 
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
 be projected either as one vertically growing continuous view or as whole-block pages. Paragraph,
-image, code-listing, structured-math, title-page, table-of-contents, page-break, and section plugins
+image, embedded-drawing, code-listing, structured-math, title-page, table-of-contents, page-break,
+and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
 optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
 previews, animated reflow, copying, transactional detach/delete behaviour, and page projection.
@@ -46,6 +47,13 @@ copy, or detach a subtree. An independently registered basic input-parser capabi
 grouping, arithmetic, comma sequences, signed numbers, and identifiers into the same structured
 tree. Selection locks retain the bounds of the containing scope, making nested expressions
 addressable without flattening their structure.
+
+An Excalidraw drawing is a semantic figure block rather than part of the surrounding note canvas.
+Choose Edit to mount a second, clipped Excalidraw instance directly inside that block. Caption,
+reference ID, preferred width, and editor height reflow the document as drafts; Cancel restores the
+published block and Save commits one replacement transaction. The scene preview is rendered through
+an isolated SVG image boundary, and Export SVG materializes the same scene for an external writer.
+The outer canvas remains available around and above the document throughout editing.
 
 Unknown document blocks remain in the flow as opaque labelled previews. Their Edit action logs a
 stable handle to the browser console, demonstrating that preview and editing support are independent.
