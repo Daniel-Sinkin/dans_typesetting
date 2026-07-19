@@ -25,6 +25,32 @@ payloads. Generic `.dans_doc` load/save remains lossless for them, while the
 strict publisher rejects them until their plugin-owned materializers and
 native-layout adapters are registered.
 
+Commit `ae911b2` contains this first native paragraph publication slice.
+
+## Native PDF stopping decisions
+
+Stop direct-PDF implementation here until the next representative content
+slice is chosen. The current serializer deliberately uses PDF 1.4, individually
+written indirect objects, an uncompressed classic xref table, a complete Type 1
+Latin Modern font, WinAnsi ASCII codes, and a ToUnicode map. This is a debugging
+and correctness baseline, not a promise that the final serializer must retain
+those storage choices.
+
+The native target is semantic and visual equivalence, not LuaLaTeX byte
+identity. The reference currently uses PDF 1.7, an xref stream, compressed
+streams, a subset CID/CFF font, metadata, and `microtype` expansion. Those are
+independent representation or compositor choices; there is no LaTeX-specific
+protocol inside PDF. Keep `Document -> PagedDocument -> PdfSerializer` as the
+hard boundary so the graphical builder can eventually consume the same page
+layout and serializer work cannot contaminate semantic blocks.
+
+When work resumes, prioritize representative layout/content correctness and a
+shared graphical page projection. Within PDF serialization, font subsetting is
+the largest size win, followed by Flate stream compression. Metadata is useful
+but should remain reproducible. Xref/object streams are low priority and should
+be introduced only for a measured or feature-driven reason. See
+`latex-like-pdf.md` for the comparison, validation policy, and ordered backlog.
+
 ## Current inline-image milestone
 
 The slice after `df0dc42` completes the pre-existing `dans.image.inline`
@@ -130,6 +156,9 @@ Markdown/Jupyter, canonical transport, and graphical authoring.
 
 Commit `0d17dc2` converges ordinary-figure and code-listing captions on the
 standalone Inline Sequence contract in canonical and graphical paths.
+
+Commit `ae911b2` adds strict paragraph/Core Text canonical materialization, the
+fixed-point page display list, and the first direct selectable-text PDF writer.
 
 Commit `57a271b` expands the structured relation, product, arrow, Greek, and
 physics-symbol vocabulary across native and graphical writers.

@@ -90,6 +90,135 @@ The initial serializer embeds the complete font program rather than subsetting
 it. PDF emission has no LaTeX-specific layout protocol: it consumes already
 positioned glyph runs and records those placements in page content streams.
 
+### Why the first serializer uses classic PDF 1.4
+
+Two related choices are easy to conflate:
+
+1. the file declares PDF version 1.4;
+2. indirect objects are indexed by a classic textual xref table and trailer.
+
+The second choice is what “classic” primarily means. A minimal file is shaped
+like this:
+
+```text
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+...
+7 0 obj
+<< /Length 3318 >>
+stream
+BT ... TJ ET
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f
+0000000015 00000 n
+...
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+125500
+%%EOF
+```
+
+Every catalog, page-tree, page, font, character map, and content-stream object
+is independently numbered. While writing, the serializer records the byte
+offset at which each object starts. The fixed-width xref table publishes those
+offsets, and `startxref` points a reader to that table. This has a small and
+transparent implementation surface: object boundaries and offsets remain
+inspectable, corruption is local, and validation failures do not first require
+decoding a compressed binary index.
+
+PDF 1.5 introduced xref streams and object streams. An xref stream packs entry
+types, offsets, generations, and object-stream indexes into binary fields whose
+widths are described by `/W`, and normally compresses them. That representation
+can be smaller, but it adds binary packing, compression, and optional
+object-stream bookkeeping without changing text placement or rendering.
+
+The version and serialization choices are not synonymous. A PDF 1.7 file may
+still use a classic xref table, and ordinary content streams may be
+Flate-compressed while retaining classic xref. PDF 1.4 already contains the
+text, embedded-font, image XObject, vector path, clipping, transparency,
+destination, outline, and hyperlink-annotation primitives required by the
+planned document features. A version increase is therefore not currently a
+content requirement.
+
+The observed fixture comparison at this stopping point is:
+
+| Property | LuaLaTeX reference | Native output |
+| --- | --- | --- |
+| Declared version | PDF 1.7 | PDF 1.4 |
+| Cross-reference | compressed xref stream | classic textual xref table |
+| Font representation | subset CID/CFF font | complete Type 1 PFB font |
+| Text encoding | two-byte Identity-H glyph IDs | one-byte WinAnsi ASCII |
+| Text mapping | ToUnicode | ToUnicode |
+| Metadata | producer, creator, timestamps, file ID | none yet |
+| Fixture size | 6,135 bytes | 125,906 bytes |
+
+The xref choice accounts for very little of that size difference. The native
+file is larger because it embeds the complete font and leaves streams
+uncompressed. Font subsetting and stream compression are independent serializer
+improvements; neither requires changing `Document`, the compositor, or
+`PagedDocument`.
+
+### Equivalence target
+
+Byte identity with LuaLaTeX is explicitly not a goal. PDF has no canonical byte
+encoding: equivalent files may choose different object numbers and ordering,
+numeric spellings, stream segmentation, compression levels, subset tags,
+metadata, timestamps, and file identifiers. Reproducing LuaTeX's exact choices
+would couple the project to incidental serializer behavior without improving
+the document.
+
+Native-PDF conformance should instead be evaluated at three boundaries:
+
+- semantic equivalence: extracted text, reading order, links, destinations,
+  labels, and other user-visible document behavior;
+- layout equivalence: page geometry, line breaking, baselines, glyph placement,
+  numbering, and bounded raster differences;
+- structural validity: independent PDF parsers accept the object graph, fonts
+  are embedded and mapped, and all declared streams and xref entries resolve.
+
+The current fixture has identical extracted text and matching page geometry,
+line breaks, baselines, paragraph indentation, and footer position. LuaLaTeX
+still applies small per-line `microtype` font expansion and uses the CFF form of
+Latin Modern, so the raster output is close rather than identical.
+
+### Deferred work
+
+Correctness remains ahead of compactness or throughput. Continue in small
+vertical slices:
+
+1. Extend paragraph fidelity only when a representative document requires it:
+   Unicode shaping, font fallback, ligatures, hyphenation, full TeX-style line
+   demerits, widow/orphan policy, and microtype-like expansion or protrusion.
+2. Extend the backend-neutral page display list for links, images, paths,
+   annotations, source identities, and interaction hit regions as their
+   semantic plugins enter the direct-PDF path.
+3. Project the same page display list into the graphical builder so interactive
+   preview and direct publication share pagination rather than approximating
+   one another.
+4. Subset embedded fonts. This is the largest immediate file-size improvement.
+5. Add Flate compression for suitable content, mapping, and font streams while
+   retaining the inspectable classic xref path.
+6. Add deterministic document metadata, producer information, and file IDs if
+   publication workflows need them; keep wall-clock timestamps optional so
+   reproducible output remains possible.
+7. Introduce xref streams or object streams only if measured size, very large
+   object counts, or object-stream support provides a concrete reason. They are
+   not a prerequisite for visual fidelity.
+8. Keep reference validation structural and semantic: native tests, independent
+   PDF parsers, font inspection, text extraction, geometry assertions, and
+   selective raster comparisons. Do not turn a LuaLaTeX byte diff into a test.
+
+No native-versus-LaTeX performance benchmark is required during these
+correctness slices. Serialization optimizations remain isolated behind
+`PdfSerializer` and must not leak PDF mechanics back into semantic blocks or
+page layout.
+
 The implementation follows the PDF object, page-tree, content-stream, Type 1
 font, and text-operator contracts in the
 [Adobe PDF Reference](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.5_v6.pdf).
