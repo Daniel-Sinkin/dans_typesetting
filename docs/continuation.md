@@ -57,7 +57,28 @@ Markdown/Jupyter, canonical transport, and graphical authoring.
 Commit `0d17dc2` converges ordinary-figure and code-listing captions on the
 plugin-owned Core Paragraph inline contract in canonical and graphical paths.
 
+Commit `57a271b` expands the structured relation, product, arrow, Greek, and
+physics-symbol vocabulary across native and graphical writers.
+
 ## Current verified slice
+
+The decorated-identifier and mathematical-function slice adds:
+
+- atomic italic, blackboard, and calligraphic identifier styles with shared
+  native/browser validation and publication lowering;
+- recursive ordinary function and upright named-operator nodes with explicit
+  delimiter policy and one argument consumption point;
+- optional parser spellings `bb(...)`, `cal(...)`, ordinary calls, and
+  `op(name, expression)` plus graphical palette templates;
+- ordinary nested selection, replacement, thresholded detach, parking,
+  clipboard, canonical transport, and malformed-payload coverage;
+- native LaTeX/Markdown/Jupyter samples and browser canonical-fixture/smoke
+  coverage.
+
+See `math-identifiers-and-functions.md` for the exact contract and deliberate
+limits.
+
+## Preceding verified slice
 
 The structured mathematical vocabulary slice adds:
 
@@ -315,8 +336,8 @@ isolation and lazy loading are the intended remedies.
 ## Next work
 
 Continue with one complete thesis-parity slice. External source-file inclusion
-for listings, decorated math identifiers (`mathbb`/`mathcal`), and browser-side
-named operators are the strongest remaining gaps in the audited corpus.
+for listings, additional matrix/array presentation, labeled arrows, and large
+operators are the strongest remaining gaps in the audited corpus.
 Theorems/definitions/lemmas remain a useful independent plugin family but were
 not present in that corpus. Kernel-specific Jupyter cells and notebook
 attachments remain optional writer policies.
@@ -387,3 +408,9 @@ Current deliberate compromises to reassess later:
   hatch for an ordinary identifier with the same letters.
 - relation chains are stored and rendered exactly as authored; the presentation
   tree does not reinterpret `a < b < c` as a Boolean conjunction.
+- blackboard and calligraphic styles apply only to atomic ASCII identifiers;
+  the browser uses Unicode mathematical alphabets for preview while publication
+  writers choose their own font commands.
+- a function owns one recursive argument node; multiple visible arguments are
+  currently a comma sequence, and its name is replaced with the whole function
+  rather than dragged as an independently selectable child.

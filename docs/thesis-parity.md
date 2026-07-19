@@ -52,10 +52,12 @@ square-bracketed matrices, row vectors, column vectors, stacked fractions,
 square/indexed roots, combined scripts, the high-frequency relation family,
 distinct product operators, Greek/calculus symbols, ellipses, dagger,
 transpose, and script ell in native LaTeX/Markdown/Jupyter and the graphical
-writer. Every child retains recursive editing and canonical transport. The
-audited corpus still needs parentheses matrices, block separators, arrays,
-decorated identifiers, browser-side named operators, labeled arrows, and
-several specialized environments before mathematical parity is close.
+writer. Blackboard/calligraphic identifiers plus ordinary and named function
+application now share native and graphical contracts as well. Every child
+retains recursive editing and canonical transport. The audited corpus still
+needs parentheses matrices, block separators, arrays, labeled arrows, large
+operators, and several specialized environments before mathematical parity is
+close.
 
 The listing contract now covers C++, CUDA, Julia, and raw source with
 independently optional captions and reference targets in native LaTeX and the

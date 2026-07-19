@@ -200,6 +200,7 @@ struct Math::Node
     struct Identifier
     {
         std::string name{};
+        Math::IdentifierStyle style{};
     };
 
     struct Symbol
@@ -336,18 +337,45 @@ auto Math::integer(const i64 value) -> Math
 
 auto Math::identifier(const std::string_view name) -> Math
 {
+    return styled_identifier(name, IdentifierStyle::italic);
+}
+
+auto Math::styled_identifier(const std::string_view name, const IdentifierStyle style) -> Math
+{
     if (!is_valid_name(name))
     {
         throw std::invalid_argument{
             "A math identifier must start with an ASCII letter and contain only letters or digits"
         };
     }
-    return Math{std::make_unique<Node>(Node::Identifier{.name = std::string{name}})};
+    switch (style)
+    {
+        case IdentifierStyle::italic:
+        case IdentifierStyle::blackboard:
+        case IdentifierStyle::calligraphic:
+            break;
+        default:
+            throw std::invalid_argument{"Unknown math identifier style"};
+    }
+    return Math{std::make_unique<Node>(Node::Identifier{
+        .name = std::string{name},
+        .style = style,
+    })};
 }
 
 auto Math::ident(const std::string_view name) -> Math
 {
     return identifier(name);
+}
+
+auto Math::blackboard(const std::string_view name) -> Math
+{
+    return styled_identifier(name, IdentifierStyle::blackboard);
+}
+
+auto Math::calligraphic(const std::string_view name) -> Math
+{
+    return styled_identifier(name, IdentifierStyle::calligraphic);
 }
 
 auto Math::symbol(const Math::Symbol symbol) -> Math
@@ -831,6 +859,11 @@ auto Math::integer_value() const -> i64
 auto Math::identifier_name() const -> std::string_view
 {
     return std::get<Node::Identifier>(node().value).name;
+}
+
+auto Math::identifier_style() const -> Math::IdentifierStyle
+{
+    return std::get<Node::Identifier>(node().value).style;
 }
 
 auto Math::symbol_value() const -> Math::Symbol

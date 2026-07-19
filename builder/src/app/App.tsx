@@ -21,10 +21,12 @@ import {
   createMathFraction,
   createMathIdentifier,
   createMathInteger,
+  createMathNamedOperator,
   createMathRadical,
   createMathScript,
   createMathSummation,
   createMathSymbol,
+  createMathStyledIdentifier,
 } from "../model/math";
 import { createImagePlugin } from "../plugins/image";
 import { createImageBlock } from "../plugins/imageModel";
@@ -337,13 +339,16 @@ const initialBlocks = [
           createMathIdentifier("i"),
           createMathInteger(1),
         ),
-        createMathIdentifier("N"),
-          createMathBinary(
-            "tensor_product",
-            createMathMatrix([
+        createMathNamedOperator(
+          "dim",
+          createMathStyledIdentifier("H", "calligraphic"),
+        ),
+        createMathBinary(
+          "tensor_product",
+          createMathMatrix([
             [createMathInteger(2), createMathInteger(4)],
             [createMathInteger(1), createMathInteger(3)],
-            ]),
+          ]),
           createMathFraction(
             createMathColumnVector([
               createMathIdentifier("x"),

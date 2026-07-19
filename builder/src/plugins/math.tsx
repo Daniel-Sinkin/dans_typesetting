@@ -20,14 +20,17 @@ import type { MathInputParserPlugin } from "../math/inputParser";
 import {
   createMathBinary,
   createMathFraction,
+  createMathFunction,
   createMathInteger,
   createMathLeafFromInput,
+  createMathNamedOperator,
   createMathParenthesized,
   createMathRadical,
   createMathScript,
   createMathSlot,
   createMathSummation,
   createMathSymbol,
+  createMathStyledIdentifier,
   detachMathExpressionAtPath,
   mathExpressionAtPath,
   mathExpressionHasSlots,
@@ -35,6 +38,7 @@ import {
   mathExpressionToString,
   mathExpressionToText,
   mathGridBranch,
+  mathIdentifierText,
   mathOperatorSymbol,
   mathPathKey,
   mathSequenceBranch,
@@ -248,6 +252,15 @@ function selectionCandidatesForScope(
               ),
             ]),
       ];
+    case "function":
+      return [
+        whole,
+        makeSelectionCandidate(
+          { kind: "node", path: [...scopePath, "argument"] },
+          2,
+          lockedSelection,
+        ),
+      ];
     case "parenthesized":
     case "delimited":
       return [
@@ -413,13 +426,55 @@ function MathNode({
     return <span {...sharedProps}>{selectionBadge}{expression.value}</span>;
   }
   if (expression.kind === "identifier") {
-    return <span {...sharedProps}>{selectionBadge}{expression.name}</span>;
+    return (
+      <span
+        {...sharedProps}
+        className={`${sharedProps.className} math-identifier math-identifier--${expression.style}`}
+      >
+        {selectionBadge}
+        {mathIdentifierText(expression)}
+      </span>
+    );
   }
   if (expression.kind === "symbol") {
     return (
       <span {...sharedProps} className={`${sharedProps.className} math-symbol`}>
         {selectionBadge}
         {mathSymbolGlyph(expression.name)}
+      </span>
+    );
+  }
+  if (expression.kind === "function") {
+    const [open, close] = expression.delimiter === "parentheses"
+      ? ["(", ")"]
+      : expression.delimiter === "brackets"
+        ? ["[", "]"]
+        : ["⟨", "⟩"];
+    return (
+      <span {...sharedProps}>
+        {selectionBadge}
+        <span
+          className={expression.namedOperator
+            ? "math-function-name math-function-name--operator"
+            : "math-function-name"}
+        >
+          {expression.name}
+        </span>
+        <span className="math-parenthesis math-parenthesis--open">{open}</span>
+        <MathNode
+          expression={expression.argument}
+          path={[...path, "argument"]}
+          parentOperator={null}
+          parentBranch={null}
+          selectedPathKey={selectedPathKey}
+          onBeginDrag={onBeginDrag}
+          onHoverPath={onHoverPath}
+          renderSlot={renderSlot}
+          renderNodeEditor={renderNodeEditor}
+          selectionCandidates={selectionCandidates}
+          onHoverSelection={onHoverSelection}
+        />
+        <span className="math-parenthesis math-parenthesis--close">{close}</span>
       </span>
     );
   }
@@ -876,6 +931,21 @@ const symbolPalette = mathSymbolNames.map(
   }),
 );
 
+const identifierStylePalette: readonly MathEditorPaletteItem[] = [
+  {
+    id: "identifier-blackboard",
+    label: "𝔸",
+    description: "Blackboard-bold identifier placeholder",
+    create: () => createMathStyledIdentifier("A", "blackboard"),
+  },
+  {
+    id: "identifier-calligraphic",
+    label: "𝒜",
+    description: "Calligraphic identifier placeholder",
+    create: () => createMathStyledIdentifier("A", "calligraphic"),
+  },
+];
+
 const operatorPalette = (
   [
     ["plus", "Addition"],
@@ -907,6 +977,18 @@ const operatorPalette = (
 );
 
 const structurePalette: readonly MathEditorPaletteItem[] = [
+  {
+    id: "structure-function",
+    label: "f(x)",
+    description: "Ordinary function with an argument slot",
+    create: () => createMathFunction("f"),
+  },
+  {
+    id: "structure-named-operator",
+    label: "op[x]",
+    description: "Named operator with an argument slot",
+    create: () => createMathNamedOperator("op"),
+  },
   {
     id: "structure-summation",
     label: "∑",
@@ -1664,6 +1746,24 @@ export function MathExpressionEditor({
             </div>
           </section>
         ))}
+        <section>
+          <h3>Identifier styles</h3>
+          <div className="math-palette-grid math-palette-grid--operators">
+            {identifierStylePalette.map((item) => (
+              <button
+                data-math-palette={item.id}
+                key={item.id}
+                type="button"
+                title={item.description}
+                onPointerDown={(event) => {
+                  beginPaletteDrag(item, event);
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </section>
         <section>
           <h3>Binary operators</h3>
           <div className="math-palette-grid math-palette-grid--operators">

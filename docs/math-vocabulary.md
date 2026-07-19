@@ -84,7 +84,8 @@ extension of their existing discriminated vocabulary; old payloads retain
 their meaning and newly emitted payloads remain byte-stable under
 `to_string(from_string(serialized))` normalization.
 
-Labeled arrows, large products/unions, decorated identifiers (`mathbb` and
-`mathcal`), and generic named operators in the browser are separate structures
-because they own additional children or presentation state. They should not be
-smuggled through the binary enum or symbol names.
+Labeled arrows and large products/unions remain separate structures because
+they own additional children or presentation state. Decorated identifiers and
+ordinary/named function application are documented in
+[math-identifiers-and-functions.md](math-identifiers-and-functions.md); they
+are likewise not smuggled through the binary enum or symbol names.

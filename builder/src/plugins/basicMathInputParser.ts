@@ -5,13 +5,16 @@ import {
   createMathCommaSequence,
   createMathDecimal,
   createMathDelimited,
+  createMathFunction,
   createMathIdentifier,
   createMathInteger,
   createMathNegated,
+  createMathNamedOperator,
   createMathParenthesized,
   createMathRadical,
   createMathScript,
   createMathSymbol,
+  createMathStyledIdentifier,
   mathSymbolNameFromInput,
   validateMathExpression,
   type MathBinaryOperator,
@@ -423,11 +426,47 @@ class BasicMathParser {
     }
     if (token.kind === "identifier") {
       this.#advance();
+      if (
+        (token.text === "bb" || token.text === "cal") &&
+        this.#current().kind === "open_parenthesis"
+      ) {
+        this.#advance();
+        const identifier = this.#consume("identifier", "an ASCII identifier");
+        this.#consume("close_parenthesis", "')'");
+        return createMathStyledIdentifier(
+          identifier.text,
+          token.text === "bb" ? "blackboard" : "calligraphic",
+        );
+      }
+      if (token.text === "op" && this.#current().kind === "open_parenthesis") {
+        this.#advance();
+        const name = this.#consume("identifier", "an operator name");
+        this.#consume("comma", "',' after the operator name");
+        const argument = this.#parseCommaSequence();
+        this.#consume("close_parenthesis", "')'");
+        return createMathNamedOperator(name.text, argument);
+      }
       if (token.text === "sqrt" && this.#current().kind === "open_parenthesis") {
         this.#advance();
         const body = this.#parseCommaSequence();
         this.#consume("close_parenthesis", "')'");
         return createMathRadical(body);
+      }
+      if (
+        this.#current().kind === "open_parenthesis" ||
+        this.#current().kind === "open_bracket"
+      ) {
+        const delimiter = this.#advance().kind;
+        const argument = this.#parseCommaSequence();
+        this.#consume(
+          delimiter === "open_parenthesis" ? "close_parenthesis" : "close_bracket",
+          delimiter === "open_parenthesis" ? "')'" : "']'",
+        );
+        return createMathFunction(
+          token.text,
+          argument,
+          delimiter === "open_parenthesis" ? "parentheses" : "brackets",
+        );
       }
       const symbol = mathSymbolNameFromInput(token.text);
       if (symbol !== null) {

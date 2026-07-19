@@ -60,6 +60,17 @@ auto test_model() -> void
     expect(scripted.script_subscript() != nullptr, "A combined script lost its subscript");
     expect(scripted.script_superscript() != nullptr, "A combined script lost its superscript");
 
+    auto blackboard = M::blackboard("C");
+    expect(
+        blackboard.identifier_style() == M::IdentifierStyle::blackboard,
+        "A blackboard identifier lost its presentation style"
+    );
+    auto calligraphic = M::calligraphic("H");
+    expect(
+        calligraphic.identifier_style() == M::IdentifierStyle::calligraphic,
+        "A calligraphic identifier lost its presentation style"
+    );
+
     make_expression().validate();
 }
 
@@ -74,6 +85,7 @@ auto test_latex() -> void
     writer.serialize(document, output);
     const auto rendered = output.str();
 
+    expect(rendered.contains(R"(\usepackage{amsfonts})"), "Math alphabets omitted amsfonts");
     expect(
         rendered.contains(R"(\frac{{x}_{i}}{\sqrt{y}})"),
         "A structured fraction or its nested square root was not lowered to LaTeX"
@@ -168,6 +180,20 @@ auto test_thesis_vocabulary() -> void
     expect(
         tex::render_expression(relation) == R"(a + b \leq A \otimes B)",
         "Mixed relation precedence changed"
+    );
+
+    const auto spectrum = M::element_of(
+        M::named_operator("spectrum").argument(M::calligraphic("H")), M::blackboard("R")
+    );
+    expect(
+        tex::render_expression(spectrum)
+            == R"(\operatorname{spectrum}\!\left[\mathcal{H}\right] \in \mathbb{R})",
+        "Named-operator or decorated-identifier lowering changed"
+    );
+    expect(
+        tex::render_expression(M::function("f").argument(M::blackboard("C")))
+            == R"(f\!\left(\mathbb{C}\right))",
+        "Ordinary function application lowering changed"
     );
 }
 

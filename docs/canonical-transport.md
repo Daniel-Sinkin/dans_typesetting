@@ -80,6 +80,13 @@ semantic relation/product names, while symbol payloads store registered names
 such as `partial` or `capital_omega`; neither stores Unicode glyphs nor TeX
 commands. See [math-vocabulary.md](math-vocabulary.md).
 
+Identifier payloads keep the original `{kind: "identifier", name}` spelling
+for ordinary italic symbols and add `style` only for `blackboard` or
+`calligraphic` leaves. Function payloads own an ASCII `name`, Boolean
+`namedOperator`, one of the registered delimiter names, and one recursive
+`argument`. IDs remain editor-local and are regenerated on decode. See
+[math-identifiers-and-functions.md](math-identifiers-and-functions.md).
+
 Inline source code uses `dans.code.inline` with one string-valued `code` field.
 CR and LF are rejected because multiline source belongs to the listing plugin;
 all other code punctuation is stored semantically rather than writer-escaped.

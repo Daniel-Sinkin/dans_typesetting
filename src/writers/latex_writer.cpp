@@ -221,6 +221,7 @@ auto LatexWriter::emit_document(const Document& document, LatexOutput& output) c
     output.write_raw("\\documentclass[11pt,a4paper]{article}\n");
     output.write_raw("\\usepackage{fontspec}\n");
     output.write_raw("\\usepackage{amsmath}\n");
+    output.write_raw("\\usepackage{amsfonts}\n");
     output.write_raw("\\usepackage{graphicx}\n");
     output.write_raw("\\usepackage{subcaption}\n");
     output.write_raw("\\usepackage{microtype}\n");

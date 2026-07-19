@@ -90,6 +90,8 @@ auto make_document() -> dans::document::Document
     paragraph.inlines().add<InlineCode>("cudaDeviceSynchronize()");
     paragraph.append_text(" and require ");
     paragraph.inlines().add<Math::Inline>(Math::less_equal(Math::id_partial, Math::id_infinity));
+    paragraph.append_text(" over ");
+    paragraph.inlines().add<Math::Inline>(Math::blackboard("R"));
     paragraph.append_text(" before reading timing data.");
     section.blocks().add<CodeListing>(
         CodeLanguage::cpp, "int main() { return 0; }\n", "C++ presentation source."
@@ -152,6 +154,7 @@ auto verify_notebook() -> void
     }
     if (!expected_markdown.str().contains("```cpp") || !expected_markdown.str().contains("```julia")
         || !expected_markdown.str().contains(R"(${\partial} \leq {\infty}$)")
+        || !expected_markdown.str().contains(R"($\mathbb{R}$)")
         || !expected_markdown.str().contains("*Figure 1: Paired notebook figure\\.*")
         || serialized.str().contains("kernelspec"))
     {

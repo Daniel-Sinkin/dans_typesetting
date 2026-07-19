@@ -72,6 +72,13 @@ operators, Greek letters, and common physics/calculus symbols. The optional inpu
 ASCII spellings such as `i in A`, `a <= b`, `a otimes b`, `theta`, and `partial`; canonical data
 stores the operation or symbol name rather than the displayed glyph.
 
+Decorated identifiers and function applications use the same recursive math
+tree. The palette exposes blackboard/calligraphic placeholder leaves plus
+ordinary and named function templates. The optional parser accepts `bb(R)`,
+`cal(H)`, `f(x)`, `f[x]`, and `op(spectrum, cal(H))`; canonical payloads store
+the ASCII name, presentation style, delimiter, and recursive argument rather
+than the Unicode preview or TeX spelling.
+
 Sections, images, paired-figure groups/panels, drawings, display equations, and listings may publish stable
 semantic target IDs. The graphical writer derives their visible numbers from
 current document order; reference segments therefore update immediately after

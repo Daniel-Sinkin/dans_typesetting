@@ -68,6 +68,23 @@ describe("basic math input parser plugin", () => {
     );
   });
 
+  it("parses decorated identifiers and ordinary or named function applications", () => {
+    expect(
+      mathExpressionToText(
+        basicMathInputParser.parse("op(spectrum, cal(H)) in bb(R)"),
+      ),
+    ).toBe("spectrum[ℋ] ∈ ℝ");
+    expect(mathExpressionToText(basicMathInputParser.parse("f(bb(C))"))).toBe(
+      "f(ℂ)",
+    );
+    expect(mathExpressionToText(basicMathInputParser.parse("reshape[A, B]"))).toBe(
+      "reshape[A, B]",
+    );
+    expect(() => basicMathInputParser.parse("op(Tr)")).toThrow(
+      /after the operator name/u,
+    );
+  });
+
   it("reports the source position of malformed or unsupported input", () => {
     expect(() => basicMathInputParser.parse("(1+2]")).toThrow(MathInputParseError);
     expect(() => basicMathInputParser.parse("x@")).toThrow(/character 2/u);

@@ -22,6 +22,13 @@ namespace dans::document::plugins
 class Math final
 {
   public:
+    enum class IdentifierStyle : u8
+    {
+        italic,
+        blackboard,
+        calligraphic,
+    };
+
     enum class Symbol : u8
     {
         alpha,
@@ -191,6 +198,10 @@ class Math final
     [[nodiscard]] static auto integer(i64 value) -> Math;
     [[nodiscard]] static auto identifier(std::string_view name) -> Math;
     [[nodiscard]] static auto ident(std::string_view name) -> Math;
+    [[nodiscard]] static auto styled_identifier(std::string_view name, IdentifierStyle style)
+        -> Math;
+    [[nodiscard]] static auto blackboard(std::string_view name) -> Math;
+    [[nodiscard]] static auto calligraphic(std::string_view name) -> Math;
     [[nodiscard]] static auto symbol(Symbol symbol) -> Math;
     [[nodiscard]] static auto binary(Math left, BinaryOperator operation, Math right) -> Math;
     [[nodiscard]] static auto add(Math left, Math right) -> Math;
@@ -263,6 +274,7 @@ class Math final
     [[nodiscard]] auto kind() const -> Kind;
     [[nodiscard]] auto integer_value() const -> i64;
     [[nodiscard]] auto identifier_name() const -> std::string_view;
+    [[nodiscard]] auto identifier_style() const -> IdentifierStyle;
     [[nodiscard]] auto symbol_value() const -> Symbol;
     [[nodiscard]] auto binary_expression() const -> const BinaryExpression&;
     [[nodiscard]] auto script_base() const -> const Math&;

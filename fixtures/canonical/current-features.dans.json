@@ -74,7 +74,8 @@
                 "operator": "less_equals",
                 "left": {
                   "kind": "identifier",
-                  "name": "N"
+                  "name": "N",
+                  "style": "blackboard"
                 },
                 "right": {
                   "kind": "symbol",
@@ -217,8 +218,15 @@
           "kind": "binary",
           "operator": "approximately_equals",
           "left": {
-            "kind": "identifier",
-            "name": "x"
+            "kind": "function",
+            "name": "spectrum",
+            "namedOperator": true,
+            "delimiter": "brackets",
+            "argument": {
+              "kind": "identifier",
+              "name": "H",
+              "style": "calligraphic"
+            }
           },
           "right": {
             "kind": "fraction",

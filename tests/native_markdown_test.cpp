@@ -124,6 +124,10 @@ auto render_representative_document() -> std::string
     prose.inlines().add<Math::Inline>(M::fraction(M::id_1, M::id_2));
     prose.append_text(" relation ");
     prose.inlines().add<Math::Inline>(M::less_equal(M::id_partial, M::id_infinity));
+    prose.append_text(" space ");
+    prose.inlines().add<Math::Inline>(M::element_of(
+        M::named_operator("spectrum").argument(M::calligraphic("H")), M::blackboard("R")
+    ));
     prose.append_text(" emoji ");
     prose.inlines().add<InlineImage>(ImageSource{"assets/tiny icon.png"});
     prose.append_text(" color ");
@@ -329,6 +333,11 @@ auto main() noexcept -> int
         expect_contains(rendered, "$\\frac{1}{2}$", "inline structured math");
         expect_contains(
             rendered, R"(${\partial} \leq {\infty}$)", "structured relation and symbols"
+        );
+        expect_contains(
+            rendered,
+            R"($\operatorname{spectrum}\!\left[\mathcal{H}\right] \in \mathbb{R}$)",
+            "named operator and decorated identifiers"
         );
         expect_contains(rendered, "![](<assets/tiny icon.png>)", "inline image");
         expect_contains(

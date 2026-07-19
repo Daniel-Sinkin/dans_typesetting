@@ -285,6 +285,8 @@ async function exerciseBuilder(client) {
       fraction: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--fraction") !== null,
       radical: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--radical") !== null,
       script: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--script") !== null,
+      mathFunction: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--function") !== null,
+      calligraphicIdentifier: document.querySelector("[data-visual-block-id='sample-display-math'] .math-identifier--calligraphic")?.textContent === "ℋ",
       mathVocabulary: document.querySelector("[data-visual-block-id='sample-display-math']")?.textContent.includes("⊗") === true && document.querySelector("[data-visual-block-id='sample-display-math']")?.textContent.includes("λ") === true,
       codeListing: document.querySelector("[data-visual-block-id='sample-code-listing'] code")?.textContent.includes("std::println") ?? false,
       opaqueFallback: document.body.textContent.includes("dans.future.block"),
@@ -1185,7 +1187,9 @@ async function exerciseBuilder(client) {
       "structure-indexed-root",
       "structure-subscript",
       "structure-superscript",
-      "structure-scripts"
+      "structure-scripts",
+      "structure-function",
+      "structure-named-operator"
     ].every((id) => document.querySelector(\`[data-math-palette='\${id}']\`) !== null)`),
     "The core math structures did not contribute their complete editor palette",
   );
@@ -1198,7 +1202,9 @@ async function exerciseBuilder(client) {
       "symbol-theta",
       "symbol-capital_omega",
       "symbol-partial",
-      "symbol-dagger"
+      "symbol-dagger",
+      "identifier-blackboard",
+      "identifier-calligraphic"
     ].every((id) => document.querySelector(\`[data-math-palette='\${id}']\`) !== null)`),
     "The thesis relation and symbol vocabulary did not contribute its editor palette",
   );
@@ -1385,7 +1391,7 @@ async function exerciseBuilder(client) {
   await client.evaluate(`(() => {
     const input = document.querySelector("input[data-math-slot-input='left.right']");
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    setter.call(input, "partial*sqrt(x_2^3)/(-56.321/(a+[B,{c,-3}]))<=infinity");
+    setter.call(input, "partial*sqrt(x_2^3)/(-56.321/(a+[B,{c,-3}]))+op(Tr,cal(H))+bb(C)<=infinity");
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
   })()`);
@@ -1396,6 +1402,12 @@ async function exerciseBuilder(client) {
         replacement.textContent.includes("∂") &&
         replacement.textContent.includes("≤") &&
         replacement.textContent.includes("∞") &&
+        replacement.textContent.includes("Tr") &&
+        replacement.textContent.includes("ℋ") &&
+        replacement.textContent.includes("ℂ") &&
+        replacement.querySelector(".math-node--function") !== null &&
+        replacement.querySelector(".math-identifier--blackboard") !== null &&
+        replacement.querySelector(".math-identifier--calligraphic") !== null &&
         replacement.querySelector(".math-node--negated") !== null &&
         replacement.querySelector(".math-node--delimited") !== null &&
         replacement.querySelector(".math-node--comma_sequence") !== null &&
@@ -1526,7 +1538,10 @@ async function exerciseBuilder(client) {
         radical: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--radical") !== null,
         script: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--script") !== null,
         approximate: document.querySelector("[data-visual-block-id='fixture-equation']")?.textContent.includes("≈") === true,
-        relation: document.querySelector("[data-visual-block-id='fixture-introduction']")?.textContent.includes("N≤∞") === true,
+        functionApplication: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--function")?.textContent.includes("spectrum[ℋ]") === true,
+        calligraphicIdentifier: document.querySelector("[data-visual-block-id='fixture-equation'] .math-identifier--calligraphic")?.textContent === "ℋ",
+        relation: document.querySelector("[data-visual-block-id='fixture-introduction']")?.textContent.includes("ℕ≤∞") === true,
+        blackboardIdentifier: document.querySelector("[data-visual-block-id='fixture-introduction'] .math-identifier--blackboard")?.textContent === "ℕ",
         citation: document.querySelector("[data-visual-block-id='fixture-introduction'] .inline-citation")?.textContent === "[1, 2]",
         bibliography: document.querySelectorAll("[data-visual-block-id='fixture-bibliography'] [data-bibliography-entry-key]").length === 2,
       };

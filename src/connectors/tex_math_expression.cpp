@@ -41,17 +41,36 @@ auto binary_precedence(const Math::BinaryOperator operation) -> int
 }
 
 template <typename Output>
-auto write_identifier(Output& output, const std::string_view name) -> void
+auto write_identifier(
+    Output& output,
+    const std::string_view name,
+    const Math::IdentifierStyle style = Math::IdentifierStyle::italic
+) -> void
 {
-    if (name.size() == 1)
+    switch (style)
     {
-        output.write_raw(name);
-        return;
+        case Math::IdentifierStyle::italic:
+            if (name.size() == 1)
+            {
+                output.write_raw(name);
+                return;
+            }
+            output.write_raw("\\mathit{");
+            output.write_raw(name);
+            output.write_raw("}");
+            return;
+        case Math::IdentifierStyle::blackboard:
+            output.write_raw("\\mathbb{");
+            output.write_raw(name);
+            output.write_raw("}");
+            return;
+        case Math::IdentifierStyle::calligraphic:
+            output.write_raw("\\mathcal{");
+            output.write_raw(name);
+            output.write_raw("}");
+            return;
     }
-
-    output.write_raw("\\mathit{");
-    output.write_raw(name);
-    output.write_raw("}");
+    throw std::logic_error{"Unknown math identifier style"};
 }
 
 template <typename Output>
@@ -286,7 +305,7 @@ auto write_expression(
             output.write_raw(std::to_string(expression.integer_value()));
             return;
         case Kind::identifier:
-            write_identifier(output, expression.identifier_name());
+            write_identifier(output, expression.identifier_name(), expression.identifier_style());
             return;
         case Kind::symbol:
             output.write_raw("{");

@@ -249,6 +249,14 @@ writer chooses Unicode, while the common TeX connector chooses publication
 syntax for both LaTeX and Markdown/Jupyter. See
 [math-vocabulary.md](math-vocabulary.md).
 
+Decorated identifiers remain atomic leaves with an explicit presentation
+alphabet; the style is not a general wrapper around arbitrary math. Function
+application is instead a recursive node with one argument consumption point.
+Ordinary and named operators share that structural contract while writers own
+italic/upright spelling and delimiter syntax. This preserves graphical
+recursive editing without introducing evaluation semantics. See
+[math-identifiers-and-functions.md](math-identifiers-and-functions.md).
+
 ## Semantic target index
 
 Referenceable block plugins expose a small descriptor containing an optional

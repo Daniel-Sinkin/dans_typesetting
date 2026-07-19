@@ -125,6 +125,15 @@ auto make_relation_vocabulary_equation()
     );
 }
 
+auto make_operator_vocabulary_equation()
+{
+    using M = dans::document::plugins::Math;
+
+    return M::element_of(
+        M::named_operator("spectrum").argument(M::calligraphic("H")), M::blackboard("R")
+    );
+}
+
 auto make_sample_document()
 {
     using namespace dans::document;
@@ -322,6 +331,7 @@ auto make_sample_document()
     const ReferenceId matrix_equation_id{"eq:matrix-vector"};
     const ReferenceId fraction_radical_equation_id{"eq:fraction-radical"};
     const ReferenceId relation_vocabulary_equation_id{"eq:relation-vocabulary"};
+    const ReferenceId operator_vocabulary_equation_id{"eq:operator-vocabulary"};
     mathematics.blocks()
         .add<M::Display>(make_energy_equation(), energy_equation_id)
         .add_equation(make_gradient_equation(), gradient_equation_id);
@@ -331,6 +341,9 @@ auto make_sample_document()
     );
     mathematics.blocks().add<M::Display>(
         make_relation_vocabulary_equation(), relation_vocabulary_equation_id
+    );
+    mathematics.blocks().add<M::Display>(
+        make_operator_vocabulary_equation(), operator_vocabulary_equation_id
     );
 
     auto& equation_references = mathematics.blocks().add<CoreParagraph>();
@@ -344,6 +357,8 @@ auto make_sample_document()
     equation_references.inlines().add<Reference>(fraction_radical_equation_id);
     equation_references.append_text(", and relation/product vocabulary appears in ");
     equation_references.inlines().add<Reference>(relation_vocabulary_equation_id);
+    equation_references.append_text(", while named operators and decorated identifiers appear in ");
+    equation_references.inlines().add<Reference>(operator_vocabulary_equation_id);
     equation_references.append_text(".");
 
     auto& listings = document.blocks().add<Section>("Source-code listings");

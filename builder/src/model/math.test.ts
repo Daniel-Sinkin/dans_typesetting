@@ -7,9 +7,11 @@ import {
   createMathDecimal,
   createMathDelimited,
   createMathFraction,
+  createMathFunction,
   createMathIdentifier,
   createMathInteger,
   createMathLeafFromInput,
+  createMathNamedOperator,
   createMathParenthesized,
   createMathNegated,
   createMathRadical,
@@ -17,6 +19,7 @@ import {
   createMathSlot,
   createMathSummation,
   createMathSymbol,
+  createMathStyledIdentifier,
   detachMathExpressionAtPath,
   mathExpressionAtPath,
   mathExpressionFromTransport,
@@ -24,6 +27,7 @@ import {
   mathExpressionHasSlots,
   mathExpressionToString,
   mathExpressionToText,
+  mathIdentifierText,
   mathSymbolGlyph,
   parseMathPath,
   replaceMathExpressionAtPath,
@@ -109,7 +113,7 @@ describe("structured math", () => {
       "denominator",
     ]);
     expect(parseMathPath("item:-1")).toBeNull();
-    expect(parseMathPath("left.argument")).toBeNull();
+    expect(parseMathPath("left.argument")).toEqual(["left", "argument"]);
   });
 
   it("accepts unsigned decimals and ASCII identifiers as direct leaf input", () => {
@@ -170,6 +174,35 @@ describe("structured math", () => {
     expect(mathExpressionToString(restored)).toBe(serialized);
     expect(mathExpressionToText(restored)).toBe("∂ ≤ ∞ → Ψ ⊗ †");
     expect(mathSymbolGlyph("centered_ellipsis")).toBe("⋯");
+  });
+
+  it("round-trips decorated identifiers and recursive function applications", () => {
+    const expression = createMathBinary(
+      "element_of",
+      createMathNamedOperator(
+        "spectrum",
+        createMathStyledIdentifier("H", "calligraphic"),
+      ),
+      createMathStyledIdentifier("R", "blackboard"),
+    );
+    const serialized = mathExpressionToString(expression);
+    const restored = mathExpressionFromString(serialized);
+
+    expect(mathExpressionToString(restored)).toBe(serialized);
+    expect(mathExpressionToText(restored)).toBe("spectrum[ℋ] ∈ ℝ");
+    expect(mathIdentifierText(createMathStyledIdentifier("C2", "blackboard"))).toBe(
+      "ℂ𝟚",
+    );
+
+    const ordinary = createMathFunction(
+      "f",
+      createMathStyledIdentifier("C", "blackboard"),
+    );
+    expect(mathExpressionToText(ordinary)).toBe("f(ℂ)");
+    expect(mathExpressionAtPath(ordinary, ["argument"])?.kind).toBe("identifier");
+    const detached = detachMathExpressionAtPath(ordinary, ["argument"]);
+    expect(mathExpressionToText(detached.expression)).toBe("f(□)");
+    expect(mathExpressionToText(detached.detached)).toBe("ℂ");
   });
 
   it("replaces and detaches every slot of fractions, radicals, and scripts", () => {
@@ -235,5 +268,30 @@ describe("structured math", () => {
         right: { kind: "integer", value: "1" },
       }),
     ).toThrow(/Unsupported serialized binary operator/u);
+    expect(() =>
+      mathExpressionFromTransport({
+        kind: "identifier",
+        name: "R",
+        style: "bold",
+      }),
+    ).toThrow(/Unsupported serialized math identifier style/u);
+    expect(() =>
+      mathExpressionFromTransport({
+        kind: "function",
+        name: "f",
+        namedOperator: false,
+        delimiter: "bars",
+        argument: { kind: "identifier", name: "x" },
+      }),
+    ).toThrow(/Unsupported serialized math function delimiter/u);
+    expect(() =>
+      mathExpressionFromTransport({
+        kind: "function",
+        name: "f",
+        namedOperator: "false",
+        delimiter: "parentheses",
+        argument: { kind: "identifier", name: "x" },
+      }),
+    ).toThrow(/namedOperator must be a boolean/u);
   });
 });

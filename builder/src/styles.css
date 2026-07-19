@@ -2807,6 +2807,26 @@ button {
   font-family: "STIX Two Math", "Cambria Math", Georgia, serif;
 }
 
+.math-identifier--italic {
+  font-style: italic;
+}
+
+.math-identifier--blackboard,
+.math-identifier--calligraphic {
+  font-family: "STIX Two Math", "Cambria Math", Georgia, serif;
+  font-style: normal;
+}
+
+.math-function-name {
+  font-style: italic;
+}
+
+.math-function-name--operator {
+  font-family: "STIX Two Math", "Cambria Math", Georgia, serif;
+  font-style: normal;
+  font-weight: 600;
+}
+
 .math-editor-workspace {
   display: flex;
   min-height: 0;
