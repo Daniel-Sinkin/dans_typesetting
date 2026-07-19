@@ -23,7 +23,7 @@ const canonicalFixturePath = join(
   "canonical",
   "current-features.dans.json",
 );
-const initialBlockCount = 11;
+const initialBlockCount = 12;
 
 function assert(condition, message) {
   if (!condition) {
@@ -288,6 +288,9 @@ async function exerciseBuilder(client) {
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
       drawingPreview: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] img")?.src.startsWith("blob:") ?? false,
       drawingNumber: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] figcaption")?.textContent.includes("Figure 2:") ?? false,
+      itemListPresentation: document.querySelector("[data-visual-block-id='sample-item-list'] ol")?.dataset.listPresentation ?? null,
+      itemListCount: document.querySelectorAll("[data-visual-block-id='sample-item-list'] li").length,
+      itemListMath: document.querySelector("[data-visual-block-id='sample-item-list'] .math-node") !== null,
       layers: layers.map((layer) => layer === null ? null : getComputedStyle(layer).zIndex),
     };
   })()`);
@@ -303,6 +306,9 @@ async function exerciseBuilder(client) {
   assert(initial.figureNumber && initial.equationNumber && initial.listingNumber, "Live numbering is incorrect");
   assert(initial.drawingPreview, "The Excalidraw scene was not projected through SVG");
   assert(initial.drawingNumber, "The embedded drawing did not join figure numbering");
+  assert(initial.itemListPresentation === "enumerated", "The semantic list presentation was not rendered");
+  assert(initial.itemListCount === 3, "The semantic list lost an item");
+  assert(initial.itemListMath, "List items did not consume the shared inline-math adapter");
   assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3"]), "Canvas layering is incorrect");
 
   await client.evaluate(`(() => {
@@ -316,6 +322,61 @@ async function exerciseBuilder(client) {
   );
 
   await screenshot(client, "document-builder.png");
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-item-list']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(100);
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='item-list-editor']");
+    const firstItem = editor.querySelector("[data-list-editor-item='sample-list-item-contract']");
+    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    const originalText = firstItem.querySelector("textarea");
+    textareaSetter.call(originalText, "Edited list contract.");
+    originalText.dispatchEvent(new Event("input", { bubbles: true }));
+    firstItem.querySelector("button[data-list-add-inline='dans.core.text']").click();
+  })()`);
+  await delay(50);
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='item-list-editor']");
+    const firstItem = editor.querySelector("[data-list-editor-item='sample-list-item-contract']");
+    const textareas = firstItem.querySelectorAll("textarea");
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    setter.call(textareas[1], "Leading segment. ");
+    textareas[1].dispatchEvent(new Event("input", { bubbles: true }));
+    firstItem.querySelector("button[aria-label='Move segment 2 left']").click();
+    editor.querySelector("input[value='itemized']").click();
+    editor.querySelector("button[aria-label='Move item 1 down']").click();
+    editor.querySelector("button.item-list-editor__add-item").click();
+  })()`);
+  await delay(80);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector("[data-testid='item-list-editor']");
+      return editor.querySelector("ul[data-list-presentation='itemized']") !== null &&
+        editor.querySelectorAll("[data-list-editor-item]").length === 4;
+    })()`),
+    "The list editor did not preview presentation, segment, item-order, and item-count drafts",
+  );
+  await screenshot(client, "item-list-editor.png");
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='item-list-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Save list")).click();
+  })()`);
+  await delay(120);
+  assert(
+    await client.evaluate(`(() => {
+      const list = document.querySelector("[data-visual-block-id='sample-item-list']");
+      const items = list.querySelectorAll("li");
+      return list.querySelector("ul[data-list-presentation='itemized']") !== null &&
+        items.length === 4 &&
+        items[1].textContent.includes("Leading segment. Edited list contract.");
+    })()`),
+    "The semantic list editor did not commit its composed draft",
+  );
+
+  await reloadBuilder(client);
 
   await client.evaluate(`(() => {
     const block = document.querySelector("[data-block-id='sample-excalidraw-drawing']");
@@ -974,7 +1035,7 @@ async function exerciseBuilder(client) {
   assert(
     await client.evaluate(`(() => {
       const blocks = [...document.querySelectorAll("[data-block-id]")];
-      return blocks.length >= 10 &&
+      return blocks.length >= 11 &&
         document.body.textContent.includes("Canonical document") &&
         document.body.textContent.includes("A styled canonical paragraph") &&
         document.body.textContent.includes("third.party.block") &&

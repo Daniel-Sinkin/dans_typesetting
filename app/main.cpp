@@ -5,6 +5,7 @@
 #include "connectors/latex/excalidraw_drawing.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/image.hpp"
+#include "connectors/latex/item_list.hpp"
 #include "connectors/latex/latex_mixin.hpp"
 #include "connectors/latex/math.hpp"
 #include "connectors/latex/reference.hpp"
@@ -16,6 +17,7 @@
 #include "plugins/excalidraw_drawing.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
+#include "plugins/item_list.hpp"
 #include "plugins/latex_mixin.hpp"
 #include "plugins/math.hpp"
 #include "plugins/reference.hpp"
@@ -152,6 +154,19 @@ auto make_sample_document()
         "Because sections share the same ordered block sequence as ordinary content, this "
         "paragraph can appear after the preceding subsections."
     );
+
+    auto& lists = document.blocks().add<Section>("Semantic lists");
+    par_writer(
+        lists.blocks(),
+        "List items consume the same extensible inline contract as paragraphs and captions."
+    );
+    auto& implementation_steps = lists.blocks().add<ItemList>(ListPresentation::enumerated);
+    implementation_steps.add_item("Define one small semantic contract.", TextStyle::bold);
+    auto& second_step = implementation_steps.add_item();
+    second_step.append_text("Reuse structured inline mathematics such as ");
+    second_step.inlines().add<Math::Inline>(M::equal(M::id_E, M::sequence(M::id_m, M::id_c)));
+    second_step.append_text(" without adding list-specific math knowledge.");
+    implementation_steps.add_item("Let each writer choose its own presentation.");
 
     auto& media = document.blocks().add<Section>("Figures and references");
     const ReferenceId sample_figure_id{"fig:sample-image"};
@@ -294,6 +309,11 @@ auto main(const int argc, char* argv[]) -> int
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::CodeListingLatexAdapter>(
+                inline_renderer
+            )
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::ItemListLatexAdapter>(
                 inline_renderer
             )
         );

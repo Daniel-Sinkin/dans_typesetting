@@ -94,7 +94,7 @@ auto verify_canonical_fixture() -> void
     expect(document.metadata.major == 0U, "Fixture major version changed");
     expect(document.metadata.minor == 1U, "Fixture minor version changed");
     expect(document.metadata.patch == 0U, "Fixture patch version changed");
-    expect(document.blocks.size() == 10U, "Fixture block count changed");
+    expect(document.blocks.size() == 11U, "Fixture block count changed");
     expect(
         document.blocks.front().type == "dans.document.title_page", "First fixture type changed"
     );

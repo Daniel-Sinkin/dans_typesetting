@@ -52,6 +52,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Table of contents | `dans.document.table_of_contents` |
 | Page break | `dans.document.page_break` |
 | Embedded Excalidraw drawing | `dans.drawing.excalidraw` |
+| Itemized/enumerated list | `dans.list` |
 
 Adding a plugin is not complete merely because its native class exists. A
 complete vertical slice needs semantic data, validation, at least one useful
@@ -139,10 +140,24 @@ may require a plugin-payload migration when Excalidraw changes, but it does not
 version or contaminate the document core. The free-form scene surrounding the
 document is still application state and is not copied into drawing blocks.
 
-## Next architectural gate: semantic lists
+## Semantic list boundary
 
-The next bounded slice is a list plugin with ordered item content and explicit
-ordered/unordered presentation. It should establish how a semantic block owns
-repeated nested content without teaching the document core about that shape,
-and it should be complete in canonical transport, LaTeX, graphical preview,
-editing, and tests before richer tables reuse the pattern.
+`dans.list` is one semantic plugin with an explicit itemized/enumerated
+presentation choice. Each stable list item owns an ordered Core Paragraph
+inline sequence. Consequently text styles, colour, links, and mathematics work
+inside lists through existing inline adapters; the list plugin and its writers
+do not acquire knowledge of those concrete extensions.
+
+The graphical editor can add, remove, and reorder both items and inline
+segments while preserving opaque extensions. The LaTeX connector injects the
+same inline renderer used by paragraphs and captions, and only contributes the
+`itemize`/`enumerate` structure. This is the intended pattern for plugin-owned
+repeated nested data: the document core still sees one opaque block.
+
+## Next architectural gate: target registry and footnotes
+
+Native references already lower stable target IDs through LaTeX, but the
+canonical/browser side needs the same inline contract and a derived registry
+that classifies sections, figures, equations, tables, and listings. Footnotes
+can then reuse inline sequences while testing nested inline-host constraints
+before the richer table core is introduced.

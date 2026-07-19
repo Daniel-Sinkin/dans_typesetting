@@ -123,6 +123,16 @@ target_link_libraries(math_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(item_list_plugin STATIC
+  src/plugins/item_list.cpp
+  src/plugins/item_list.hpp
+)
+add_library(dans::item_list_plugin ALIAS item_list_plugin)
+target_link_libraries(item_list_plugin
+  PUBLIC dans::core_paragraph
+  PRIVATE typesetter_warnings
+)
+
 add_library(latex_mixin_plugin STATIC
   src/plugins/latex_mixin.cpp
   src/plugins/latex_mixin.hpp
@@ -235,6 +245,19 @@ add_library(dans::math_latex_connector ALIAS math_latex_connector)
 target_link_libraries(math_latex_connector
   PUBLIC
     dans::math_plugin
+    dans::core_paragraph_latex_connector
+  PRIVATE
+    typesetter_warnings
+)
+
+add_library(item_list_latex_connector STATIC
+  src/connectors/latex/item_list.cpp
+  src/connectors/latex/item_list.hpp
+)
+add_library(dans::item_list_latex_connector ALIAS item_list_latex_connector)
+target_link_libraries(item_list_latex_connector
+  PUBLIC
+    dans::item_list_plugin
     dans::core_paragraph_latex_connector
   PRIVATE
     typesetter_warnings
@@ -355,6 +378,7 @@ target_link_libraries(document_example PRIVATE
   dans::document_shell_latex_connector
   dans::excalidraw_drawing_latex_connector
   dans::image_latex_connector
+  dans::item_list_latex_connector
   dans::hyperlink_latex_connector
   dans::latex_mixin_latex_connector
   dans::math_latex_connector
@@ -403,6 +427,16 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_excalidraw_drawing_test COMMAND native_excalidraw_drawing_test)
+
+  add_executable(native_item_list_test
+    tests/native_item_list_test.cpp
+  )
+  target_link_libraries(native_item_list_test PRIVATE
+    dans::item_list_latex_connector
+    dans::math_latex_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_item_list_test COMMAND native_item_list_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source

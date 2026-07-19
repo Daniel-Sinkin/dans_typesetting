@@ -49,6 +49,8 @@ import {
 import { excalidrawDrawingPlugin } from "../plugins/drawing";
 import { excalidrawDrawingTypeId } from "../plugins/drawingModel";
 import { createSampleExcalidrawScene } from "../plugins/drawingScene";
+import { createItemListPlugin } from "../plugins/itemListPlugin";
+import { createBuilderListItem, itemListTypeId } from "../plugins/itemListModel";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -191,6 +193,45 @@ const initialBlocks = [
     caption: "A selectable C++ source-code block.",
   }),
   Object.freeze({
+    id: "sample-item-list",
+    typeId: itemListTypeId,
+    presentation: "enumerated",
+    items: Object.freeze([
+      createBuilderListItem("sample-list-item-contract", [
+        createParagraphText(
+          "Keep the semantic list contract small.",
+          "sample-list-item-contract-text",
+          "bold",
+        ),
+      ]),
+      createBuilderListItem("sample-list-item-inline", [
+        createParagraphText("Reuse ", "sample-list-item-inline-text-a"),
+        createMathInline(
+          createMathBinary(
+            "equals",
+            createMathIdentifier("E"),
+            createMathBinary(
+              "times",
+              createMathIdentifier("m"),
+              createMathIdentifier("c"),
+            ),
+          ),
+          "sample-list-item-inline-math",
+        ),
+        createParagraphText(
+          " through the inline registry.",
+          "sample-list-item-inline-text-b",
+        ),
+      ]),
+      createBuilderListItem("sample-list-item-writer", [
+        createParagraphText(
+          "Let each writer choose bullets or numbering.",
+          "sample-list-item-writer-text",
+        ),
+      ]),
+    ]),
+  }),
+  Object.freeze({
     id: "sample-opaque-table",
     typeId: "dans.future.table",
     opaquePayload: { rows: 3, columns: 2 },
@@ -219,6 +260,7 @@ const pluginRegistry = new BuilderPluginRegistry(
     pageBreakPlugin,
     sectionPlugin,
     excalidrawDrawingPlugin,
+    createItemListPlugin(inlinePluginRegistry),
   ],
   opaqueBlockAdapter,
 );

@@ -20,7 +20,19 @@ continuous/paged whole-block projection.
 
 ## Current verified slice
 
-The embedded Excalidraw drawing slice adds:
+The semantic item-list slice adds:
+
+- `dans.list` with explicit itemized/enumerated presentation;
+- stable ordered items, each owning the Core Paragraph inline contract;
+- native semantic classes and a LaTeX connector using the shared inline
+  renderer rather than learning concrete text/math/link types;
+- canonical plugin codecs with item/inline identity and round-trip validation;
+- graphical preview plus live presentation, item, segment, and payload editing;
+- immutable reorder helpers, malformed-payload tests, native adapter tests, and
+  a real browser interaction covering composition and commit;
+- representative native/browser sample content and cross-language fixture data.
+
+The preceding embedded Excalidraw drawing slice adds:
 
 - `dans.drawing.excalidraw` as an ordinary referenceable semantic block;
 - a plugin-owned, validated and canonically round-trippable scene payload;
@@ -80,10 +92,11 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Implement semantic itemized/enumerated lists as the next complete vertical
-slice, then use the repeated nested-content lessons for tables, footnotes, and
-referenceable statement blocks. Keep plugin payload codecs beside their plugin
-and extend the shared fixture whenever a new canonical type is completed.
+Implement the browser/canonical reference inline and a derived semantic-target
+registry, followed by inline footnotes. Then use the repeated nested-content
+lessons from lists and footnotes for the rich table core and its CSV adapter.
+Keep plugin payload codecs beside their plugin and extend the shared fixture
+whenever a new canonical type is completed.
 
 Current deliberate compromises to reassess later:
 
@@ -101,3 +114,6 @@ Current deliberate compromises to reassess later:
   native export still needs an Excalidraw scene materializer process;
 - nested Excalidraw instances materially increase the eager browser bundle, so
   editor lazy-loading belongs in a later shell/performance slice.
+- list editing currently uses explicit move buttons rather than pointer drag;
+  the semantic command and identity boundaries are complete, but the gesture
+  should converge with the rest of the builder after interaction tuning.

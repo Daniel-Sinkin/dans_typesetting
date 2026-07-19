@@ -190,6 +190,51 @@
       }
     },
     {
+      "id": "fixture-item-list",
+      "type": "dans.list",
+      "payload": {
+        "presentation": "enumerated",
+        "items": [
+          {
+            "id": "fixture-list-item-one",
+            "inlines": [
+              {
+                "id": "fixture-list-item-one-text",
+                "type": "dans.core.text",
+                "payload": {
+                  "text": "A styled semantic item.",
+                  "style": "bold"
+                }
+              }
+            ]
+          },
+          {
+            "id": "fixture-list-item-two",
+            "inlines": [
+              {
+                "id": "fixture-list-item-two-text",
+                "type": "dans.core.text",
+                "payload": {
+                  "text": "An item with ",
+                  "style": "normal"
+                }
+              },
+              {
+                "id": "fixture-list-item-two-math",
+                "type": "dans.math.inline",
+                "payload": {
+                  "expression": {
+                    "kind": "identifier",
+                    "name": "E"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "id": "fixture-unknown-block",
       "type": "third.party.block",
       "payload": {

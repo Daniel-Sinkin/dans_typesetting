@@ -2,8 +2,8 @@
 
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
 be projected either as one vertically growing continuous view or as whole-block pages. Paragraph,
-image, embedded-drawing, code-listing, structured-math, title-page, table-of-contents, page-break,
-and section plugins
+image, embedded-drawing, semantic-list, code-listing, structured-math, title-page,
+table-of-contents, page-break, and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
 optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
 previews, animated reflow, copying, transactional detach/delete behaviour, and page projection.
@@ -54,6 +54,13 @@ reference ID, preferred width, and editor height reflow the document as drafts; 
 published block and Save commits one replacement transaction. The scene preview is rendered through
 an isolated SVG image boundary, and Export SVG materializes the same scene for an external writer.
 The outer canvas remains available around and above the document throughout editing.
+
+Itemized and enumerated lists are one semantic plugin. Every stable item owns the same ordered
+inline sequence as a paragraph, so existing text-style, colour, hyperlink, and mathematics plugins
+compose without list-specific cases. Its editor live-previews the whole list and supports switching
+presentation, adding/removing/reordering items, adding/removing/reordering segments, and invoking
+each registered segment's own payload editor. Explicit move controls are used for this first list
+slice; pointer-drag gestures can replace them without changing the semantic commands.
 
 Unknown document blocks remain in the flow as opaque labelled previews. Their Edit action logs a
 stable handle to the browser console, demonstrating that preview and editing support are independent.

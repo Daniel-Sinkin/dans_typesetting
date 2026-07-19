@@ -245,6 +245,9 @@ class Math final
 
     // Common leaves are lightweight factories. Each conversion creates a new
     // owning expression, so scripts can be chained without sharing AST state.
+    // Their `id_*` spelling is an intentional authoring DSL, not an ordinary
+    // class-constant naming convention.
+    // NOLINTBEGIN(readability-identifier-naming)
     static const Shortcut id_0;
     static const Shortcut id_1;
     static const Shortcut id_2;
@@ -360,6 +363,7 @@ class Math final
     static const Shortcut id_Psi;
     static const Shortcut id_Omega;
     static const Shortcut id_nabla;
+    // NOLINTEND(readability-identifier-naming)
 
   private:
     struct Node;
