@@ -41,6 +41,12 @@ The base footnote contract is now implemented in both graphical and LaTeX
 writers, including nested styled text and hyperlinks. Table-note anchoring and
 inline-code leaves remain separate parity work.
 
+The first rich-table contract is also implemented in both writers. It covers
+rectangular inline-rich cells, headers, alignment, captions, numbering,
+references, and an optional CSV adapter. The audited thesis still requires
+spans, explicit width policy, composite layouts, and dedicated table-note
+placement before table parity is complete.
+
 ## Representative port slices
 
 Porting these slices exercises variety without copying hundreds of paragraphs:

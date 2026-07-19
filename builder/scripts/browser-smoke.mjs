@@ -23,7 +23,8 @@ const canonicalFixturePath = join(
   "canonical",
   "current-features.dans.json",
 );
-const initialBlockCount = 12;
+const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
+const initialBlockCount = 13;
 const initialParagraphSegmentCount = 14;
 
 function assert(condition, message) {
@@ -280,7 +281,7 @@ async function exerciseBuilder(client) {
       structuredMath: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node") !== null,
       summation: document.querySelector("[data-visual-block-id='sample-display-math'] .math-summation-symbol")?.textContent === "∑",
       codeListing: document.querySelector("[data-visual-block-id='sample-code-listing'] code")?.textContent.includes("std::println") ?? false,
-      opaqueFallback: document.body.textContent.includes("dans.future.table"),
+      opaqueFallback: document.body.textContent.includes("dans.future.block"),
       inlineMath: document.querySelector("[data-inline-math-id='sample-introduction-inline-math'] .math-node") !== null,
       hyperlink: document.querySelector("a[href='https://example.com/typesetting']")?.textContent.includes("clickable links") ?? false,
       styledText: document.querySelector("[data-visual-block-id='sample-introduction'] strong em")?.textContent === "Styled text",
@@ -292,6 +293,11 @@ async function exerciseBuilder(client) {
       itemListPresentation: document.querySelector("[data-visual-block-id='sample-item-list'] ol")?.dataset.listPresentation ?? null,
       itemListCount: document.querySelectorAll("[data-visual-block-id='sample-item-list'] li").length,
       itemListMath: document.querySelector("[data-visual-block-id='sample-item-list'] .math-node") !== null,
+      tableNumber: document.querySelector("[data-visual-block-id='sample-table'] figcaption")?.textContent.includes("Table 1:") ?? false,
+      tableCellCount: document.querySelectorAll("[data-visual-block-id='sample-table'] [data-table-cell-id]").length,
+      tableMath: document.querySelector("[data-visual-block-id='sample-table'] .math-node") !== null,
+      tableFootnote: document.querySelector("[data-visual-block-id='sample-table'] .footnote-preview > sup > button")?.textContent.trim() === "2",
+      tableReference: [...document.querySelectorAll(".inline-reference")].some((reference) => reference.textContent === "Table 1"),
       layers: layers.map((layer) => layer === null ? null : getComputedStyle(layer).zIndex),
     };
   })()`);
@@ -310,10 +316,15 @@ async function exerciseBuilder(client) {
   assert(initial.itemListPresentation === "enumerated", "The semantic list presentation was not rendered");
   assert(initial.itemListCount === 3, "The semantic list lost an item");
   assert(initial.itemListMath, "List items did not consume the shared inline-math adapter");
+  assert(initial.tableNumber, "The semantic table did not join live block numbering");
+  assert(initial.tableCellCount === 9, "The semantic table lost rectangular cell data");
+  assert(initial.tableMath, "Table cells did not consume the shared inline-math adapter");
+  assert(initial.tableFootnote, "Table cells did not join inline occurrence numbering");
+  assert(initial.tableReference, "The semantic table did not publish a live reference target");
   assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3"]), "Canvas layering is incorrect");
 
   await client.evaluate(`(() => {
-    const block = document.querySelector("[data-block-id='sample-opaque-table']");
+    const block = document.querySelector("[data-block-id='sample-opaque-block']");
     [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
   })()`);
   await delay(30);
@@ -375,6 +386,97 @@ async function exerciseBuilder(client) {
         items[1].textContent.includes("Leading segment. Edited list contract.");
     })()`),
     "The semantic list editor did not commit its composed draft",
+  );
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-table']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(100);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector("[data-testid='table-editor']");
+      return editor !== null &&
+        editor.querySelector("[aria-label='CSV extension controls']") !== null &&
+        editor.querySelector("figcaption")?.textContent.includes("Table 1:");
+    })()`),
+    "The rich-table editor or optional CSV capability was not composed",
+  );
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='table-editor']");
+    editor.querySelector("[data-table-editor-cell='sample-table-svd-runtime']").click();
+  })()`);
+  await delay(50);
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='table-editor']");
+    const textarea = editor.querySelector("textarea[data-inline-id='sample-table-svd-runtime-text']");
+    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    textareaSetter.call(textarea, "9.75");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    const alignment = editor.querySelector("select[aria-label='Column 3 alignment']");
+    const selectSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set;
+    selectSetter.call(alignment, "center");
+    alignment.dispatchEvent(new Event("change", { bubbles: true }));
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.trim() === "+ Row").click();
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.trim() === "+ Column").click();
+  })()`);
+  await delay(80);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector("[data-testid='table-editor']");
+      return editor.querySelector(".semantic-table-content")?.textContent.includes("9.75") &&
+        editor.querySelectorAll("[data-table-editor-row]").length === 4 &&
+        editor.querySelectorAll("select[aria-label^='Column']").length === 4;
+    })()`),
+    "Rich-cell editing and structural table drafts did not live-update",
+  );
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='table-editor']");
+    editor.querySelector("button[aria-label='Remove column 4']").click();
+    editor.querySelector("button[aria-label='Remove table row 4']").click();
+  })()`);
+  await delay(50);
+  const tableDocumentRoot = await client.send("DOM.getDocument", { depth: -1, pierce: true });
+  const tableFileInput = await client.send("DOM.querySelector", {
+    nodeId: tableDocumentRoot.root.nodeId,
+    selector: `input[data-testid="table-csv-file-input"]`,
+  });
+  assert(tableFileInput.nodeId !== 0, "The CSV extension did not expose its file input");
+  await client.send("DOM.setFileInputFiles", {
+    nodeId: tableFileInput.nodeId,
+    files: [sampleCsvPath],
+  });
+  await delay(180);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector("[data-testid='table-editor']");
+      return editor.textContent.includes("Imported 3 rows") &&
+        editor.querySelectorAll("[data-table-editor-row]").length === 3 &&
+        editor.querySelector(".semantic-table-content")?.textContent.includes("gemm") &&
+        editor.querySelector(".semantic-table-content thead") !== null;
+    })()`),
+    "CSV import did not replace the grid and header role within its 30-row boundary",
+  );
+  await client.evaluate(`document.querySelector("button[data-testid='table-csv-export']").click()`);
+  await delay(40);
+  assert(
+    await client.evaluate(`document.querySelector("[data-testid='table-editor']")?.textContent.includes("Exported the plain-text table projection")`),
+    "CSV export did not consume the imported plain-text table",
+  );
+  await screenshot(client, "table-editor.png");
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='table-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Save table")).click();
+  })()`);
+  await delay(120);
+  assert(
+    await client.evaluate(`(() => {
+      const table = document.querySelector("[data-visual-block-id='sample-table']");
+      return table.querySelectorAll("[data-table-cell-id]").length === 9 &&
+        table.textContent.includes("gemm") &&
+        table.querySelector("figcaption")?.textContent.includes("Table 1:");
+    })()`),
+    "The semantic table editor did not commit its imported rich-table draft",
   );
 
   await reloadBuilder(client);
@@ -1149,6 +1251,10 @@ try {
   });
   client = new CdpClient(socket);
   await mkdir(resultsDirectory, { recursive: true });
+  await writeFile(
+    sampleCsvPath,
+    "Kernel,Lattice,Runtime (ms)\ngemm,64 x 64,3.50\nsvd,\"128, 128\",10.25\n",
+  );
   await exerciseBuilder(client);
   process.stdout.write(`Browser smoke test passed; screenshots are in ${resultsDirectory}\n`);
 } finally {

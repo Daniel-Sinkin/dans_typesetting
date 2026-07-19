@@ -55,6 +55,8 @@ export interface BuilderBlockAdapter {
 
 export interface BuilderBlockEditorProps {
   readonly block: BuilderBlock;
+  readonly numberingSeries: string | null;
+  readonly ordinal: number | null;
   readonly onPreview: (block: BuilderBlock) => void;
   readonly onCommit: (block: BuilderBlock) => void;
   readonly onCancel: () => void;

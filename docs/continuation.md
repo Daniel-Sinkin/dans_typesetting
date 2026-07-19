@@ -25,9 +25,32 @@ Commit `5d9a837` adds itemized/enumerated semantic lists.
 Commit `6411db5` adds semantic document references and writer-derived target
 numbering.
 
+Commit `6bd1dfa` adds semantic inline footnotes and generic inline occurrence
+numbering.
+
 ## Current verified slice
 
-The semantic inline-footnote slice adds:
+The rich-table and optional-CSV slice adds:
+
+- `dans.table` with stable rectangular rows/cells, inline-rich caption and cell
+  content, header role, column alignment, and optional target identity;
+- native semantic data plus a `booktabs` LaTeX connector using the shared inline
+  renderer;
+- independent native/browser CSV adapters with quoted-field support,
+  normalization tests, file seams, rectangularity validation, and bounded
+  graphical import;
+- graphical live preview, selected-cell/caption sequence editing, structural
+  row/column operations, alignment, numbering, reference targets, and optional
+  CSV controls;
+- explicit rejection of lossy structured-cell CSV export;
+- plugin-aware deep copying, occurrence traversal, canonical fixture coverage,
+  real browser file import/export interaction, native tests, and compiled PDF
+  coverage.
+
+The semantic table does not encode page widths or a 30-row limit. Those are
+respectively writer and graphical CSV-import policies.
+
+The preceding semantic inline-footnote slice adds:
 
 - `dans.inline.footnote` as a non-empty nested Core Paragraph inline host;
 - generic plugin-declared nested-inline traversal and writer-owned occurrence
@@ -135,10 +158,9 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Use the repeated nested-content lessons from lists and footnotes for the rich
-table core and its CSV adapter. The table core should remain useful without the
-CSV extension, with import/export controls appearing only when that extension
-is registered.
+Expand structured mathematics with the matrix/vector extension, then add the
+missing CUDA/raw listing modes and optional captions. Keep the table and inline
+contracts stable while adding those independent capabilities.
 Keep plugin payload codecs beside their plugin and extend the shared fixture
 whenever a new canonical type is completed.
 
@@ -165,3 +187,14 @@ Current deliberate compromises to reassess later:
   surrounding paragraph sequence still uses pointer dragging.
 - direct footnote nesting is rejected, but a future generic containment policy
   should decide whether another wrapper may indirectly contain a footnote.
+- the first table model is deliberately rectangular: row/column spans,
+  composite cells, explicit widths, and repeating headers are not implemented;
+- the graphical table editor exposes zero/one header rows even though the model
+  and LaTeX connector support any leading header-row count;
+- CSV export accepts only Core Text cells because CSV cannot preserve semantic
+  inline structure; import replaces the grid but retains caption and target;
+- generic footnotes can occur in table cells, but publication-quality LaTeX
+  table-note placement needs a dedicated extension instead of relying on plain
+  `\footnote` inside `tabular`;
+- table row/column and nested-segment movement currently uses explicit controls
+  rather than drag gestures.

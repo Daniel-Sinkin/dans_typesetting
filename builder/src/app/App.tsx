@@ -55,6 +55,13 @@ import { createItemListPlugin } from "../plugins/itemListPlugin";
 import { createBuilderListItem, itemListTypeId } from "../plugins/itemListModel";
 import { footnoteInlinePlugin } from "../plugins/footnote";
 import { createFootnoteInline } from "../plugins/footnoteModel";
+import { tableCsvCapability } from "../plugins/tableCsv";
+import {
+  createBuilderTableCell,
+  createBuilderTableRow,
+  createRichTableBlock,
+} from "../plugins/tableModel";
+import { createTablePlugin } from "../plugins/tablePlugin";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -269,19 +276,79 @@ const initialBlocks = [
       ]),
     ]),
   }),
+  createRichTableBlock(
+    "sample-table",
+    [createParagraphText("Representative kernel runtimes.", "sample-table-caption")],
+    [
+      createBuilderTableRow("sample-table-header", [
+        createBuilderTableCell("sample-table-header-kernel", [
+          createParagraphText("Kernel", "sample-table-header-kernel-text", "bold"),
+        ]),
+        createBuilderTableCell("sample-table-header-lattice", [
+          createParagraphText("Lattice", "sample-table-header-lattice-text", "bold"),
+        ]),
+        createBuilderTableCell("sample-table-header-runtime", [
+          createParagraphText("Runtime (ms)", "sample-table-header-runtime-text", "bold"),
+        ]),
+      ]),
+      createBuilderTableRow("sample-table-contract", [
+        createBuilderTableCell("sample-table-contract-kernel", [
+          createParagraphText("contract", "sample-table-contract-kernel-text"),
+        ]),
+        createBuilderTableCell("sample-table-contract-lattice", [
+          createMathInline(
+            createMathBinary(
+              "times",
+              createMathInteger(16),
+              createMathInteger(16),
+            ),
+            "sample-table-contract-lattice-math",
+          ),
+        ]),
+        createBuilderTableCell("sample-table-contract-runtime", [
+          createParagraphText("1.25", "sample-table-contract-runtime-text"),
+          createFootnoteInline(
+            [
+              createParagraphText(
+                "Median of ten measurements.",
+                "sample-table-runtime-footnote-text",
+              ),
+            ],
+            "sample-table-runtime-footnote",
+          ),
+        ]),
+      ]),
+      createBuilderTableRow("sample-table-svd", [
+        createBuilderTableCell("sample-table-svd-kernel", [
+          createParagraphText("svd", "sample-table-svd-kernel-text"),
+        ]),
+        createBuilderTableCell("sample-table-svd-lattice", [
+          createParagraphText("32 × 32", "sample-table-svd-lattice-text"),
+        ]),
+        createBuilderTableCell("sample-table-svd-runtime", [
+          createParagraphText("8.50", "sample-table-svd-runtime-text"),
+        ]),
+      ]),
+    ],
+    ["left", "center", "right"],
+    1,
+    "tab:kernel-runtime",
+  ),
   Object.freeze({
-    id: "sample-opaque-table",
-    typeId: "dans.future.table",
-    opaquePayload: { rows: 3, columns: 2 },
+    id: "sample-opaque-block",
+    typeId: "dans.future.block",
+    opaquePayload: { preserved: true },
   }),
   Object.freeze({
     id: "sample-conclusion",
     typeId: paragraphTypeId,
     inlines: Object.freeze([
       createParagraphText(
-        "Alt-drag copies blocks. Ordinary dragging reorders them, and dropping outside the document asks before deletion.",
+        "Alt-drag copies blocks. Ordinary dragging reorders them, and dropping outside the document asks before deletion. See ",
         "sample-conclusion-text",
       ),
+      createReferenceInline("tab:kernel-runtime", "sample-conclusion-table-reference"),
+      createParagraphText(" for the current measurements.", "sample-conclusion-tail"),
     ]),
   }),
 ] satisfies readonly BuilderBlock[];
@@ -299,6 +366,7 @@ const pluginRegistry = new BuilderPluginRegistry(
     sectionPlugin,
     excalidrawDrawingPlugin,
     createItemListPlugin(inlinePluginRegistry),
+    createTablePlugin(inlinePluginRegistry, tableCsvCapability),
   ],
   opaqueBlockAdapter,
 );

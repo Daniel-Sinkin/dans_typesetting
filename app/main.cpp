@@ -10,6 +10,7 @@
 #include "connectors/latex/latex_mixin.hpp"
 #include "connectors/latex/math.hpp"
 #include "connectors/latex/reference.hpp"
+#include "connectors/latex/table.hpp"
 #include "document.hpp"
 #include "plugins/code_listing.hpp"
 #include "plugins/color_span.hpp"
@@ -23,6 +24,8 @@
 #include "plugins/latex_mixin.hpp"
 #include "plugins/math.hpp"
 #include "plugins/reference.hpp"
+#include "plugins/table.hpp"
+#include "plugins/table_csv.hpp"
 #include "reference_id.hpp"
 #include "writers/latex_writer.hpp"
 
@@ -176,6 +179,28 @@ auto make_sample_document()
     second_step.append_text(" without adding list-specific math knowledge.");
     implementation_steps.add_item("Let each writer choose its own presentation.");
 
+    auto& tables = document.blocks().add<Section>("Rich tables");
+    par_writer(
+        tables.blocks(),
+        "The table plugin owns a rectangular grid of inline sequences. CSV is an optional "
+        "plain-text adapter rather than the semantic model."
+    );
+    const ReferenceId benchmark_table_id{"tab:kernel-measurements"};
+    auto& benchmark_table =
+        tables.blocks().add<Table>(3, "Representative kernel measurements.", benchmark_table_id);
+    import_table_csv(
+        benchmark_table,
+        "Kernel,Lattice,Runtime (ms)\ncontract,16 x 16,1.25\nsvd,32 x 32,8.50\n",
+        TableCsvImportOptions{.first_row_is_header = true, .maximum_rows = 30}
+    );
+    benchmark_table.set_column_alignment(1, TableColumnAlignment::center);
+    benchmark_table.set_column_alignment(2, TableColumnAlignment::right);
+    auto& table_reference = tables.blocks().add<CoreParagraph>("The values summarized in ");
+    table_reference.inlines().add<Reference>(benchmark_table_id);
+    table_reference.append_text(
+        " retain a stable target while their visible number is writer-owned."
+    );
+
     auto& media = document.blocks().add<Section>("Figures and references");
     const ReferenceId sample_figure_id{"fig:sample-image"};
     auto& figure = media.blocks().add<Figure>(
@@ -327,6 +352,9 @@ auto main(const int argc, char* argv[]) -> int
             std::make_unique<dans::document::connectors::latex::ItemListLatexAdapter>(
                 inline_renderer
             )
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::TableLatexAdapter>(inline_renderer)
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::LatexBlockAdapter>()

@@ -224,6 +224,7 @@ auto LatexWriter::emit_document(const Document& document, LatexOutput& output) c
     output.write_raw("\\usepackage{graphicx}\n");
     output.write_raw("\\usepackage{microtype}\n");
     output.write_raw("\\usepackage{xcolor}\n");
+    output.write_raw("\\usepackage{booktabs}\n");
     output.write_raw("\\usepackage{listings}\n");
     output.write_raw(
         "\\lstdefinelanguage{Julia}{%\n"

@@ -278,6 +278,94 @@
       }
     },
     {
+      "id": "fixture-table",
+      "type": "dans.table",
+      "payload": {
+        "captionInlines": [
+          {
+            "id": "fixture-table-caption",
+            "type": "dans.core.text",
+            "payload": {
+              "text": "Canonical kernel runtimes.",
+              "style": "normal"
+            }
+          }
+        ],
+        "referenceId": "tab:canonical-runtimes",
+        "headerRowCount": 1,
+        "columnAlignments": [
+          "left",
+          "right"
+        ],
+        "rows": [
+          {
+            "id": "fixture-table-header",
+            "cells": [
+              {
+                "id": "fixture-table-header-kernel",
+                "inlines": [
+                  {
+                    "id": "fixture-table-header-kernel-text",
+                    "type": "dans.core.text",
+                    "payload": {
+                      "text": "Kernel",
+                      "style": "bold"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "fixture-table-header-runtime",
+                "inlines": [
+                  {
+                    "id": "fixture-table-header-runtime-text",
+                    "type": "dans.core.text",
+                    "payload": {
+                      "text": "Runtime",
+                      "style": "bold"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "fixture-table-data",
+            "cells": [
+              {
+                "id": "fixture-table-data-kernel",
+                "inlines": [
+                  {
+                    "id": "fixture-table-data-kernel-text",
+                    "type": "dans.core.text",
+                    "payload": {
+                      "text": "contract",
+                      "style": "normal"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "fixture-table-data-runtime",
+                "inlines": [
+                  {
+                    "id": "fixture-table-data-runtime-math",
+                    "type": "dans.math.inline",
+                    "payload": {
+                      "expression": {
+                        "kind": "decimal",
+                        "value": "1.25"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "id": "fixture-unknown-block",
       "type": "third.party.block",
       "payload": {

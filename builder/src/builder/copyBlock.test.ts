@@ -22,6 +22,13 @@ import {
   opaqueInlineAdapter,
   paragraphTextInlinePlugin,
 } from "../plugins/paragraphInline";
+import {
+  createBuilderTableCell,
+  createBuilderTableRow,
+  createRichTableBlock,
+  type RichTableBlock,
+} from "../plugins/tableModel";
+import { createTablePlugin } from "../plugins/tablePlugin";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
   [paragraphTextInlinePlugin, footnoteInlinePlugin],
@@ -29,7 +36,12 @@ const inlineRegistry = new BuilderInlinePluginRegistry(
 );
 
 const registry = new BuilderPluginRegistry(
-  [imagePlugin, sectionPlugin, createParagraphPlugin(inlineRegistry)],
+  [
+    imagePlugin,
+    sectionPlugin,
+    createParagraphPlugin(inlineRegistry),
+    createTablePlugin(inlineRegistry),
+  ],
   opaqueBlockAdapter,
 );
 
@@ -106,5 +118,37 @@ describe("plugin-aware block copies", () => {
       paragraph.inlines.map(({ id }) => id),
     );
     expect(copiedNote.inlines[0]?.id).not.toBe(note.inlines[0]?.id);
+  });
+
+  it("copies rich table structure while clearing target and nested identity", () => {
+    const source = createRichTableBlock(
+      "table",
+      [createParagraphText("Caption", "caption")],
+      [
+        createBuilderTableRow("row", [
+          createBuilderTableCell("cell", [
+            createParagraphText("Value", "value"),
+          ]),
+        ]),
+      ],
+      ["left"],
+      0,
+      "tab:source",
+    );
+
+    const copied = copyBuilderBlockForInsert(
+      source,
+      registry,
+      "table-copy",
+    ) as RichTableBlock;
+
+    expect(copied.referenceId).toBeNull();
+    expect(copied.rows[0]?.id).not.toBe(source.rows[0]?.id);
+    expect(copied.rows[0]?.cells[0]?.id).not.toBe(
+      source.rows[0]?.cells[0]?.id,
+    );
+    expect(copied.rows[0]?.cells[0]?.inlines[0]?.id).not.toBe(
+      source.rows[0]?.cells[0]?.inlines[0]?.id,
+    );
   });
 });

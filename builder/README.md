@@ -2,7 +2,7 @@
 
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
 be projected either as one vertically growing continuous view or as whole-block pages. Paragraph,
-image, embedded-drawing, semantic-list, code-listing, structured-math, title-page,
+image, embedded-drawing, semantic-list, rich-table, code-listing, structured-math, title-page,
 table-of-contents, page-break, and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
 optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
@@ -76,6 +76,14 @@ compose without list-specific cases. Its editor live-previews the whole list and
 presentation, adding/removing/reordering items, adding/removing/reordering segments, and invoking
 each registered segment's own payload editor. Explicit move controls are used for this first list
 slice; pointer-drag gestures can replace them without changing the semantic commands.
+
+Rich tables are numbered, referenceable blocks with stable rectangular rows and cells. Captions and
+cells own ordinary inline sequences, so existing styles, links, math, references, and footnotes
+compose through the same registry. The editor live-previews the table, edits a selected cell or
+caption sequence, changes alignment/header role, and adds/removes/reorders structure. CSV is an
+optional registered capability: it adds bounded file import and plain-text export controls without
+changing the table contract. Structured-cell CSV export fails visibly instead of flattening math or
+footnotes.
 
 Unknown document blocks remain in the flow as opaque labelled previews. Their Edit action logs a
 stable handle to the browser console, demonstrating that preview and editing support are independent.

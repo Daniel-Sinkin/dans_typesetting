@@ -133,6 +133,26 @@ target_link_libraries(item_list_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(table_plugin STATIC
+  src/plugins/table.cpp
+  src/plugins/table.hpp
+)
+add_library(dans::table_plugin ALIAS table_plugin)
+target_link_libraries(table_plugin
+  PUBLIC dans::core_paragraph
+  PRIVATE typesetter_warnings
+)
+
+add_library(table_csv_plugin STATIC
+  src/plugins/table_csv.cpp
+  src/plugins/table_csv.hpp
+)
+add_library(dans::table_csv_plugin ALIAS table_csv_plugin)
+target_link_libraries(table_csv_plugin
+  PUBLIC dans::table_plugin
+  PRIVATE typesetter_warnings
+)
+
 add_library(latex_mixin_plugin STATIC
   src/plugins/latex_mixin.cpp
   src/plugins/latex_mixin.hpp
@@ -273,6 +293,19 @@ target_link_libraries(item_list_latex_connector
     typesetter_warnings
 )
 
+add_library(table_latex_connector STATIC
+  src/connectors/latex/table.cpp
+  src/connectors/latex/table.hpp
+)
+add_library(dans::table_latex_connector ALIAS table_latex_connector)
+target_link_libraries(table_latex_connector
+  PUBLIC
+    dans::table_plugin
+    dans::core_paragraph_latex_connector
+  PRIVATE
+    typesetter_warnings
+)
+
 add_library(latex_mixin_latex_connector STATIC
   src/connectors/latex/latex_mixin.cpp
   src/connectors/latex/latex_mixin.hpp
@@ -407,6 +440,8 @@ target_link_libraries(document_example PRIVATE
   dans::latex_mixin_latex_connector
   dans::math_latex_connector
   dans::reference_latex_connector
+  dans::table_latex_connector
+  dans::table_csv_plugin
   typesetter_warnings
 )
 
@@ -462,6 +497,18 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_item_list_test COMMAND native_item_list_test)
+
+  add_executable(native_table_test
+    tests/native_table_test.cpp
+  )
+  target_link_libraries(native_table_test PRIVATE
+    dans::footnote_latex_connector
+    dans::math_latex_connector
+    dans::table_csv_plugin
+    dans::table_latex_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_table_test COMMAND native_table_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source

@@ -7,6 +7,7 @@ import { footnoteInlineTransportCodec } from "../plugins/footnoteTransport";
 import { imageBlockTransportCodec } from "../plugins/imageTransport";
 import { excalidrawDrawingTransportCodec } from "../plugins/drawingTransport";
 import { itemListTransportCodec } from "../plugins/itemListTransport";
+import { tableTransportCodec } from "../plugins/tableTransport";
 import {
   pageBreakBlockTransportCodec,
   sectionBlockTransportCodec,
@@ -38,6 +39,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     pageBreakBlockTransportCodec,
     excalidrawDrawingTransportCodec,
     itemListTransportCodec,
+    tableTransportCodec,
   ],
   [
     paragraphTextInlineTransportCodec,

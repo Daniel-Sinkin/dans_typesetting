@@ -53,3 +53,9 @@ Native semantic materializers are intentionally separate from the generic
 transport parser. This keeps a document containing an unavailable plugin
 round-trippable and prevents the transport core from accumulating knowledge of
 every block kind.
+
+Nested host plugins retain the same envelope rule at every extension point. For
+example, `dans.table` owns row and cell IDs plus rectangularity, while each
+caption or cell inline is encoded through the shared `{id, type, payload}`
+registry. CSV never appears in that payload: it is an optional adapter that
+constructs or projects the semantic table contract.

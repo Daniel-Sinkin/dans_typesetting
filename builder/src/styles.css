@@ -1666,6 +1666,311 @@ button {
   flex: 1;
 }
 
+.semantic-table-content {
+  display: grid;
+  min-height: 100%;
+  margin: 0;
+  align-content: center;
+  gap: 10px;
+}
+
+.semantic-table-content__viewport {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid #ffe8cc;
+  border-radius: 8px;
+}
+
+.semantic-table-content table,
+.table-grid-editor table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.semantic-table-content th,
+.semantic-table-content td {
+  padding: 8px 10px;
+  color: #343a40;
+  border-right: 1px solid #ffe8cc;
+  border-bottom: 1px solid #ffe8cc;
+  font-size: 12px;
+  vertical-align: top;
+}
+
+.semantic-table-content th {
+  color: #7f4f00;
+  background: #fff4e6;
+  font-weight: 800;
+}
+
+.semantic-table-content tr:last-child > * {
+  border-bottom: 0;
+}
+
+.semantic-table-content tr > *:last-child {
+  border-right: 0;
+}
+
+.semantic-table-content figcaption {
+  color: #495057;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  text-align: center;
+}
+
+.semantic-table-content figcaption strong {
+  color: #d9480f;
+}
+
+.table-editor,
+.table-inline-editor,
+.table-inline-editor__segments {
+  display: grid;
+  gap: 12px;
+}
+
+.table-editor__metadata {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.table-editor__metadata > .editor-error {
+  grid-column: 1 / -1;
+}
+
+.table-editor__metadata > button,
+.table-csv-tools button,
+.table-grid-editor button,
+.table-inline-editor button {
+  min-height: 30px;
+  padding: 5px 9px;
+  color: #495057;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.table-editor__metadata > button.selected,
+.table-grid-editor button.selected {
+  color: #9c4f00;
+  background: #fff4e6;
+  border-color: #ffa94d;
+  box-shadow: 0 0 0 2px rgb(255 169 77 / 20%);
+}
+
+.table-editor__header-toggle {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  gap: 7px;
+  color: #495057;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.table-csv-tools {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.5fr) minmax(190px, 0.8fr) auto auto;
+  align-items: end;
+  padding: 11px;
+  gap: 9px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 9px;
+}
+
+.table-csv-tools > header {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.table-csv-tools > header > div,
+.table-csv-tools > label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.table-csv-tools small,
+.table-csv-tools > header > span,
+.table-grid-editor > header small,
+.table-inline-editor > header small {
+  color: #868e96;
+  font-size: 10px;
+}
+
+.table-csv-tools input[type="number"] {
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+}
+
+.table-csv-tools > label:has(input[type="checkbox"]) {
+  flex-direction: row;
+  align-items: center;
+  min-height: 30px;
+}
+
+.table-grid-editor {
+  display: grid;
+  gap: 9px;
+}
+
+.table-grid-editor > header,
+.table-inline-editor > header,
+.table-inline-editor__segments > section > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-grid-editor > header > div,
+.table-inline-editor > header > div:first-child {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.table-grid-editor__viewport {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid #ffd8a8;
+  border-radius: 9px;
+}
+
+.table-grid-editor th,
+.table-grid-editor td {
+  min-width: 150px;
+  padding: 5px;
+  background: #fff;
+  border-right: 1px solid #ffe8cc;
+  border-bottom: 1px solid #ffe8cc;
+  vertical-align: top;
+}
+
+.table-grid-editor thead th,
+.table-grid-editor tbody > tr > th {
+  background: #fff9f0;
+}
+
+.table-grid-editor thead th {
+  white-space: nowrap;
+}
+
+.table-grid-editor thead th > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #9c4f00;
+  font-size: 10px;
+}
+
+.table-grid-editor select {
+  min-height: 30px;
+  margin-right: 4px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+}
+
+.table-grid-editor tbody > tr > th {
+  width: 116px;
+  min-width: 116px;
+  white-space: nowrap;
+}
+
+.table-grid-editor tbody > tr > th span {
+  display: inline-block;
+  min-width: 24px;
+  color: #9c4f00;
+  font-size: 10px;
+}
+
+.table-grid-editor td > button {
+  width: 100%;
+  min-height: 52px;
+  overflow: hidden;
+  background: #fff;
+  text-overflow: ellipsis;
+}
+
+.table-inline-editor {
+  padding: 11px;
+  background: #fff9f0;
+  border: 1px solid #ffd8a8;
+  border-radius: 9px;
+}
+
+.table-inline-editor__composed {
+  flex: 1;
+  min-height: 34px;
+  padding: 7px 9px;
+  background: #fff;
+  border: 1px solid #ffe8cc;
+  border-radius: 7px;
+}
+
+.table-inline-editor__segments > section {
+  display: grid;
+  padding: 9px;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #ffe8cc;
+  border-radius: 8px;
+}
+
+.table-inline-editor__segments > section > header > b,
+.table-inline-editor__add button > b {
+  display: inline-grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  color: #fff;
+  border-radius: 6px;
+}
+
+.table-inline-editor__segments > section > header > code {
+  flex: 1;
+  overflow: hidden;
+  color: #868e96;
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+.table-inline-editor__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.table-inline-editor__add > span {
+  color: #9c4f00;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.table-inline-editor__add button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+@media (max-width: 840px) {
+  .table-editor__metadata,
+  .table-csv-tools {
+    grid-template-columns: 1fr;
+  }
+}
+
 .math-block-editor__reference {
   margin: 0 18px 12px;
 }

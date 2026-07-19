@@ -32,7 +32,7 @@ import {
 import type { BuilderBlockPlugin, BuilderPluginRegistry } from "../builder/plugin";
 import { copyBuilderBlockForInsert } from "../builder/copyBlock";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
-import { deriveInlineOrdinals } from "../builder/numbering";
+import { deriveBlockOrdinals, deriveInlineOrdinals } from "../builder/numbering";
 import { createPageAnchor, pageAnchorId } from "../canvas/pageAnchor";
 import {
   createBlockId,
@@ -481,6 +481,13 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     () => deriveInlineOrdinals(flowBlocks, registry),
     [flowBlocks, registry],
   );
+  const blockOrdinals = useMemo(
+    () =>
+      deriveBlockOrdinals(flattenBuilderBlocks(flowBlocks), (block) =>
+        registry.pluginForBlock(block).numberingSeries ?? null,
+      ),
+    [flowBlocks, registry],
+  );
 
   useEffect(() => {
     if (canvasApi === null) {
@@ -620,6 +627,9 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       ? null
       : {
           block: editingDraft,
+          numberingSeries:
+            registry.pluginForBlock(editingDraft).numberingSeries ?? null,
+          ordinal: blockOrdinals.get(editingDraft.id)?.ordinal ?? null,
           onPreview: previewEditorBlock,
           onCancel: closeEditor,
           onCommit: commitEditorBlock,

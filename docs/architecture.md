@@ -55,6 +55,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Page break | `dans.document.page_break` |
 | Embedded Excalidraw drawing | `dans.drawing.excalidraw` |
 | Itemized/enumerated list | `dans.list` |
+| Rich table | `dans.table` |
 
 Adding a plugin is not complete merely because its native class exists. A
 complete vertical slice needs semantic data, validation, at least one useful
@@ -156,6 +157,31 @@ same inline renderer used by paragraphs and captions, and only contributes the
 `itemize`/`enumerate` structure. This is the intended pattern for plugin-owned
 repeated nested data: the document core still sees one opaque block.
 
+## Rich table and CSV boundaries
+
+`dans.table` owns a rectangular sequence of stable rows and cells, a leading
+header-row count, per-column semantic alignment, an inline-rich caption, and an
+optional reference ID. Every cell and the caption own Core Paragraph inline
+sequences. The table plugin can therefore host text styles, mathematics,
+references, and footnote occurrences without depending on those concrete
+extensions. It stores neither a visible table number nor physical column
+widths.
+
+The graphical connector provides structural row/column operations, column
+alignment, selected-cell and caption sequence editing, live target numbering,
+and plugin-aware deep copies. The LaTeX connector contributes `table`,
+`tabular`, and `booktabs` structure while delegating all inline content to the
+shared renderer.
+
+CSV is a separate optional capability rather than a table payload format. A
+builder assembled without it still previews and edits complete semantic tables;
+registering it reveals import/export controls. Import creates Core Text cells,
+may mark the first row as a header, and is capped at 30 rows in this authoring
+UI. Export is deliberately a plain-text subset and rejects math, footnotes, or
+other structured cell nodes instead of silently destroying them. Both native
+and browser parsers handle quoted commas, escaped quotes, embedded newlines,
+CRLF, and rectangularity checks.
+
 ## Semantic target index
 
 Referenceable block plugins expose a small descriptor containing an optional
@@ -191,6 +217,6 @@ recursively refresh authoring IDs so Alt-drag duplication cannot create two
 numbered occurrences with the same identity.
 
 This same writer-owned traversal is intended for future citation occurrences
-and table notes. It is separate from semantic target numbering: figures and
+and specialized table-note policies. It is separate from semantic target numbering: figures and
 equations have stable reference IDs, while a footnote is identified by where
 its inline occurrence appears.
