@@ -110,7 +110,7 @@ An Excalidraw drawing is a semantic figure block rather than part of the surroun
 Choose Edit to mount a second, clipped Excalidraw instance directly inside that block. Caption,
 reference ID, preferred width, and editor height reflow the document as drafts; Cancel restores the
 published block and Save commits one replacement transaction. The scene preview is rendered through
-an isolated SVG image boundary, and Export SVG materializes the same scene for an external writer.
+an isolated SVG image boundary, and Export SVG renders the same scene for an external writer.
 The outer canvas remains available around and above the document throughout editing.
 
 Itemized and enumerated lists are one semantic plugin. Every stable item owns the same ordered
@@ -143,7 +143,7 @@ Paged projection never splits a semantic block: a block that does not fit moves 
 and one taller than an entire content area becomes a visible warning placeholder. This is an
 authoring policy, not a semantic property of the block. Cross-page dragging works through the same
 recursive insertion slots as continuous mode. Save and Load use the canonical document format;
-native materialization of those plugin payloads remains a separate connector task. Multiple movable
+native decoding of those plugin payloads remains a separate connector task. Multiple movable
 document surfaces remain a later experiment. See `../docs/continuation.md` and
 `../docs/canvas-migration.md` for recovery state and the bespoke-canvas plan.
 

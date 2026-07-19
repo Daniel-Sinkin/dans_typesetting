@@ -109,7 +109,7 @@ The structured mathematical vocabulary slice adds:
   and right-arrow relations plus maps-to and similarity;
 - distinct asterisk, centered-dot, times, slash, and tensor products;
 - browser parity for the native Greek-symbol family plus partial, infinity,
-  ordinary/centered ellipses, dagger, transpose, and script ell;
+  `dots`, `cdots`, dagger, transpose, and `ell`;
 - semantic graphical palette leaves/two-slot operators, Unicode presentation,
   version-1 canonical/clipboard transport, and ASCII/Unicode parser spellings;
 - shared TeX lowering used by LaTeX and Markdown, with Jupyter inheriting the
@@ -331,7 +331,7 @@ The preceding canonical-transport slice provides:
 - plugin-owned block and inline codecs in the browser;
 - stable document metadata and transactional full-document replacement;
 - unknown block and inline payload preservation;
-- Save/Load controls and a browser smoke import path;
+- Save/Load controls and a browser smoke load path;
 - a strict native ordered-JSON and canonical-envelope implementation;
 - one shared fixture that normalizes exactly in both implementations.
 

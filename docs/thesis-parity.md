@@ -54,7 +54,7 @@ The structured-math slices now cover arbitrary rectangular grids,
 square-bracketed matrices, row vectors, column vectors, stacked fractions,
 square/indexed roots, combined scripts, the high-frequency relation family,
 distinct product operators, Greek/calculus symbols, ellipses, dagger,
-transpose, and script ell in native LaTeX/Markdown/Jupyter and the graphical
+transpose, `dots`, `cdots`, and `ell` in native LaTeX/Markdown/Jupyter and the graphical
 writer. Blackboard/calligraphic identifiers plus ordinary and named function
 application now share native and graphical contracts as well. Upright atomic
 names, constrained math text, and recursive underbraces cover the audited
