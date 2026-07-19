@@ -42,8 +42,8 @@ inline nodes remain visible as named read-only chips. Footnotes render as live s
 with hover/focus previews; their editor composes, adds, removes, and reorders a nested inline
 sequence. Markers are derived from current document traversal rather than stored in the payload,
 including when a footnote is hosted by a list item. Image editing uses the native file picker and
-stores a preview together with the requested width and detected pixel dimensions. Code listings are
-limited to C++ and Julia; a
+stores a preview together with the requested width and detected pixel dimensions. Code listings
+support C++, CUDA, Julia, and raw text with caption and reference ID independently optional; a
 transparent textarea aligned over the syntax-coloured preview makes the rendered surface directly
 editable, and Tab inserts four spaces. Display and inline math share the nested expression editor:
 drag literals, operators, or a structured summation into empty slots; replace, parenthesize, park,

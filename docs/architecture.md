@@ -71,6 +71,10 @@ and tests at the boundaries it implements.
   defensible for links inside links.
 - Raw LaTeX is an explicit backend-specific escape hatch. It does not count as
   Markdown, Jupyter, graphical, or future PDF support.
+- Code-listing language is a presentation classification with four opinionated
+  values, not a compiler/parser contract. Caption and target identity are
+  independent, while every listing remains in one writer-owned numbering
+  series.
 - The graphical writer may show an opaque placeholder for unsupported plugins.
   It must preserve their envelope and payload rather than dropping them.
 

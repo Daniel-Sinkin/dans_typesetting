@@ -237,6 +237,12 @@ auto LatexWriter::emit_document(const Document& document, LatexOutput& output) c
         "}\n"
     );
     output.write_raw(
+        "\\lstdefinelanguage{CUDA}[]{C++}{%\n"
+        "  morekeywords={__global__,__device__,__host__,__shared__,__constant__,__managed__,"
+        "__launch_bounds__,threadIdx,blockIdx,blockDim,gridDim,warpSize}%\n"
+        "}\n"
+    );
+    output.write_raw(
         "\\lstset{basicstyle=\\ttfamily\\small,breaklines=true,columns=fullflexible,"
         "keepspaces=true,showstringspaces=false}\n"
     );

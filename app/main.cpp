@@ -279,6 +279,22 @@ auto make_sample_document()
         ReferenceId{"lst:julia-energy"},
         "The same semantic listing block configured for Julia."
     );
+    listings.blocks().add<CodeListing>(
+        CodeLanguage::cuda,
+        "__global__ void scale(float* values)\n"
+        "{\n"
+        "    values[threadIdx.x] *= 2.0F;\n"
+        "}\n",
+        ReferenceId{"lst:cuda-scale"}
+    );
+    listings.blocks().add<CodeListing>(
+        CodeLanguage::raw,
+        "Raw, byte-preserving source text can omit both caption and reference metadata.\n"
+    );
+    auto& listing_reference = listings.blocks().add<CoreParagraph>();
+    listing_reference.append_text("The captionless CUDA kernel remains referenceable as ");
+    listing_reference.inlines().add<Reference>(ReferenceId{"lst:cuda-scale"});
+    listing_reference.append_text(".");
 
     auto& latex_escape = document.blocks().add<Section>("LaTeX escape hatch");
     par_writer(
@@ -293,7 +309,9 @@ auto make_sample_document()
 }
 }  // namespace
 
-auto main(const int argc, char* argv[]) -> int
+namespace
+{
+auto run(const int argc, char** argv) -> int
 {
     if (argc > 2)
     {
@@ -359,7 +377,7 @@ auto main(const int argc, char* argv[]) -> int
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::ExcalidrawDrawingLatexAdapter>(
                 [drawing_asset_path](const dans::document::plugins::ExcalidrawDrawing&)
-                { return drawing_asset_path; }
+                { return std::filesystem::path{drawing_asset_path}; }
             )
         );
         writer.register_block_adapter(
@@ -388,4 +406,29 @@ auto main(const int argc, char* argv[]) -> int
     }
 
     return EXIT_SUCCESS;
+}
+}  // namespace
+
+auto main(const int argc, char* argv[]) noexcept -> int
+{
+    try
+    {
+        return run(argc, argv);
+    }
+    catch (const std::exception& error)
+    {
+        try
+        {
+            std::println(stderr, "Fatal document-example error: {}", error.what());
+        }
+        catch (...)
+        {
+            return EXIT_FAILURE;
+        }
+        return EXIT_FAILURE;
+    }
+    catch (...)
+    {
+        return EXIT_FAILURE;
+    }
 }

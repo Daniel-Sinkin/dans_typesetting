@@ -1,9 +1,12 @@
-// Graphical adapter for captioned C++ and Julia code listings.
+// Graphical adapter for semantic source-code listings.
 import { createElement } from "react";
 
 import type { BuilderBlockPlugin } from "../builder/plugin";
 import { codeListingTypeId } from "../model/document";
-import { requireCodeListing } from "./codeListingSupport";
+import {
+  codeListingLanguageLabel,
+  requireCodeListing,
+} from "./codeListingSupport";
 import { CodeListingEditor, CodeListingPreview } from "./codeListingView";
 
 export const codeListingPlugin: BuilderBlockPlugin = {
@@ -11,7 +14,7 @@ export const codeListingPlugin: BuilderBlockPlugin = {
   numberingSeries: "listing",
   palette: {
     label: "Code listing",
-    description: "A captioned C++ or Julia source-code block",
+    description: "C++, CUDA, Julia, or unclassified source text",
     glyph: "</>",
     accentColor: "#0b7285",
   },
@@ -21,7 +24,7 @@ export const codeListingPlugin: BuilderBlockPlugin = {
       typeId: codeListingTypeId,
       language: "cpp",
       code: "int main() {\n    return 0;\n}",
-      caption: "A new C++ listing.",
+      caption: null,
       referenceId: null,
     });
   },
@@ -30,7 +33,7 @@ export const codeListingPlugin: BuilderBlockPlugin = {
     return {
       referenceId: listing.referenceId,
       label: "Listing",
-      title: listing.caption,
+      title: listing.caption ?? codeListingLanguageLabel(listing.language),
     };
   },
   copyForInsert(block, copiedBlockId) {

@@ -1,4 +1,4 @@
-// src/connectors/latex/code_listing.cpp — render captioned source code through listings.
+// src/connectors/latex/code_listing.cpp — render semantic source code through listings.
 #include "connectors/latex/code_listing.hpp"
 
 #include <stdexcept>
@@ -13,8 +13,12 @@ auto latex_language(const dans::document::plugins::CodeLanguage language) -> std
     {
         case CodeLanguage::cpp:
             return "C++";
+        case CodeLanguage::cuda:
+            return "CUDA";
         case CodeLanguage::julia:
             return "Julia";
+        case CodeLanguage::raw:
+            return {};
     }
     throw std::logic_error{"Unknown code-listing language"};
 }
@@ -52,13 +56,55 @@ auto CodeListingLatexAdapter::serialize(
         throw std::invalid_argument{"A code listing cannot contain the LaTeX listings terminator"};
     }
 
-    output.write_raw("\\begin{lstlisting}[language={");
-    output.write_raw(latex_language(listing->language()));
-    output.write_raw("},caption={");
-    inline_renderer_->serialize(listing->caption(), output);
-    output.write_raw("},label={");
-    output.write_raw(listing->reference_id().value());
-    output.write_raw("}]\n");
+    // Listings only advances its counter when it makes a caption. Advance it
+    // explicitly for captionless blocks so every writer derives the same
+    // ordinal sequence, including for otherwise unnumbered raw snippets.
+    if (!listing->has_caption())
+    {
+        output.write_raw("\\refstepcounter{lstlisting}\n");
+        if (listing->reference_id().has_value())
+        {
+            output.write_raw("\\label{");
+            output.write_raw(listing->reference_id()->value());
+            output.write_raw("}\n");
+        }
+    }
+
+    output.write_raw("\\begin{lstlisting}");
+    auto has_option = false;
+    const auto language = latex_language(listing->language());
+    if (!language.empty() || listing->has_caption())
+    {
+        output.write_raw("[");
+    }
+    if (!language.empty())
+    {
+        output.write_raw("language={");
+        output.write_raw(language);
+        output.write_raw("}");
+        has_option = true;
+    }
+    if (listing->has_caption())
+    {
+        if (has_option)
+        {
+            output.write_raw(",");
+        }
+        output.write_raw("caption={");
+        inline_renderer_->serialize(listing->caption(), output);
+        output.write_raw("}");
+        if (listing->reference_id().has_value())
+        {
+            output.write_raw(",label={");
+            output.write_raw(listing->reference_id()->value());
+            output.write_raw("}");
+        }
+    }
+    if (!language.empty() || listing->has_caption())
+    {
+        output.write_raw("]");
+    }
+    output.write_raw("\n");
     output.write_raw(listing->code());
     if (!listing->code().ends_with('\n'))
     {

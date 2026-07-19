@@ -42,6 +42,9 @@ export function CodeListingPreview({
   return (
     <figure className="code-listing-content">
       <div className="code-listing-content__language">
+        {context.ordinal === null
+          ? "Listing preview"
+          : `Listing ${String(context.ordinal)}`} {" · "}
         {codeListingLanguageLabel(listing.language)}
       </div>
       <pre>
@@ -49,12 +52,14 @@ export function CodeListingPreview({
           <HighlightedCode language={listing.language} code={listing.code} />
         </code>
       </pre>
-      <figcaption>
-        <strong>
-          {context.ordinal === null ? "Listing preview:" : `Listing ${String(context.ordinal)}:`}
-        </strong>{" "}
-        {listing.caption}
-      </figcaption>
+      {listing.caption === null ? null : (
+        <figcaption>
+          <strong>
+            {context.ordinal === null ? "Listing preview:" : `Listing ${String(context.ordinal)}:`}
+          </strong>{" "}
+          {listing.caption}
+        </figcaption>
+      )}
     </figure>
   );
 }
@@ -68,7 +73,7 @@ export function CodeListingEditor({
   const listing = requireCodeListing(block);
   const [language, setLanguage] = useState<CodeListingLanguage>(listing.language);
   const [code, setCode] = useState(listing.code);
-  const [caption, setCaption] = useState(listing.caption);
+  const [caption, setCaption] = useState(listing.caption ?? "");
   const [referenceId, setReferenceId] = useState(listing.referenceId ?? "");
   const highlightRef = useRef<HTMLPreElement>(null);
   const referenceError = editableReferenceIdError(
@@ -80,7 +85,7 @@ export function CodeListingEditor({
     ...listing,
     language,
     code,
-    caption,
+    caption: caption.trim().length === 0 ? null : caption,
     referenceId: referenceId.length === 0 ? null : referenceId,
   });
 
@@ -98,13 +103,20 @@ export function CodeListingEditor({
           value={language}
           onChange={(event) => {
             const value = event.target.value;
-            if (value === "cpp" || value === "julia") {
+            if (
+              value === "cpp" ||
+              value === "cuda" ||
+              value === "julia" ||
+              value === "raw"
+            ) {
               setLanguage(value);
             }
           }}
         >
           <option value="cpp">C++</option>
+          <option value="cuda">CUDA</option>
           <option value="julia">Julia</option>
+          <option value="raw">Raw text</option>
         </select>
       </label>
       {referenceError === null ? null : (
@@ -166,7 +178,7 @@ export function CodeListingEditor({
         </div>
       </label>
       <label className="editor-field">
-        <span>Caption</span>
+        <span>Caption · optional</span>
         <textarea
           rows={2}
           value={caption}
@@ -183,9 +195,7 @@ export function CodeListingEditor({
           className="primary-action"
           type="submit"
           disabled={
-            code.length === 0 ||
-            caption.trim().length === 0 ||
-            referenceError !== null
+            code.length === 0 || referenceError !== null
           }
         >
           Save listing

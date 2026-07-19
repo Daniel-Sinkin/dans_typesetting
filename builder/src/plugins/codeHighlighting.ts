@@ -31,6 +31,15 @@ const cppTypes = new Set([
   "short", "signed", "unsigned", "void", "wchar_t", "size_t", "string", "string_view",
 ]);
 
+const cudaKeywords = new Set([
+  "__constant__", "__device__", "__global__", "__host__", "__launch_bounds__",
+  "__managed__", "__shared__", "atomicAdd", "atomicCAS", "__syncthreads",
+]);
+
+const cudaTypes = new Set([
+  "blockDim", "blockIdx", "dim3", "gridDim", "threadIdx", "warpSize",
+]);
+
 const juliaKeywords = new Set([
   "baremodule", "begin", "break", "catch", "const", "continue", "do", "else", "elseif",
   "end", "export", "finally", "for", "function", "global", "if", "import", "let", "local",
@@ -47,13 +56,17 @@ const cppPattern = /\/\/[^\n]*|\/\*[\s\S]*?\*\/|^[ \t]*#[^\n]*|"(?:\\.|[^"\\])*"
 const juliaPattern = /#=[\s\S]*?=#|#[^\n]*|"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:\d+(?:\.\d*)?|\.\d+)(?:[eEfF][+-]?\d+)?\b|\b[A-Za-z_]\w*[!?]?\b/gmu;
 
 function classifyToken(language: CodeListingLanguage, text: string): CodeTokenKind {
-  if (language === "cpp") {
+  if (language === "cpp" || language === "cuda") {
     if (text.startsWith("//") || text.startsWith("/*")) return "comment";
     if (/^[ \t]*#/u.test(text)) return "preprocessor";
     if (text.startsWith('"') || text.startsWith("'")) return "string";
     if (/^(?:\d|\.\d)/u.test(text)) return "number";
-    if (cppKeywords.has(text)) return "keyword";
-    if (cppTypes.has(text)) return "type";
+    if (cppKeywords.has(text) || (language === "cuda" && cudaKeywords.has(text))) {
+      return "keyword";
+    }
+    if (cppTypes.has(text) || (language === "cuda" && cudaTypes.has(text))) {
+      return "type";
+    }
     return "plain";
   }
 
@@ -69,7 +82,10 @@ export function highlightCode(
   language: CodeListingLanguage,
   code: string,
 ): readonly CodeToken[] {
-  const pattern = language === "cpp" ? cppPattern : juliaPattern;
+  if (language === "raw") {
+    return Object.freeze([Object.freeze({ kind: "plain", text: code })]);
+  }
+  const pattern = language === "julia" ? juliaPattern : cppPattern;
   pattern.lastIndex = 0;
   const tokens: CodeToken[] = [];
   let cursor = 0;

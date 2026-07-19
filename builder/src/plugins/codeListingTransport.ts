@@ -13,8 +13,23 @@ import {
 import { decodeOptionalReferenceId } from "../model/referenceId";
 
 function requireLanguage(value: string): CodeListingLanguage {
-  if (value !== "cpp" && value !== "julia") {
+  if (
+    value !== "cpp" &&
+    value !== "cuda" &&
+    value !== "julia" &&
+    value !== "raw"
+  ) {
     throw new Error(`Unsupported code-listing language in transport: ${value}`);
+  }
+  return value;
+}
+
+function decodeOptionalCaption(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new Error("Code-listing payload.caption must be a string or null");
   }
   return value;
 }
@@ -41,7 +56,7 @@ export const codeListingBlockTransportCodec: BlockTransportCodec = {
         requireTransportString(data, "language", "Code-listing payload"),
       ),
       code: requireTransportString(data, "code", "Code-listing payload"),
-      caption: requireTransportString(data, "caption", "Code-listing payload"),
+      caption: decodeOptionalCaption(data.caption),
       referenceId: decodeOptionalReferenceId(
         data.referenceId,
         "Code-listing payload.referenceId",

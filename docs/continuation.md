@@ -33,7 +33,24 @@ capability.
 
 ## Current verified slice
 
-The structured-math grid and MatVec slice adds:
+The semantic code-listing completion slice adds:
+
+- C++, CUDA, Julia, and raw language hints across native, canonical, graphical,
+  and LaTeX representations;
+- independent optional captions and stable reference IDs;
+- writer-consistent numbering for captionless snippets through an explicit
+  LaTeX counter step and a live graphical header;
+- CUDA-aware dependency-free browser highlighting and unclassified raw mode;
+- direct syntax-coloured source editing with four-space Tab behavior preserved;
+- backward-compatible canonical decoding for payloads without a caption;
+- all four metadata combinations in native/transport tests, real browser edit
+  coverage, canonical fixtures, and compiled-PDF sample coverage.
+
+The language field is intentionally only a presentation hint. It is not a
+promise that the source parses, compiles, or belongs to a complete language
+grammar. See `code-listings.md` for the normative contract.
+
+The preceding structured-math grid and MatVec slice adds:
 
 - a rectangular, recursively nested core math-grid primitive in native and
   browser models;
@@ -179,9 +196,9 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Add the missing CUDA/raw listing modes and optional captions, then continue
-structured mathematics with scripts, fractions, and roots. Keep the table and inline
-contracts stable while adding those independent capabilities.
+Continue structured mathematics with scripts, fractions, and roots. Keep the
+table, listing, and inline contracts stable while adding those independent
+capabilities.
 Keep plugin payload codecs beside their plugin and extend the shared fixture
 whenever a new canonical type is completed.
 
@@ -224,3 +241,7 @@ Current deliberate compromises to reassess later:
   four fixed templates and no arbitrary dimension picker.
 - grid cells reject explicit display-alignment points because those would
   collide with writer-owned matrix column separators.
+- every listing participates in numbering even when its caption is absent; the
+  graphical header exposes that number while LaTeX keeps it visually hidden.
+- graphical listing captions are still plain strings even though native
+  captions consume the Core Paragraph inline contract.

@@ -26,7 +26,7 @@ every piece of source syntax.
 | Matrices | 24 `pmatrix`, 5 `bmatrix`, arrays and block matrices | matvec cannot remain a raw-LaTeX-only feature |
 | Figures | 84 figures, 89 assets, math/code in captions, ten paired panels | captions must become inline sequences in transport; composite figures are needed |
 | Tables | 31 floating tables plus rich tabulars, spans, widths, math, code and footnotes | a plain CSV grid is only an adapter, not the table core |
-| Listings | Julia, CUDA and untyped/verbatim; many have no caption | add CUDA/raw and make caption/reference optional |
+| Listings | Julia, CUDA and untyped/verbatim; many have no caption | base parity implemented; external-file inclusion and rich captions remain |
 | References | 71 labels and 16 refs in current docs; much more in older draft | sections and all numbered blocks need a target registry |
 | Footnotes | 31, including links/style/code and table notes | footnote content needs an inline sequence and table anchors |
 | Lists | itemize, enumerate, custom labels and older description lists | semantic list/item blocks are required |
@@ -53,6 +53,12 @@ the graphical writer. Cells retain recursive editing and canonical transport.
 The audited corpus still needs parentheses matrices, block separators, arrays,
 fractions, roots, scripts, and richer operators before mathematical parity is
 close.
+
+The listing contract now covers C++, CUDA, Julia, and raw source with
+independently optional captions and reference targets in native LaTeX and the
+graphical writer. Captionless listings retain consistent writer-derived
+ordinals. Rich inline captions, external-file/range inclusion, and code leaves
+inside prose remain separate parity work.
 
 ## Representative port slices
 
@@ -84,7 +90,7 @@ Porting these slices exercises variety without copying hundreds of paragraphs:
 4. Rich table core, followed by CSV and Python-backed adapters.
 5. Continue structured math beyond the implemented rectangular matvec slice.
 6. Composite/subfigure support.
-7. CUDA/raw/optional-caption listings.
+7. CUDA/raw/optional-caption listings (implemented base contract).
 8. Citations and BibTeX/JSON bibliography.
 9. Markdown and Jupyter writer conformance over the same fixtures.
 10. Final pagination and cross-page editing refinements.

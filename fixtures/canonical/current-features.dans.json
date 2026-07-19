@@ -229,10 +229,20 @@
       "id": "fixture-listing",
       "type": "dans.code.listing",
       "payload": {
-        "language": "julia",
-        "code": "function energy(x)\n    return sum(abs2, x)\nend",
-        "caption": "A canonical Julia listing.",
-        "referenceId": "lst:canonical-energy"
+        "language": "cuda",
+        "code": "__global__ void scale(float* x) { x[threadIdx.x] *= 2.0F; }",
+        "caption": null,
+        "referenceId": "lst:canonical-scale"
+      }
+    },
+    {
+      "id": "fixture-raw-listing",
+      "type": "dans.code.listing",
+      "payload": {
+        "language": "raw",
+        "code": "unclassified source text remains byte-preserving",
+        "caption": null,
+        "referenceId": null
       }
     },
     {

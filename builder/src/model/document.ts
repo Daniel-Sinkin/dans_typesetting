@@ -15,7 +15,7 @@ export const titlePageTypeId = "dans.document.title_page";
 export const tableOfContentsTypeId = "dans.document.table_of_contents";
 export const pageBreakTypeId = "dans.document.page_break";
 
-export type CodeListingLanguage = "cpp" | "julia";
+export type CodeListingLanguage = "cpp" | "cuda" | "julia" | "raw";
 export type ParagraphTextStyle = "normal" | "bold" | "italic" | "bold_italic";
 
 export interface DocumentModelVersion {
@@ -98,7 +98,7 @@ export interface CodeListingBlock extends BuilderBlock {
   readonly typeId: typeof codeListingTypeId;
   readonly language: CodeListingLanguage;
   readonly code: string;
-  readonly caption: string;
+  readonly caption: string | null;
   readonly referenceId: string | null;
 }
 
@@ -283,11 +283,14 @@ export function isCodeListingBlock(block: BuilderBlock): block is CodeListingBlo
   return (
     block.typeId === codeListingTypeId &&
     "language" in block &&
-    (block.language === "cpp" || block.language === "julia") &&
+    (block.language === "cpp" ||
+      block.language === "cuda" ||
+      block.language === "julia" ||
+      block.language === "raw") &&
     "code" in block &&
     typeof block.code === "string" &&
     "caption" in block &&
-    typeof block.caption === "string" &&
+    (block.caption === null || typeof block.caption === "string") &&
     "referenceId" in block &&
     (block.referenceId === null || typeof block.referenceId === "string")
   );
@@ -493,8 +496,11 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
       if (!isCodeListingBlock(block)) {
         throw new Error("A code-listing block has an invalid transport shape");
       }
-      if (block.code.length === 0 || block.caption.trim().length === 0) {
-        throw new Error("A code listing requires source code and a caption");
+      if (block.code.length === 0) {
+        throw new Error("A code listing requires source code");
+      }
+      if (block.caption !== null && block.caption.trim().length === 0) {
+        throw new Error("A code-listing caption must be non-empty when present");
       }
       if (block.referenceId !== null) {
         validateOptionalReferenceId(block.referenceId, "Listing reference ID");

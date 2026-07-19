@@ -17,7 +17,11 @@ export function codeListingLanguageLabel(language: CodeListingLanguage): string 
   switch (language) {
     case "cpp":
       return "C++";
+    case "cuda":
+      return "CUDA";
     case "julia":
       return "Julia";
+    case "raw":
+      return "Raw text";
   }
 }

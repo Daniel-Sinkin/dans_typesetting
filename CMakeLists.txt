@@ -530,6 +530,15 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_math_matvec_test COMMAND native_math_matvec_test)
+
+  add_executable(native_code_listing_test
+    tests/native_code_listing_test.cpp
+  )
+  target_link_libraries(native_code_listing_test PRIVATE
+    dans::code_listing_latex_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_code_listing_test COMMAND native_code_listing_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source

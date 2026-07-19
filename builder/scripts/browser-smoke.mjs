@@ -900,9 +900,9 @@ async function exerciseBuilder(client) {
   await client.evaluate(`(() => {
     const source = document.querySelector("textarea[data-testid='code-listing-source']");
     const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
-    textareaSetter.call(source, "function answer()\\n    return 42\\nend");
+    textareaSetter.call(source, "__global__ void scale(float* values) {\\n    values[threadIdx.x] *= 2.0F;\\n}");
     source.dispatchEvent(new Event("input", { bubbles: true }));
-    source.setSelectionRange(8, 9);
+    source.setSelectionRange(10, 11);
     source.dispatchEvent(new KeyboardEvent("keydown", {
       key: "Tab",
       code: "Tab",
@@ -911,19 +911,26 @@ async function exerciseBuilder(client) {
     }));
     const language = document.querySelector(".code-listing-editor select");
     const selectSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set;
-    selectSetter.call(language, "julia");
+    selectSetter.call(language, "cuda");
     language.dispatchEvent(new Event("change", { bubbles: true }));
+    const reference = document.querySelector(".code-listing-editor input");
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    inputSetter.call(reference, "");
+    reference.dispatchEvent(new Event("input", { bubbles: true }));
+    const caption = document.querySelector(".code-listing-editor textarea:not([data-testid])");
+    textareaSetter.call(caption, "");
+    caption.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(60);
   assert(
-    await client.evaluate(`document.querySelector("textarea[data-testid='code-listing-source']").value.startsWith("function    answer")`),
+    await client.evaluate(`document.querySelector("textarea[data-testid='code-listing-source']").value.startsWith("__global__    void")`),
     "Tab in the code-listing source editor did not insert four spaces",
   );
   assert(
     await client.evaluate(`(() => {
       const surface = document.querySelector(".code-editor-surface");
-      return surface.querySelector("pre").textContent.startsWith("function    answer") &&
-        surface.querySelector(".syntax-token--keyword")?.textContent === "function";
+      return surface.querySelector("pre").textContent.startsWith("__global__    void") &&
+        surface.querySelector(".syntax-token--keyword")?.textContent === "__global__";
     })()`),
     "The directly editable listing did not update its syntax-coloured surface",
   );
@@ -934,9 +941,13 @@ async function exerciseBuilder(client) {
   assert(
     await client.evaluate(`(() => {
       const listing = document.querySelector("[data-visual-block-id='sample-code-listing']");
-      return listing.textContent.includes("function    answer()") && listing.textContent.includes("Julia");
+      const header = listing.querySelector(".code-listing-content__language").textContent;
+      return listing.textContent.includes("__global__    void scale") &&
+        header.includes("Listing 1") &&
+        header.includes("CUDA") &&
+        listing.querySelector("figcaption") === null;
     })()`),
-    "The graphical code-listing editor did not commit C++/Julia semantic data",
+    "The graphical code-listing editor did not commit CUDA with optional metadata",
   );
 
   await reloadBuilder(client);
