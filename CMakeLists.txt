@@ -24,6 +24,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+find_program(TYPESETTING_KPSEWHICH_EXECUTABLE NAMES kpsewhich REQUIRED)
+execute_process(
+  COMMAND "${TYPESETTING_KPSEWHICH_EXECUTABLE}" lmr10.pfb
+  OUTPUT_VARIABLE TYPESETTING_LMR10_PFB
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  COMMAND_ERROR_IS_FATAL ANY
+)
+execute_process(
+  COMMAND "${TYPESETTING_KPSEWHICH_EXECUTABLE}" lmr10.afm
+  OUTPUT_VARIABLE TYPESETTING_LMR10_AFM
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  COMMAND_ERROR_IS_FATAL ANY
+)
+if(NOT EXISTS "${TYPESETTING_LMR10_PFB}" OR NOT EXISTS "${TYPESETTING_LMR10_AFM}")
+  message(FATAL_ERROR "Latin Modern Roman Type 1 program and AFM metrics are required")
+endif()
+
 if(WIN32)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
@@ -87,6 +104,45 @@ target_link_libraries(document_core PRIVATE
   typesetter_warnings
 )
 
+# Font metrics and embedded Type 1 program data used by the first native
+# layout/PDF vertical slice.
+add_library(type1_font STATIC
+  src/fonts/type1_font.cpp
+  src/fonts/type1_font.hpp
+)
+add_library(dans::type1_font ALIAS type1_font)
+target_link_libraries(type1_font
+  PUBLIC dans::document_core
+  PRIVATE typesetter_warnings
+)
+
+# Headless fixed-point page layout. The resulting display list is independent
+# of PDF serialization and can later feed the graphical builder projection.
+add_library(latex_like_layout STATIC
+  src/layout/latex_like_engine.cpp
+  src/layout/latex_like_engine.hpp
+  src/layout/page_layout.hpp
+)
+add_library(dans::latex_like_layout ALIAS latex_like_layout)
+target_link_libraries(latex_like_layout
+  PUBLIC
+    dans::document_core
+    dans::type1_font
+  PRIVATE typesetter_warnings
+)
+
+add_library(latex_like_pdf_writer STATIC
+  src/writers/latex_like_pdf_writer.cpp
+  src/writers/latex_like_pdf_writer.hpp
+)
+add_library(dans::latex_like_pdf_writer ALIAS latex_like_pdf_writer)
+target_link_libraries(latex_like_pdf_writer
+  PUBLIC
+    dans::latex_like_layout
+    dans::type1_font
+  PRIVATE typesetter_warnings
+)
+
 # Shared ordered JSON utility. Format adapters may use this without depending
 # on the canonical document envelope.
 add_library(json_support STATIC
@@ -124,6 +180,20 @@ target_link_libraries(inline_sequence
   PRIVATE typesetter_warnings
 )
 
+# Strict registry that turns canonical plugin envelopes into the semantic
+# document tree. Concrete payload schemas remain in plugin-owned connectors.
+add_library(document_materializer STATIC
+  src/transport/document_materializer.cpp
+  src/transport/document_materializer.hpp
+)
+add_library(dans::document_materializer ALIAS document_materializer)
+target_link_libraries(document_materializer
+  PUBLIC
+    dans::canonical_transport
+    dans::inline_sequence
+  PRIVATE typesetter_warnings
+)
+
 # Ordinary text is an inline leaf plugin independent of any particular host.
 add_library(text_plugin STATIC
   src/plugins/text.cpp
@@ -145,6 +215,30 @@ target_link_libraries(paragraph_plugin
   PUBLIC
     dans::inline_sequence
     dans::text_plugin
+  PRIVATE typesetter_warnings
+)
+
+add_library(paragraph_transport_connector STATIC
+  src/connectors/transport/paragraph.cpp
+  src/connectors/transport/paragraph.hpp
+)
+add_library(dans::paragraph_transport_connector ALIAS paragraph_transport_connector)
+target_link_libraries(paragraph_transport_connector
+  PUBLIC
+    dans::document_materializer
+    dans::paragraph_plugin
+  PRIVATE typesetter_warnings
+)
+
+add_library(paragraph_latex_like_connector STATIC
+  src/connectors/latex_like/paragraph.cpp
+  src/connectors/latex_like/paragraph.hpp
+)
+add_library(dans::paragraph_latex_like_connector ALIAS paragraph_latex_like_connector)
+target_link_libraries(paragraph_latex_like_connector
+  PUBLIC
+    dans::latex_like_layout
+    dans::paragraph_plugin
   PRIVATE typesetter_warnings
 )
 
@@ -1034,6 +1128,21 @@ target_link_libraries(document_example PRIVATE
   typesetter_warnings
 )
 
+add_executable(document_publish
+  app/publish.cpp
+)
+target_compile_definitions(document_publish PRIVATE
+  DANS_TYPESETTING_DEFAULT_LMR10_PFB="${TYPESETTING_LMR10_PFB}"
+  DANS_TYPESETTING_DEFAULT_LMR10_AFM="${TYPESETTING_LMR10_AFM}"
+)
+target_link_libraries(document_publish PRIVATE
+  dans::latex_like_pdf_writer
+  dans::paragraph_latex_connector
+  dans::paragraph_latex_like_connector
+  dans::paragraph_transport_connector
+  typesetter_warnings
+)
+
 if(BUILD_TESTING)
   add_executable(native_inline_test
     tests/native_inline_test.cpp
@@ -1060,6 +1169,39 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_transport_test COMMAND native_transport_test)
+
+  add_executable(native_document_materializer_test
+    tests/native_document_materializer_test.cpp
+  )
+  target_link_libraries(native_document_materializer_test PRIVATE
+    dans::paragraph_latex_connector
+    dans::paragraph_transport_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_document_materializer_test COMMAND native_document_materializer_test)
+
+  add_executable(native_latex_like_pdf_test
+    tests/native_latex_like_pdf_test.cpp
+  )
+  target_compile_definitions(native_latex_like_pdf_test PRIVATE
+    DANS_TYPESETTING_LMR10_PFB="${TYPESETTING_LMR10_PFB}"
+    DANS_TYPESETTING_LMR10_AFM="${TYPESETTING_LMR10_AFM}"
+    DANS_TYPESETTING_LATEX_LIKE_PDF_OUTPUT="${CMAKE_CURRENT_BINARY_DIR}/native-latex-like.pdf"
+  )
+  target_link_libraries(native_latex_like_pdf_test PRIVATE
+    dans::latex_like_pdf_writer
+    dans::paragraph_latex_like_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_latex_like_pdf_test COMMAND native_latex_like_pdf_test)
+
+  add_test(
+    NAME document_publish_text_test
+    COMMAND document_publish
+      "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/canonical/latex-like-text.dans_doc"
+      "${CMAKE_CURRENT_BINARY_DIR}/published-text.tex"
+      "${CMAKE_CURRENT_BINARY_DIR}/published-text.pdf"
+  )
 
   add_executable(native_document_shell_test
     tests/native_document_shell_test.cpp
@@ -1362,3 +1504,61 @@ add_custom_command(
 )
 
 add_custom_target(sample_document ALL DEPENDS "${TYPESETTING_SAMPLE_PDF}")
+
+# Explicit comparison target for the constrained paragraph slice. It keeps the
+# native output and the LuaLaTeX reference side by side without adding another
+# LaTeX invocation to every ordinary build.
+set(TYPESETTING_TEXT_FIXTURE
+  "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/canonical/latex-like-text.dans_doc"
+)
+set(TYPESETTING_TEXT_REFERENCE_TEX
+  "${CMAKE_CURRENT_BINARY_DIR}/latex-like-text-reference.tex"
+)
+set(TYPESETTING_TEXT_REFERENCE_PDF
+  "${CMAKE_CURRENT_BINARY_DIR}/latex-like-text-reference.pdf"
+)
+set(TYPESETTING_TEXT_NATIVE_PDF
+  "${CMAKE_CURRENT_BINARY_DIR}/latex-like-text-native.pdf"
+)
+
+add_custom_command(
+  OUTPUT
+    "${TYPESETTING_TEXT_REFERENCE_TEX}"
+    "${TYPESETTING_TEXT_NATIVE_PDF}"
+  COMMAND $<TARGET_FILE:document_publish>
+    "${TYPESETTING_TEXT_FIXTURE}"
+    "${TYPESETTING_TEXT_REFERENCE_TEX}"
+    "${TYPESETTING_TEXT_NATIVE_PDF}"
+  DEPENDS
+    document_publish
+    "${TYPESETTING_TEXT_FIXTURE}"
+  COMMENT "Publishing the canonical paragraph fixture"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT "${TYPESETTING_TEXT_REFERENCE_PDF}"
+  COMMAND "${TYPESETTING_LATEXMK_EXECUTABLE}"
+    -lualatex
+    -interaction=nonstopmode
+    -halt-on-error
+    -file-line-error
+    "-outdir=${CMAKE_CURRENT_BINARY_DIR}"
+    "${TYPESETTING_TEXT_REFERENCE_TEX}"
+  DEPENDS "${TYPESETTING_TEXT_REFERENCE_TEX}"
+  BYPRODUCTS
+    "${CMAKE_CURRENT_BINARY_DIR}/latex-like-text-reference.aux"
+    "${CMAKE_CURRENT_BINARY_DIR}/latex-like-text-reference.fdb_latexmk"
+    "${CMAKE_CURRENT_BINARY_DIR}/latex-like-text-reference.fls"
+    "${CMAKE_CURRENT_BINARY_DIR}/latex-like-text-reference.log"
+    "${CMAKE_CURRENT_BINARY_DIR}/latex-like-text-reference.out"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  COMMENT "Compiling the LuaLaTeX paragraph reference"
+  VERBATIM
+)
+
+add_custom_target(latex_like_text_comparison
+  DEPENDS
+    "${TYPESETTING_TEXT_NATIVE_PDF}"
+    "${TYPESETTING_TEXT_REFERENCE_PDF}"
+)

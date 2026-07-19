@@ -10,9 +10,9 @@ The project has four distinct jobs:
 4. Authoring applications edit a versioned transport representation and never
    use a writer's output as semantic storage.
 
-The native LaTeX and Markdown paths currently follow this split. `Document`
-knows neither backend nor the concrete paragraph/image/math plugins. Each
-writer walks core sections and delegates concrete blocks to registered
+The native LaTeX, Markdown, and initial direct-PDF paths follow this split.
+`Document` knows neither backend nor the concrete paragraph/image/math plugins.
+Each writer walks core sections and delegates concrete blocks to registered
 adapters. The standalone Inline Sequence foundation has a writer-specific
 consumption endpoint, and paragraphs, captions, cells, and other inline hosts
 share that writer's inline adapter registry.
@@ -175,16 +175,34 @@ graphical preview state are never semantic storage. The contract provides:
 
 The core transport only understands `id`, `type`, and an ordered JSON `payload`.
 Browser plugin modules register their own payload codecs. Native plugin
-semantic decoders will follow the same ownership rule; native transport already
-parses and reproduces the shared fixture without inspecting known or unknown
-payloads. This makes the transport a protocol between modules, not a replacement
-for their encapsulated runtime data structures.
+semantic decoders follow the same ownership rule through the strict
+`DocumentMaterializer` registry; the first complete adapters cover Core
+Paragraph and Core Text. Native transport still parses and reproduces the
+shared fixture without inspecting known or unknown payloads. This makes the
+transport a protocol between modules, not a replacement for their encapsulated
+runtime data structures.
 
 See [canonical-transport.md](canonical-transport.md) for the normative shape and
 current compatibility policy.
 
 See [inline-sequences.md](inline-sequences.md) for the module boundary and the
 planned optional authoring-markup producer protocol.
+
+## Native page-layout boundary
+
+The first direct-PDF path has two black boxes after semantic connector
+dispatch. `LatexLikeEngine` lowers supported blocks into a fixed-point
+`PagedDocument` display list. `PdfSerializer` consumes that display list and
+knows only PDF objects, embedded fonts, character mappings, and positioned
+glyph commands. It does not perform paragraph layout.
+
+The display list is intentionally not PDF-specific. It is the seam through
+which the graphical builder can later show the same pagination and glyph
+placement used for publication while retaining its own interaction overlays.
+The initial display-list vocabulary contains positioned glyph runs only; later
+layout fragments must retain this separation rather than putting coordinates
+on semantic `DocumentBlock` objects. See
+[latex-like-pdf.md](latex-like-pdf.md).
 
 ## Rich caption hosts
 

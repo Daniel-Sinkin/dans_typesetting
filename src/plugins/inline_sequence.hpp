@@ -38,6 +38,8 @@ class InlineSequence
         return result;
     }
 
+    auto append(std::unique_ptr<InlineNode> node) -> InlineNode&;
+
     [[nodiscard]] auto nodes() const noexcept -> std::span<const std::unique_ptr<InlineNode>>;
 
   private:

@@ -19,6 +19,17 @@ auto DocumentBlock::child_sequence(const usize) const -> const BlockSequence&
     throw std::out_of_range{"A leaf document block does not expose child sequences"};
 }
 
+auto BlockSequence::append(std::unique_ptr<DocumentBlock> block) -> DocumentBlock&
+{
+    if (block == nullptr)
+    {
+        throw std::invalid_argument{"A document block sequence cannot append a null block"};
+    }
+    auto& result = *block;
+    blocks_.push_back(std::move(block));
+    return result;
+}
+
 auto BlockSequence::blocks() const noexcept -> std::span<const std::unique_ptr<DocumentBlock>>
 {
     return {blocks_.data(), blocks_.size()};

@@ -43,12 +43,12 @@ interaction tests cover the contract. See
 
 ## Remaining ranked work
 
-1. **Native document decoding and export command.** The graphical
-   builder persists plugin envelopes, but native transport cannot yet turn
-   known payloads into runtime `DocumentBlock` objects. Add a plugin-owned
-   decoder registry and a strict `.dans_doc -> .tex/.pdf` exporter;
-   unsupported types must fail rather than disappear. This is the largest
-   current end-to-end thesis blocker.
+1. **Expand native document decoding.** The plugin-owned decoder registry and
+   strict `.dans_doc -> .tex/.pdf` publication command now exist for Core
+   Paragraph and Core Text. Add one native materializer per remaining plugin
+   payload as that plugin enters the publication slice; unsupported types must
+   continue to fail rather than disappear. Full builder-to-thesis publication
+   remains blocked on that adapter coverage, not on the envelope protocol.
 2. **Managed publication assets.** Browser-selected images are data URLs while
    native graphics connectors accept filesystem assets. Define a project bundle
    and resolver for PNG/JPEG/PDF/SVG plus rendered Excalidraw output so saved

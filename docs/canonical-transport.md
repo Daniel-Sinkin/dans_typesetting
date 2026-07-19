@@ -32,6 +32,10 @@ this particular semantic format. Schema version 1 is:
 - Missing plugin codecs do not make a document unreadable. Unknown payload is
   preserved losslessly through load/save and shown as an explicit placeholder
   by partial graphical writers.
+- Semantic publication is deliberately stricter than generic load/save.
+  Materializing a canonical envelope into native `Document` requires a
+  registered plugin-owned decoder for every encountered block and inline type;
+  an unsupported type fails rather than being silently omitted.
 - Deserialization validates a complete replacement before mutating the active
   document, so a failed load cannot partially destroy the current document.
 - LaTeX is output-only. The system never consumes generated or handwritten
@@ -56,6 +60,14 @@ Native semantic decoders are intentionally separate from the generic transport
 parser. This keeps a document containing an unavailable plugin
 round-trippable and prevents the transport core from accumulating knowledge of
 every block kind.
+
+`DocumentMaterializer` is the native decoder registry. The initial complete
+slice registers Core Paragraph and Core Text adapters, which is enough for the
+staged direct-PDF fixture and the strict `document_publish` command. Other
+plugin payloads remain lossless at the canonical layer but cannot yet enter
+that native publication command. Materialization is an output projection and
+currently discards browser-only authoring IDs; it is not the inverse of
+canonical serialization. See [latex-like-pdf.md](latex-like-pdf.md).
 
 Nested host plugins retain the same envelope rule at every extension point. For
 example, `dans.table` owns row and cell IDs plus rectangularity, while each

@@ -30,6 +30,8 @@ struct CanonicalDocument
     std::vector<CanonicalNode> blocks{};
 };
 
+[[nodiscard]] auto parse_canonical_node(const JsonValue& value, std::string_view context)
+    -> CanonicalNode;
 [[nodiscard]] auto parse_canonical_document(std::string_view source) -> CanonicalDocument;
 [[nodiscard]] auto serialize_canonical_document(const CanonicalDocument& document) -> std::string;
 

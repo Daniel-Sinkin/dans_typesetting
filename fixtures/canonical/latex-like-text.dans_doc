@@ -1,0 +1,43 @@
+{
+  "format": "dans.typesetting.document",
+  "schemaVersion": 1,
+  "documentVersion": {
+    "major": 0,
+    "minor": 1,
+    "patch": 0
+  },
+  "blocks": [
+    {
+      "id": "paragraph-one",
+      "type": "dans.core.paragraph",
+      "payload": {
+        "inlines": [
+          {
+            "id": "paragraph-one-text",
+            "type": "dans.core.text",
+            "payload": {
+              "text": "The quick brown fox jumped over the sleepy dog. A calm owl watched from the old oak tree. The dog stayed still, and the fox ran home. The quiet meadow became peaceful again.",
+              "style": "normal"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "paragraph-two",
+      "type": "dans.core.paragraph",
+      "payload": {
+        "inlines": [
+          {
+            "id": "paragraph-two-text",
+            "type": "dans.core.text",
+            "payload": {
+              "text": "The quick brown fox jumped over the sleepy dog. A calm owl watched from the old oak tree. The dog stayed still, and the fox ran home. The quiet meadow became peaceful again.",
+              "style": "normal"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

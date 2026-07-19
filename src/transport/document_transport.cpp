@@ -102,15 +102,16 @@ template <typename Integer>
     };
 }
 
-[[nodiscard]] auto parse_node(const JsonValue& value, const std::size_t index) -> CanonicalNode
+[[nodiscard]] auto parse_node(const JsonValue& value, const std::string_view context)
+    -> CanonicalNode
 {
-    const auto context = "Block " + std::to_string(index);
+    const auto context_text = std::string{context};
     const auto& object = require_object(value, context);
-    auto id = require_string(find_member(object, "id", context), context + ".id");
-    auto type = require_string(find_member(object, "type", context), context + ".type");
+    auto id = require_string(find_member(object, "id", context), context_text + ".id");
+    auto type = require_string(find_member(object, "type", context), context_text + ".type");
     if (id.empty() || type.empty())
     {
-        throw std::invalid_argument{context + " requires non-empty id and type fields"};
+        throw std::invalid_argument{context_text + " requires non-empty id and type fields"};
     }
     return CanonicalNode{
         .id = std::move(id),
@@ -170,6 +171,15 @@ template <typename Integer>
 
 namespace dans::document::transport
 {
+auto parse_canonical_node(const JsonValue& value, const std::string_view context) -> CanonicalNode
+{
+    if (context.empty())
+    {
+        throw std::invalid_argument{"A canonical-node parse context cannot be empty"};
+    }
+    return parse_node(value, context);
+}
+
 auto parse_canonical_document(const std::string_view source) -> CanonicalDocument
 {
     const auto root = JsonValue::parse(source);
@@ -195,7 +205,7 @@ auto parse_canonical_document(const std::string_view source) -> CanonicalDocumen
     std::unordered_set<std::string> ids;
     for (auto index = std::size_t{}; index < blocks.size(); ++index)
     {
-        auto node = parse_node(blocks[index], index);
+        auto node = parse_node(blocks[index], "Block " + std::to_string(index));
         if (!ids.emplace(node.id).second)
         {
             throw std::invalid_argument{

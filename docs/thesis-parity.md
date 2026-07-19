@@ -93,14 +93,15 @@ author/year disambiguation policy, multiple reference lists, and richer BibTeX
 field/LaTeX normalization where the conservative adapter currently rejects
 input.
 
-## Critical integration gap
+## Current publication boundary
 
-The graphical builder can save a canonical `.dans_doc` document, but the
-native transport currently preserves plugin payloads as opaque envelopes and
-cannot decode them into a runtime `Document`. Consequently a GUI-authored
-document cannot yet reach the otherwise-working LaTeX/PDF pipeline. A
-plugin-owned native decoder registry and strict document export command are the
-highest-priority vertical slice.
+The graphical builder can save a canonical `.dans_doc` document, and the
+native side now has a strict plugin-owned decoder registry plus a
+`document_publish` command. The first end-to-end slice materializes Core
+Paragraph and Core Text and emits both LaTeX and direct PDF through native
+`Document`. A general GUI-authored thesis still cannot publish until every
+plugin it contains supplies and registers its own native semantic materializer;
+unknown types intentionally fail rather than disappear.
 
 Assets need the adjacent seam: browser file selection stores data URLs, while
 native graphics connectors consume filesystem PDF/PNG/JPEG paths. A managed

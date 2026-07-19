@@ -3,6 +3,28 @@
 This file records recovery information for a fresh development session. Update
 it at every milestone rather than relying on conversation history.
 
+## Native paragraph publication milestone
+
+The current working slice introduces strict canonical-to-semantic
+materialization and a first direct, selectable-text PDF path. Core Paragraph
+and Core Text payload adapters can now take a `.dans_doc` through native
+`Document`, the ordinary LaTeX writer, a fixed-point LaTeX-like page display
+list, and an independent PDF serializer. `document_publish` emits sibling
+`.tex` and `.pdf` files from the same materialized tree.
+
+The constrained compositor supports normal-weight printable ASCII with Latin
+Modern Roman, global line breaking, interword justification, paragraph
+indentation, article-11pt A4 geometry, page continuation, and page numbers. The
+staged fixture covers five words, punctuation, four sentences, and two
+paragraphs. Its native and LuaLaTeX comparison pages share line breaks,
+baselines, margins, and footer placement; native microtype expansion and
+hyphenation remain explicit later work. See `latex-like-pdf.md`.
+
+This does not yet materialize the repository's other canonical plugin
+payloads. Generic `.dans_doc` load/save remains lossless for them, while the
+strict publisher rejects them until their plugin-owned materializers and
+native-layout adapters are registered.
+
 ## Current inline-image milestone
 
 The slice after `df0dc42` completes the pre-existing `dans.image.inline`
@@ -478,13 +500,14 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Continue with one complete thesis-parity slice. The most important next slice
-is no longer another leaf plugin: add a plugin-owned native canonical decoder
-and strict `.dans_doc -> .tex/.pdf` exporter so a document authored
-in the graphical builder can enter the publication pipeline. Follow it with a
-managed asset resolver/bundle for browser-selected images and Excalidraw
-renders. Recursive math colour, caption-optional tables, round matrices, and
-block-bearing/custom-labelled lists remain the highest content gaps. See
+Continue expanding the strict native materializer one plugin slice at a time;
+its registry, Paragraph/Core Text adapters, publication command, and first
+direct-PDF compositor are now present. A complete graphical-builder document
+still needs adapters for every plugin it uses. A managed asset resolver/bundle
+for browser-selected images and Excalidraw renders is an independent builder
+publication concern. Recursive math colour, caption-optional tables, round
+matrices, and block-bearing/custom-labelled lists remain the highest content
+gaps. See
 `thesis-next-slices.md` for representative source locations and the full ranked
 list. Kernel-specific Jupyter cells and notebook attachments remain optional
 writer policies.

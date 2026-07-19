@@ -58,6 +58,8 @@ class BlockSequence
         return result;
     }
 
+    auto append(std::unique_ptr<DocumentBlock> block) -> DocumentBlock&;
+
     [[nodiscard]] auto blocks() const noexcept -> std::span<const std::unique_ptr<DocumentBlock>>;
 
   private:
