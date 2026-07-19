@@ -9,6 +9,11 @@ import { mathPlugin } from "../plugins/mathPlugin";
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import { createParagraphPlugin } from "../plugins/paragraph";
 import {
+  pageBreakPlugin,
+  sectionPlugin,
+  titlePagePlugin,
+} from "../plugins/documentShell";
+import {
   opaqueInlineAdapter,
   paragraphTextInlinePlugin,
 } from "../plugins/paragraphInline";
@@ -20,7 +25,26 @@ const inlineRegistry = new BuilderInlinePluginRegistry(
 const paragraphPlugin = createParagraphPlugin(inlineRegistry);
 
 const registry = new BuilderPluginRegistry(
-  [paragraphPlugin, imagePlugin, mathPlugin],
+  [
+    paragraphPlugin,
+    imagePlugin,
+    mathPlugin,
+    pageBreakPlugin,
+    sectionPlugin,
+    titlePagePlugin,
+    {
+      typeId: "test.oversized",
+      palette: {
+        label: "Oversized",
+        description: "Test-only oversized block",
+        glyph: "!",
+        accentColor: "#f00",
+      },
+      createDefault: (id: string) => ({ id, typeId: "test.oversized" }),
+      measure: () => 4_000,
+      renderPreview: () => "oversized",
+    },
+  ],
   opaqueBlockAdapter,
 );
 
@@ -65,5 +89,64 @@ describe("document flow", () => {
 
     expect(registry.pluginForBlock(unknownBlock)).toBe(opaqueBlockAdapter);
     expect(layout.blocks[0]?.bounds.height).toBe(132);
+  });
+
+  it("preserves recursive section ownership while flattening it for visual flow", () => {
+    const child = paragraphPlugin.createDefault("child");
+    const section = {
+      ...sectionPlugin.createDefault("section"),
+      blocks: [child],
+    };
+    const layout = computeDocumentLayout([section], registry);
+
+    expect(layout.blocks.map(({ block }) => block.id)).toEqual(["section", "child"]);
+    expect(layout.blocks[1]?.parentId).toBe("section");
+    expect(layout.blocks[1]?.depth).toBe(1);
+    expect(layout.blocks[1]?.bounds.x).toBeGreaterThan(layout.blocks[0]?.bounds.x ?? 0);
+  });
+
+  it("uses page breaks and keeps every ordinary block wholly on one page", () => {
+    const blocks = [
+      paragraphPlugin.createDefault("before"),
+      pageBreakPlugin.createDefault("break"),
+      imagePlugin.createDefault("after"),
+    ];
+    const layout = computeDocumentLayout(blocks, registry, null, {
+      mode: "paged",
+      pageRange: { start: 1, end: 5 },
+    });
+
+    expect(layout.blocks[0]?.pageIndex).toBe(0);
+    expect(layout.blocks[1]?.pageIndex).toBe(0);
+    expect(layout.blocks[2]?.pageIndex).toBe(1);
+    for (const block of layout.blocks) {
+      const page = layout.pages[block.pageIndex];
+      expect(page).toBeDefined();
+      expect(block.bounds.y + block.bounds.height).toBeLessThanOrEqual(
+        (page?.contentBounds.y ?? 0) + (page?.contentBounds.height ?? 0),
+      );
+    }
+  });
+
+  it("isolates title pages, limits visible ranges, and marks oversized blocks", () => {
+    const breaks = Array.from({ length: 8 }, (_unused, index) =>
+      pageBreakPlugin.createDefault(`break-${String(index)}`),
+    );
+    const layout = computeDocumentLayout(
+      [
+        titlePagePlugin.createDefault("title"),
+        ...breaks,
+        { id: "oversized", typeId: "test.oversized" },
+      ],
+      registry,
+      null,
+      { mode: "paged", pageRange: { start: 3, end: 20 } },
+    );
+
+    expect(layout.pages.filter((page) => page.visible)).toHaveLength(5);
+    expect(layout.visiblePageRange).toEqual({ start: 3, end: 7 });
+    expect(layout.blocks.find(({ block }) => block.id === "oversized")?.oversized).toBe(
+      true,
+    );
   });
 });

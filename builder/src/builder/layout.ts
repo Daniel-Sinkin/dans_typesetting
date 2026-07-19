@@ -1,12 +1,22 @@
-// builder/src/builder/layout.ts — compute deterministic vertical document flow and insertions.
+// Deterministic recursive document flow for continuous and paged development views.
 import type { BuilderPluginRegistry } from "./plugin";
-import type { BuilderBlock } from "../model/document";
+import {
+  isSectionBlock,
+  type BuilderBlock,
+} from "../model/document";
 
 export interface LayoutBounds {
   readonly x: number;
   readonly y: number;
   readonly width: number;
   readonly height: number;
+}
+
+export type DocumentLayoutMode = "continuous" | "paged";
+
+export interface PageRange {
+  readonly start: number;
+  readonly end: number;
 }
 
 export const pageGeometry = Object.freeze({
@@ -18,97 +28,348 @@ export const pageGeometry = Object.freeze({
   contentInsetTop: 88,
   contentInsetBottom: 92,
   blockGap: 26,
+  pageGap: 58,
+  sectionIndent: 30,
+  maximumVisiblePages: 5,
 });
 
 export interface BlockLayout {
   readonly block: BuilderBlock;
   readonly bounds: LayoutBounds;
+  readonly parentId: string | null;
+  readonly siblingIndex: number;
+  readonly depth: number;
+  readonly pageIndex: number;
+  readonly oversized: boolean;
+}
+
+export interface BlockInsertionTarget {
+  readonly parentId: string | null;
+  readonly index: number;
 }
 
 export interface InsertionPreview {
+  readonly parentId?: string | null;
   readonly index: number;
   readonly block: BuilderBlock;
 }
 
-export interface DocumentLayout {
-  readonly pageBounds: LayoutBounds;
+export interface PageLayout {
+  readonly pageIndex: number;
+  readonly bounds: LayoutBounds;
   readonly contentBounds: LayoutBounds;
-  readonly blocks: readonly BlockLayout[];
-  readonly previewBounds: LayoutBounds | null;
+  readonly visible: boolean;
 }
 
-function measuredBounds(
-  block: BuilderBlock,
-  y: number,
-  registry: BuilderPluginRegistry,
-): LayoutBounds {
-  const width = pageGeometry.width - 2 * pageGeometry.contentInsetX;
-  const plugin = registry.pluginForBlock(block);
-  const height = plugin.measure(block, width);
-  if (!Number.isFinite(height) || height <= 0) {
-    throw new Error(`Builder adapter for ${block.typeId} returned an invalid block height`);
-  }
-  return { x: pageGeometry.x + pageGeometry.contentInsetX, y, width, height };
+interface InsertionSlot extends BlockInsertionTarget {
+  readonly depth: number;
+  readonly pageIndex: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface DocumentLayoutOptions {
+  readonly mode?: DocumentLayoutMode;
+  readonly pageRange?: PageRange;
+}
+
+export interface DocumentLayout {
+  readonly mode: DocumentLayoutMode;
+  readonly pageBounds: LayoutBounds;
+  readonly contentBounds: LayoutBounds;
+  readonly pages: readonly PageLayout[];
+  readonly totalPageCount: number;
+  readonly visiblePageRange: PageRange;
+  readonly documentBlocks: readonly BuilderBlock[];
+  readonly blocks: readonly BlockLayout[];
+  readonly previewBounds: LayoutBounds | null;
+  readonly previewPageIndex: number | null;
+  readonly insertionSlots: readonly InsertionSlot[];
+}
+
+interface MutablePage {
+  readonly pageIndex: number;
+  readonly bounds: LayoutBounds;
+  readonly contentBounds: LayoutBounds;
+}
+
+function pageAt(pageIndex: number): MutablePage {
+  const x = pageGeometry.x + pageIndex * (pageGeometry.width + pageGeometry.pageGap);
+  return {
+    pageIndex,
+    bounds: {
+      x,
+      y: pageGeometry.y,
+      width: pageGeometry.width,
+      height: pageGeometry.minimumHeight,
+    },
+    contentBounds: {
+      x: x + pageGeometry.contentInsetX,
+      y: pageGeometry.y + pageGeometry.contentInsetTop,
+      width: pageGeometry.width - 2 * pageGeometry.contentInsetX,
+      height:
+        pageGeometry.minimumHeight -
+        pageGeometry.contentInsetTop -
+        pageGeometry.contentInsetBottom,
+    },
+  };
+}
+
+function normalizeVisibleRange(totalPageCount: number, requested?: PageRange): PageRange {
+  const requestedStart = requested?.start ?? 1;
+  const start = Math.min(totalPageCount, Math.max(1, Math.trunc(requestedStart)));
+  const requestedEnd = requested?.end ?? start;
+  const end = Math.min(
+    totalPageCount,
+    start + pageGeometry.maximumVisiblePages - 1,
+    Math.max(start, Math.trunc(requestedEnd)),
+  );
+  return { start, end };
 }
 
 export function computeDocumentLayout(
   blocks: readonly BuilderBlock[],
   registry: BuilderPluginRegistry,
   preview: InsertionPreview | null = null,
+  options: DocumentLayoutOptions = {},
 ): DocumentLayout {
-  if (preview !== null && (preview.index < 0 || preview.index > blocks.length)) {
-    throw new RangeError(`Preview index ${String(preview.index)} is outside the document`);
-  }
-
-  let cursorY = pageGeometry.y + pageGeometry.contentInsetTop;
-  let previewBounds: LayoutBounds | null = null;
+  const mode = options.mode ?? "continuous";
+  const pages: MutablePage[] = [pageAt(0)];
   const blockLayouts: BlockLayout[] = [];
+  const insertionSlots: InsertionSlot[] = [];
+  let currentPageIndex = 0;
+  let cursorY = pages[0]?.contentBounds.y ?? pageGeometry.contentInsetTop;
+  let previewBounds: LayoutBounds | null = null;
+  let previewPageIndex: number | null = null;
+  let previewWasPlaced = preview === null;
 
-  for (let index = 0; index <= blocks.length; index += 1) {
-    if (preview !== null && preview.index === index) {
-      previewBounds = measuredBounds(preview.block, cursorY, registry);
-      cursorY += previewBounds.height + pageGeometry.blockGap;
+  const ensurePage = (pageIndex: number): MutablePage => {
+    while (pages.length <= pageIndex) {
+      pages.push(pageAt(pages.length));
+    }
+    const page = pages[pageIndex];
+    if (page === undefined) {
+      throw new Error(`Could not allocate document page ${String(pageIndex + 1)}`);
+    }
+    return page;
+  };
+
+  const advancePage = (): void => {
+    currentPageIndex += 1;
+    cursorY = ensurePage(currentPageIndex).contentBounds.y;
+  };
+
+  const place = (
+    block: BuilderBlock,
+    parentId: string | null,
+    siblingIndex: number,
+    depth: number,
+    isPreview: boolean,
+  ): BlockLayout => {
+    const adapter = registry.pluginForBlock(block);
+    const paginationPolicy = adapter.paginationPolicy ?? "flow";
+    if (
+      mode === "paged" &&
+      paginationPolicy === "isolated_page" &&
+      cursorY > ensurePage(currentPageIndex).contentBounds.y
+    ) {
+      advancePage();
     }
 
-    const block = blocks[index];
-    if (block === undefined) {
-      continue;
+    let page = ensurePage(currentPageIndex);
+    const indentation = depth * pageGeometry.sectionIndent;
+    const availableWidth = page.contentBounds.width - indentation;
+    if (availableWidth <= 0) {
+      throw new Error("Nested section indentation exhausted the available document width");
+    }
+    const measuredHeight = adapter.measure(block, availableWidth, {
+      documentBlocks: blocks,
+      sectionDepth: depth,
+    });
+    if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) {
+      throw new Error(`Builder adapter for ${block.typeId} returned an invalid block height`);
     }
 
-    const bounds = measuredBounds(block, cursorY, registry);
-    blockLayouts.push({ block, bounds });
-    cursorY += bounds.height + pageGeometry.blockGap;
+    const oversized = mode === "paged" && measuredHeight > page.contentBounds.height;
+    const height = oversized ? Math.min(180, page.contentBounds.height) : measuredHeight;
+    if (
+      mode === "paged" &&
+      cursorY > page.contentBounds.y &&
+      cursorY + height > page.contentBounds.y + page.contentBounds.height
+    ) {
+      advancePage();
+      page = ensurePage(currentPageIndex);
+    }
+
+    const bounds = {
+      x: page.contentBounds.x + indentation,
+      y: cursorY,
+      width: page.contentBounds.width - indentation,
+      height,
+    };
+    const result: BlockLayout = {
+      block,
+      bounds,
+      parentId,
+      siblingIndex,
+      depth,
+      pageIndex: currentPageIndex,
+      oversized,
+    };
+    cursorY += height + pageGeometry.blockGap;
+
+    if (isPreview) {
+      previewBounds = bounds;
+      previewPageIndex = currentPageIndex;
+      previewWasPlaced = true;
+    } else {
+      blockLayouts.push(result);
+    }
+
+    if (mode === "paged" && paginationPolicy !== "flow") {
+      advancePage();
+    }
+    return result;
+  };
+
+  const recordSlot = (
+    parentId: string | null,
+    index: number,
+    depth: number,
+    pageIndex = currentPageIndex,
+    y = cursorY,
+  ): void => {
+    const page = ensurePage(pageIndex);
+    insertionSlots.push({
+      parentId,
+      index,
+      depth,
+      pageIndex,
+      x: page.contentBounds.x + depth * pageGeometry.sectionIndent,
+      y,
+    });
+  };
+
+  const layoutSequence = (
+    sequence: readonly BuilderBlock[],
+    parentId: string | null,
+    depth: number,
+  ): void => {
+    for (let index = 0; index <= sequence.length; index += 1) {
+      if (
+        preview !== null &&
+        (preview.parentId ?? null) === parentId &&
+        preview.index === index
+      ) {
+        place(preview.block, parentId, index, depth, true);
+      }
+
+      const block = sequence[index];
+      if (block === undefined) {
+        recordSlot(parentId, index, depth);
+        continue;
+      }
+
+      const layout = place(block, parentId, index, depth, false);
+      recordSlot(parentId, index, depth, layout.pageIndex, layout.bounds.y);
+      if (isSectionBlock(block)) {
+        layoutSequence(block.blocks, block.id, depth + 1);
+      }
+    }
+  };
+
+  layoutSequence(blocks, null, 0);
+  if (!previewWasPlaced) {
+    throw new RangeError("The insertion preview targets an unknown section or sequence index");
   }
 
-  const contentBottom = cursorY - pageGeometry.blockGap + pageGeometry.contentInsetBottom;
-  const pageHeight = Math.max(pageGeometry.minimumHeight, contentBottom - pageGeometry.y);
+  if (mode === "continuous") {
+    const requiredBottom = Math.max(
+      pageGeometry.minimumHeight,
+      cursorY - pageGeometry.blockGap + pageGeometry.contentInsetBottom,
+    );
+    const continuousPage = pages[0];
+    if (continuousPage === undefined) {
+      throw new Error("Continuous layout did not allocate its document surface");
+    }
+    pages.splice(0, pages.length, {
+      ...continuousPage,
+      bounds: { ...continuousPage.bounds, height: requiredBottom },
+      contentBounds: {
+        ...continuousPage.contentBounds,
+        height:
+          requiredBottom - pageGeometry.contentInsetTop - pageGeometry.contentInsetBottom,
+      },
+    });
+  }
+
+  const totalPageCount = pages.length;
+  const visiblePageRange =
+    mode === "continuous"
+      ? { start: 1, end: 1 }
+      : normalizeVisibleRange(totalPageCount, options.pageRange);
+  const pageLayouts = pages.map<PageLayout>((page) => ({
+    ...page,
+    visible:
+      page.pageIndex + 1 >= visiblePageRange.start &&
+      page.pageIndex + 1 <= visiblePageRange.end,
+  }));
+  const visiblePages = pageLayouts.filter((page) => page.visible);
+  const firstPage = visiblePages[0];
+  const lastPage = visiblePages.at(-1);
+  if (firstPage === undefined || lastPage === undefined) {
+    throw new Error("A document layout must expose at least one visible page");
+  }
   const pageBounds = {
-    x: pageGeometry.x,
-    y: pageGeometry.y,
-    width: pageGeometry.width,
-    height: pageHeight,
+    x: firstPage.bounds.x,
+    y: firstPage.bounds.y,
+    width: lastPage.bounds.x + lastPage.bounds.width - firstPage.bounds.x,
+    height: Math.max(...visiblePages.map((page) => page.bounds.height)),
   };
 
   return {
+    mode,
     pageBounds,
-    contentBounds: {
-      x: pageGeometry.x + pageGeometry.contentInsetX,
-      y: pageGeometry.y + pageGeometry.contentInsetTop,
-      width: pageGeometry.width - 2 * pageGeometry.contentInsetX,
-      height: pageHeight - pageGeometry.contentInsetTop - pageGeometry.contentInsetBottom,
-    },
+    contentBounds: pageBounds,
+    pages: pageLayouts,
+    totalPageCount,
+    visiblePageRange,
+    documentBlocks: blocks,
     blocks: blockLayouts,
     previewBounds,
+    previewPageIndex,
+    insertionSlots,
   };
 }
 
-export function insertionIndexAtSceneY(sceneY: number, baseLayout: DocumentLayout): number {
-  for (const [index, layout] of baseLayout.blocks.entries()) {
-    if (sceneY < layout.bounds.y + layout.bounds.height / 2) {
-      return index;
+export function insertionTargetAtScenePoint(
+  sceneX: number,
+  sceneY: number,
+  layout: DocumentLayout,
+): BlockInsertionTarget {
+  const visiblePageIndices = new Set(
+    layout.pages.filter((page) => page.visible).map((page) => page.pageIndex),
+  );
+  const candidates = layout.insertionSlots.filter((slot) =>
+    visiblePageIndices.has(slot.pageIndex),
+  );
+  const closest = candidates.reduce<InsertionSlot | null>((current, candidate) => {
+    if (current === null) {
+      return candidate;
     }
+    const score = Math.abs(candidate.y - sceneY) + Math.abs(candidate.x - sceneX) * 0.55;
+    const currentScore =
+      Math.abs(current.y - sceneY) + Math.abs(current.x - sceneX) * 0.55;
+    return score < currentScore ? candidate : current;
+  }, null);
+  if (closest === null) {
+    return { parentId: null, index: 0 };
   }
-  return baseLayout.blocks.length;
+  return { parentId: closest.parentId, index: closest.index };
+}
+
+export function insertionIndexAtSceneY(sceneY: number, layout: DocumentLayout): number {
+  return insertionTargetAtScenePoint(layout.contentBounds.x, sceneY, layout).index;
 }
 
 export function isInsideDocumentColumn(
@@ -116,11 +377,13 @@ export function isInsideDocumentColumn(
   sceneY: number,
   layout: DocumentLayout,
 ): boolean {
-  const horizontalTolerance = 32;
-  return (
-    sceneX >= layout.contentBounds.x - horizontalTolerance &&
-    sceneX <= layout.contentBounds.x + layout.contentBounds.width + horizontalTolerance &&
-    sceneY >= layout.pageBounds.y &&
-    sceneY <= layout.pageBounds.y + layout.pageBounds.height
+  const tolerance = 32;
+  return layout.pages.some(
+    (page) =>
+      page.visible &&
+      sceneX >= page.bounds.x - tolerance &&
+      sceneX <= page.bounds.x + page.bounds.width + tolerance &&
+      sceneY >= page.bounds.y - tolerance &&
+      sceneY <= page.bounds.y + page.bounds.height + tolerance,
   );
 }

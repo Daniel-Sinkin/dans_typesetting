@@ -11,6 +11,10 @@ import {
   MemoryDocumentPort,
   mathDisplayTypeId,
   paragraphTypeId,
+  pageBreakTypeId,
+  sectionTypeId,
+  tableOfContentsTypeId,
+  titlePageTypeId,
   type BuilderBlock,
 } from "../model/document";
 import {
@@ -36,6 +40,12 @@ import {
   createColorSpanInline,
 } from "../plugins/colorSpan";
 import { projectDocumentTransport } from "../transport/projectTransport";
+import {
+  pageBreakPlugin,
+  sectionPlugin,
+  tableOfContentsPlugin,
+  titlePagePlugin,
+} from "../plugins/documentShell";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -48,6 +58,28 @@ const inlinePluginRegistry = new BuilderInlinePluginRegistry(
 );
 
 const initialBlocks = [
+  Object.freeze({
+    id: "sample-title-page",
+    typeId: titlePageTypeId,
+    title: "Dan's Typesetting Experiment",
+    author: "Daniel Sinkin",
+    date: "19 July 2026",
+  }),
+  Object.freeze({
+    id: "sample-table-of-contents",
+    typeId: tableOfContentsTypeId,
+  }),
+  Object.freeze({
+    id: "sample-page-break",
+    typeId: pageBreakTypeId,
+  }),
+  Object.freeze({
+    id: "sample-section",
+    typeId: sectionTypeId,
+    title: "Interactive document blocks",
+    referenceId: "sec:interactive-blocks",
+    blocks: Object.freeze([]),
+  }),
   Object.freeze({
     id: "sample-introduction",
     typeId: paragraphTypeId,
@@ -170,6 +202,10 @@ const pluginRegistry = new BuilderPluginRegistry(
     imagePlugin,
     createMathPlugin(basicMathInputParser),
     codeListingPlugin,
+    titlePagePlugin,
+    tableOfContentsPlugin,
+    pageBreakPlugin,
+    sectionPlugin,
   ],
   opaqueBlockAdapter,
 );

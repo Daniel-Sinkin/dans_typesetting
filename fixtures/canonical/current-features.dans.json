@@ -8,6 +8,51 @@
   },
   "blocks": [
     {
+      "id": "fixture-title-page",
+      "type": "dans.document.title_page",
+      "payload": {
+        "title": "Canonical document",
+        "author": "Daniel Sinkin",
+        "date": "19 July 2026"
+      }
+    },
+    {
+      "id": "fixture-toc",
+      "type": "dans.document.table_of_contents",
+      "payload": {}
+    },
+    {
+      "id": "fixture-page-break",
+      "type": "dans.document.page_break",
+      "payload": {}
+    },
+    {
+      "id": "fixture-section",
+      "type": "dans.core.section",
+      "payload": {
+        "title": "Canonical structure",
+        "referenceId": "sec:canonical-structure",
+        "blocks": [
+          {
+            "id": "fixture-section-paragraph",
+            "type": "dans.core.paragraph",
+            "payload": {
+              "inlines": [
+                {
+                  "id": "fixture-section-text",
+                  "type": "dans.core.text",
+                  "payload": {
+                    "text": "Nested content remains in its section sequence.",
+                    "style": "normal"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "fixture-introduction",
       "type": "dans.core.paragraph",
       "payload": {

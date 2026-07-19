@@ -22,15 +22,19 @@ import {
 
 import {
   computeDocumentLayout,
-  insertionIndexAtSceneY,
+  insertionTargetAtScenePoint,
   isInsideDocumentColumn,
+  type DocumentLayoutMode,
   type InsertionPreview,
+  type PageRange,
 } from "../builder/layout";
 import type { BuilderBlockPlugin, BuilderPluginRegistry } from "../builder/plugin";
 import { createPageAnchor, pageAnchorId } from "../canvas/pageAnchor";
 import {
   cloneBuilderBlock,
   createBlockId,
+  flattenBuilderBlocks,
+  removeBuilderBlockFromTree,
   type BuilderBlock,
   type DocumentPort,
 } from "../model/document";
@@ -60,6 +64,7 @@ interface CanvasViewport {
 }
 
 interface Placement {
+  readonly parentId: string | null;
   readonly index: number;
 }
 
@@ -114,7 +119,7 @@ function blocksForDrag(
   if (drag.source === "palette" || drag.copy) {
     return blocks;
   }
-  return blocks.filter((block) => block.id !== drag.block.id);
+  return removeBuilderBlockFromTree(blocks, drag.block.id);
 }
 
 function readDetachPreference(): boolean {
@@ -144,6 +149,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const [pendingDetach, setPendingDetach] = useState<PendingDetach | null>(null);
   const [editingBlock, setEditingBlock] = useState<BuilderBlock | null>(null);
   const [transportError, setTransportError] = useState<string | null>(null);
+  const [layoutMode, setLayoutMode] = useState<DocumentLayoutMode>("continuous");
+  const [pageRange, setPageRange] = useState<PageRange>({ start: 1, end: 3 });
 
   const dragRef = useRef<ActiveDrag | null>(null);
 
@@ -189,7 +196,10 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
 
   const setCurrentPlacement = useCallback((nextPlacement: Placement | null) => {
     setPlacement((currentPlacement) => {
-      if (currentPlacement?.index === nextPlacement?.index) {
+      if (
+        currentPlacement?.index === nextPlacement?.index &&
+        currentPlacement?.parentId === nextPlacement?.parentId
+      ) {
         return currentPlacement;
       }
       return nextPlacement;
@@ -211,13 +221,16 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       const appState = canvasApi.getAppState();
       const scenePoint = viewportCoordsToSceneCoords({ clientX, clientY }, appState);
       const flowBlocks = blocksForDrag(snapshot.blocks, drag);
-      const baseLayout = computeDocumentLayout(flowBlocks, registry);
+      const baseLayout = computeDocumentLayout(flowBlocks, registry, null, {
+        mode: layoutMode,
+        pageRange,
+      });
       if (!isInsideDocumentColumn(scenePoint.x, scenePoint.y, baseLayout)) {
         return null;
       }
-      return { index: insertionIndexAtSceneY(scenePoint.y, baseLayout) };
+      return insertionTargetAtScenePoint(scenePoint.x, scenePoint.y, baseLayout);
     },
-    [canvasApi, registry, snapshot.blocks],
+    [canvasApi, layoutMode, pageRange, registry, snapshot.blocks],
   );
 
   const updateDocumentCopyMode = useCallback(
@@ -276,6 +289,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         if (completedDrag.source === "palette") {
           port.dispatch({
             kind: "insert",
+            parentId: finalPlacement.parentId,
             index: finalPlacement.index,
             block: completedDrag.block,
           });
@@ -284,6 +298,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         if (completedDrag.copy) {
           port.dispatch({
             kind: "insert",
+            parentId: finalPlacement.parentId,
             index: finalPlacement.index,
             block: cloneBuilderBlock(completedDrag.block, createBlockId()),
           });
@@ -292,6 +307,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         port.dispatch({
           kind: "move",
           blockId: completedDrag.block.id,
+          parentId: finalPlacement.parentId,
           index: finalPlacement.index,
         });
         return;
@@ -386,6 +402,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const beginDocumentDrag = useCallback(
     (
       block: BuilderBlock,
+      parentId: string | null,
       index: number,
       event: ReactPointerEvent<HTMLButtonElement>,
     ) => {
@@ -403,7 +420,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           clientY: event.clientY,
           copy: event.altKey,
         },
-        { index },
+        { parentId, index },
       );
     },
     [beginDrag],
@@ -414,7 +431,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       return blocksForDrag(snapshot.blocks, activeDrag);
     }
     if (pendingDetach !== null) {
-      return snapshot.blocks.filter((block) => block.id !== pendingDetach.block.id);
+      return removeBuilderBlockFromTree(snapshot.blocks, pendingDetach.block.id);
     }
     return snapshot.blocks;
   }, [activeDrag, pendingDetach, snapshot.blocks]);
@@ -423,12 +440,20 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     () =>
       activeDrag === null || placement === null
         ? null
-        : { index: placement.index, block: activeDrag.block },
+        : {
+            parentId: placement.parentId,
+            index: placement.index,
+            block: activeDrag.block,
+          },
     [activeDrag, placement],
   );
   const layout = useMemo(
-    () => computeDocumentLayout(flowBlocks, registry, insertionPreview),
-    [flowBlocks, insertionPreview, registry],
+    () =>
+      computeDocumentLayout(flowBlocks, registry, insertionPreview, {
+        mode: layoutMode,
+        pageRange,
+      }),
+    [flowBlocks, insertionPreview, layoutMode, pageRange, registry],
   );
 
   useEffect(() => {
@@ -439,12 +464,21 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     const currentPageAnchor = sceneElements.find((element) => element.id === pageAnchorId);
     if (
       currentPageAnchor === undefined ||
+      currentPageAnchor.x === layout.pageBounds.x &&
+      currentPageAnchor.y === layout.pageBounds.y &&
+      currentPageAnchor.width === layout.pageBounds.width &&
       currentPageAnchor.height === layout.pageBounds.height
     ) {
       return;
     }
 
+    const horizontalBoundsChanged =
+      currentPageAnchor.x !== layout.pageBounds.x ||
+      currentPageAnchor.width !== layout.pageBounds.width;
     const resizedPageAnchor = newElementWith(currentPageAnchor, {
+      x: layout.pageBounds.x,
+      y: layout.pageBounds.y,
+      width: layout.pageBounds.width,
       height: layout.pageBounds.height,
     });
     canvasApi.updateScene({
@@ -453,7 +487,20 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       ),
       captureUpdate: CaptureUpdateAction.NEVER,
     });
-  }, [canvasApi, layout.pageBounds.height]);
+    if (!horizontalBoundsChanged) {
+      return;
+    }
+    const reframe = requestAnimationFrame(() => {
+      canvasApi.scrollToContent(pageAnchorId, {
+        fitToViewport: true,
+        viewportZoomFactor: 0.86,
+        animate: true,
+      });
+    });
+    return () => {
+      cancelAnimationFrame(reframe);
+    };
+  }, [canvasApi, layout.pageBounds]);
 
   const pageStyle = useMemo<CSSProperties | undefined>(() => {
     if (viewport === null) {
@@ -556,10 +603,16 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           <BlockPalette
             sidebarName={blocksSidebarName}
             blockCount={snapshot.blocks.length}
+            semanticBlockCount={flattenBuilderBlocks(snapshot.blocks).length}
             registry={registry}
+            layoutMode={layoutMode}
+            pageRange={layout.visiblePageRange}
+            totalPageCount={layout.totalPageCount}
             transportError={transportError}
             onSaveDocument={saveDocument}
             onLoadDocument={loadDocument}
+            onLayoutModeChange={setLayoutMode}
+            onPageRangeChange={setPageRange}
             onBeginDrag={beginPaletteDrag}
           />
           <Footer>

@@ -2,15 +2,26 @@
 import { Sidebar } from "@excalidraw/excalidraw";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
+import {
+  pageGeometry,
+  type DocumentLayoutMode,
+  type PageRange,
+} from "../builder/layout";
 import type { BuilderBlockPlugin, BuilderPluginRegistry } from "../builder/plugin";
 
 interface BlockPaletteProps {
   readonly sidebarName: string;
   readonly blockCount: number;
+  readonly semanticBlockCount: number;
   readonly registry: BuilderPluginRegistry;
+  readonly layoutMode: DocumentLayoutMode;
+  readonly pageRange: PageRange;
+  readonly totalPageCount: number;
   readonly transportError: string | null;
   readonly onSaveDocument: () => void;
   readonly onLoadDocument: (file: File) => Promise<void>;
+  readonly onLayoutModeChange: (mode: DocumentLayoutMode) => void;
+  readonly onPageRangeChange: (range: PageRange) => void;
   readonly onBeginDrag: (
     plugin: BuilderBlockPlugin,
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -20,10 +31,16 @@ interface BlockPaletteProps {
 export function BlockPalette({
   sidebarName,
   blockCount,
+  semanticBlockCount,
   registry,
+  layoutMode,
+  pageRange,
+  totalPageCount,
   transportError,
   onSaveDocument,
   onLoadDocument,
+  onLayoutModeChange,
+  onPageRangeChange,
   onBeginDrag,
 }: BlockPaletteProps) {
   return (
@@ -31,7 +48,9 @@ export function BlockPalette({
       <Sidebar.Header>
         <div className="palette-heading">
           <span>Document blocks</span>
-          <small>{blockCount} on page</small>
+          <small>
+            {semanticBlockCount} blocks · {blockCount} at root
+          </small>
         </div>
       </Sidebar.Header>
       <div className="palette-content">
@@ -61,8 +80,81 @@ export function BlockPalette({
             {transportError}
           </p>
         )}
+        <section className="layout-mode-controls" aria-label="Document layout mode">
+          <label>
+            <span>Development view</span>
+            <select
+              data-testid="layout-mode"
+              value={layoutMode}
+              onChange={(event) => {
+                onLayoutModeChange(event.target.value as DocumentLayoutMode);
+              }}
+            >
+              <option value="continuous">Continuous</option>
+              <option value="paged">Paged</option>
+            </select>
+          </label>
+          {layoutMode === "continuous" ? (
+            <small>Blocks flow through one growing authoring surface.</small>
+          ) : (
+            <div className="page-range-controls">
+              <label>
+                <span>First page</span>
+                <input
+                  data-testid="page-range-start"
+                  type="number"
+                  min="1"
+                  max={totalPageCount}
+                  value={pageRange.start}
+                  onChange={(event) => {
+                    const start = Math.min(
+                      totalPageCount,
+                      Math.max(1, Number(event.target.value)),
+                    );
+                    onPageRangeChange({
+                      start,
+                      end: Math.min(
+                        totalPageCount,
+                        start + pageGeometry.maximumVisiblePages - 1,
+                        Math.max(start, pageRange.end),
+                      ),
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                <span>Last page</span>
+                <input
+                  data-testid="page-range-end"
+                  type="number"
+                  min={pageRange.start}
+                  max={Math.min(
+                    totalPageCount,
+                    pageRange.start + pageGeometry.maximumVisiblePages - 1,
+                  )}
+                  value={pageRange.end}
+                  onChange={(event) => {
+                    onPageRangeChange({
+                      start: pageRange.start,
+                      end: Math.min(
+                        totalPageCount,
+                        pageRange.start + pageGeometry.maximumVisiblePages - 1,
+                        Math.max(pageRange.start, Number(event.target.value)),
+                      ),
+                    });
+                  }}
+                />
+              </label>
+              <small>
+                Showing {pageRange.start}–{pageRange.end} of {totalPageCount}; at most five
+                pages are projected.
+              </small>
+            </div>
+          )}
+        </section>
         <p className="palette-intro">
-          Drag a semantic block onto the fixed page. Sketches and notes stay in Excalidraw.
+          Drag a semantic block into the document flow. Sketches and notes stay in
+          Excalidraw.
         </p>
         <div className="palette-grid">
           {registry.palettePlugins().map((plugin) => (
@@ -91,8 +183,8 @@ export function BlockPalette({
           ))}
         </div>
         <div className="prototype-note">
-          <strong>One-page prototype</strong>
-          <span>Pagination and movable document surfaces come later.</span>
+          <strong>Whole-block pagination</strong>
+          <span>Blocks never split across pages; oversized blocks become warnings.</span>
         </div>
       </div>
     </Sidebar>

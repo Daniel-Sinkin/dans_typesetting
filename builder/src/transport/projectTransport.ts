@@ -4,6 +4,12 @@ import { colorSpanInlineTransportCodec } from "../plugins/colorSpanTransport";
 import { hyperlinkInlineTransportCodec } from "../plugins/hyperlinkTransport";
 import { imageBlockTransportCodec } from "../plugins/imageTransport";
 import {
+  pageBreakBlockTransportCodec,
+  sectionBlockTransportCodec,
+  tableOfContentsBlockTransportCodec,
+  titlePageBlockTransportCodec,
+} from "../plugins/documentShellTransport";
+import {
   displayMathTransportCodec,
   inlineMathTransportCodec,
 } from "../plugins/mathTransport";
@@ -22,6 +28,10 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     imageBlockTransportCodec,
     displayMathTransportCodec,
     codeListingBlockTransportCodec,
+    sectionBlockTransportCodec,
+    titlePageBlockTransportCodec,
+    tableOfContentsBlockTransportCodec,
+    pageBreakBlockTransportCodec,
   ],
   [
     paragraphTextInlineTransportCodec,

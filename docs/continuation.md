@@ -12,9 +12,26 @@ TypeScript/lint/unit checks, browser smoke interactions, and `npm audit` passed.
 Commit `255ac74` completes the prose slice: styled text, semantic hyperlinks,
 inline structured math editing, and direct syntax-coloured listing editing.
 
+Commit `5ffef61` adds the canonical, versioned transport boundary shared by the
+native and graphical implementations.
+
 ## Current verified slice
 
-The canonical-transport slice adds:
+The semantic document-shell and page-projection slice adds:
+
+- ordinary title-page, table-of-contents, and page-break plugin blocks;
+- referenceable structural sections with recursive ordered child sequences;
+- native LaTeX connectors for all shell contracts;
+- canonical browser codecs and a cross-language fixture containing nested
+  section content;
+- continuous and paged graphical projections;
+- live ToC numbering derived from the section tree;
+- whole-block page flow, isolated title pages, explicit page breaks, a
+  five-page projection cap, and oversized-block warnings;
+- recursive insert, move, copy, replace, and delete operations without
+  flattening section ownership.
+
+The preceding canonical-transport slice provides:
 
 - schema-versioned `.dans.json` whole-document persistence;
 - plugin-owned block and inline codecs in the browser;
@@ -24,7 +41,7 @@ The canonical-transport slice adds:
 - a strict native ordered-JSON and canonical-envelope implementation;
 - one shared fixture that normalizes exactly in both implementations.
 
-The native transport currently preserves plugin payloads opaquely. Native
+The native transport still preserves plugin payloads opaquely. Native
 plugin-specific materialization into runtime `DocumentBlock` instances is not
 yet implemented; this is deliberately a separate adapter concern.
 
@@ -47,6 +64,19 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Add semantic title, ToC, page-break and section blocks next, then implement
-continuous/paged builder layout. Keep plugin payload codecs beside their plugin
-and extend the shared fixture whenever a new canonical type is completed.
+Implement the embedded Excalidraw drawing block as a complete plugin slice:
+canonical payload, in-document graphical editing, deterministic asset export,
+LaTeX inclusion, and round-trip tests. Keep plugin payload codecs beside their
+plugin and extend the shared fixture whenever a new canonical type is
+completed.
+
+Current deliberate compromises to reassess later:
+
+- paged development layout treats every block as indivisible, including long
+  paragraphs;
+- a trailing explicit page break may leave an empty authoring page available
+  for insertion;
+- nearest-slot selection across nested sections is geometric and will need
+  interaction tuning with denser documents;
+- title-page isolation is a graphical plugin policy, while the LaTeX connector
+  delegates exact page mechanics to LaTeX.

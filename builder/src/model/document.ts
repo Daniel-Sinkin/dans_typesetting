@@ -8,6 +8,10 @@ export const mathDisplayTypeId = "dans.math.display";
 export const mathInlineTypeId = "dans.math.inline";
 export const hyperlinkInlineTypeId = "dans.inline.hyperlink";
 export const codeListingTypeId = "dans.code.listing";
+export const sectionTypeId = "dans.core.section";
+export const titlePageTypeId = "dans.document.title_page";
+export const tableOfContentsTypeId = "dans.document.table_of_contents";
+export const pageBreakTypeId = "dans.document.page_break";
 
 export type CodeListingLanguage = "cpp" | "julia";
 export type ParagraphTextStyle = "normal" | "bold" | "italic" | "bold_italic";
@@ -88,6 +92,28 @@ export interface CodeListingBlock extends BuilderBlock {
   readonly caption: string;
 }
 
+export interface SectionBlock extends BuilderBlock {
+  readonly typeId: typeof sectionTypeId;
+  readonly title: string;
+  readonly referenceId: string | null;
+  readonly blocks: readonly BuilderBlock[];
+}
+
+export interface TitlePageBlock extends BuilderBlock {
+  readonly typeId: typeof titlePageTypeId;
+  readonly title: string;
+  readonly author: string;
+  readonly date: string;
+}
+
+export interface TableOfContentsBlock extends BuilderBlock {
+  readonly typeId: typeof tableOfContentsTypeId;
+}
+
+export interface PageBreakBlock extends BuilderBlock {
+  readonly typeId: typeof pageBreakTypeId;
+}
+
 export interface DocumentSnapshot {
   readonly revision: number;
   readonly metadata: DocumentMetadata;
@@ -99,11 +125,13 @@ export type DocumentCommand =
       kind: "insert";
       index: number;
       block: BuilderBlock;
+      parentId?: string | null;
     }>
   | Readonly<{
       kind: "move";
       blockId: string;
       index: number;
+      parentId?: string | null;
     }>
   | Readonly<{
       kind: "replace";
@@ -164,6 +192,15 @@ export function createHyperlinkInline(
 export function cloneBuilderBlock(block: BuilderBlock, id: string): BuilderBlock {
   if (id.length === 0) {
     throw new Error("A cloned builder block requires a stable ID");
+  }
+  if (isSectionBlock(block)) {
+    return Object.freeze({
+      ...block,
+      id,
+      blocks: Object.freeze(
+        block.blocks.map((child) => cloneBuilderBlock(child, createBlockId())),
+      ),
+    });
   }
   return Object.freeze({ ...block, id });
 }
@@ -232,6 +269,81 @@ export function isCodeListingBlock(block: BuilderBlock): block is CodeListingBlo
     "caption" in block &&
     typeof block.caption === "string"
   );
+}
+
+export function isSectionBlock(block: BuilderBlock): block is SectionBlock {
+  return (
+    block.typeId === sectionTypeId &&
+    "title" in block &&
+    typeof block.title === "string" &&
+    "referenceId" in block &&
+    (block.referenceId === null || typeof block.referenceId === "string") &&
+    "blocks" in block &&
+    Array.isArray(block.blocks)
+  );
+}
+
+export function isTitlePageBlock(block: BuilderBlock): block is TitlePageBlock {
+  return (
+    block.typeId === titlePageTypeId &&
+    "title" in block &&
+    typeof block.title === "string" &&
+    "author" in block &&
+    typeof block.author === "string" &&
+    "date" in block &&
+    typeof block.date === "string"
+  );
+}
+
+export function isTableOfContentsBlock(
+  block: BuilderBlock,
+): block is TableOfContentsBlock {
+  return block.typeId === tableOfContentsTypeId;
+}
+
+export function isPageBreakBlock(block: BuilderBlock): block is PageBreakBlock {
+  return block.typeId === pageBreakTypeId;
+}
+
+export interface BuilderBlockLocation {
+  readonly block: BuilderBlock;
+  readonly parentId: string | null;
+  readonly index: number;
+}
+
+export function flattenBuilderBlocks(
+  blocks: readonly BuilderBlock[],
+): readonly BuilderBlock[] {
+  const result: BuilderBlock[] = [];
+  const visit = (sequence: readonly BuilderBlock[]): void => {
+    for (const block of sequence) {
+      result.push(block);
+      if (isSectionBlock(block)) {
+        visit(block.blocks);
+      }
+    }
+  };
+  visit(blocks);
+  return result;
+}
+
+export function findBuilderBlock(
+  blocks: readonly BuilderBlock[],
+  blockId: string,
+  parentId: string | null = null,
+): BuilderBlockLocation | null {
+  for (const [index, block] of blocks.entries()) {
+    if (block.id === blockId) {
+      return { block, parentId, index };
+    }
+    if (isSectionBlock(block)) {
+      const nested = findBuilderBlock(block.blocks, blockId, block.id);
+      if (nested !== null) {
+        return nested;
+      }
+    }
+  }
+  return null;
 }
 
 export function paragraphDisplayText(paragraph: ParagraphBlock): string {
@@ -308,7 +420,15 @@ function validateInlineSequence(
   }
 }
 
-function validateBlock(block: BuilderBlock): void {
+function validateReferenceId(referenceId: string): void {
+  if (!/^[A-Za-z][A-Za-z0-9_.:-]*$/u.test(referenceId)) {
+    throw new Error(
+      "A reference ID must begin with an ASCII letter and contain only letters, digits, '-', '_', '.', and ':'",
+    );
+  }
+}
+
+function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
   if (block.id.length === 0) {
     throw new Error("A builder block requires a stable ID");
   }
@@ -351,7 +471,73 @@ function validateBlock(block: BuilderBlock): void {
         throw new Error("A code listing requires source code and a caption");
       }
       return;
+    case sectionTypeId:
+      if (!isSectionBlock(block)) {
+        throw new Error("A section block has an invalid transport shape");
+      }
+      if (sectionDepth >= 5) {
+        throw new Error("The document supports at most five nested section levels");
+      }
+      if (block.title.trim().length === 0) {
+        throw new Error("A section requires a title");
+      }
+      if (block.referenceId !== null) {
+        validateReferenceId(block.referenceId);
+      }
+      for (const child of block.blocks) {
+        validateBlock(child, sectionDepth + 1);
+      }
+      return;
+    case titlePageTypeId:
+      if (!isTitlePageBlock(block)) {
+        throw new Error("A title-page block has an invalid transport shape");
+      }
+      if (
+        block.title.trim().length === 0 ||
+        block.author.trim().length === 0 ||
+        block.date.trim().length === 0
+      ) {
+        throw new Error("A title page requires a title, author, and date");
+      }
+      return;
+    case tableOfContentsTypeId:
+      if (!isTableOfContentsBlock(block)) {
+        throw new Error("A table-of-contents block has an invalid transport shape");
+      }
+      return;
+    case pageBreakTypeId:
+      if (!isPageBreakBlock(block)) {
+        throw new Error("A page-break block has an invalid transport shape");
+      }
+      return;
   }
+}
+
+function validateDocumentBlocks(blocks: readonly BuilderBlock[]): void {
+  for (const block of blocks) {
+    validateBlock(block);
+  }
+  const ids = new Set<string>();
+  for (const block of flattenBuilderBlocks(blocks)) {
+    if (ids.has(block.id)) {
+      throw new Error(`Duplicate document block ID: ${block.id}`);
+    }
+    ids.add(block.id);
+  }
+}
+
+function freezeBuilderBlock(block: BuilderBlock): BuilderBlock {
+  if (isSectionBlock(block)) {
+    return Object.freeze({
+      ...block,
+      blocks: Object.freeze(block.blocks.map(freezeBuilderBlock)),
+    });
+  }
+  return Object.freeze(block);
+}
+
+function freezeBuilderBlocks(blocks: readonly BuilderBlock[]): readonly BuilderBlock[] {
+  return Object.freeze(blocks.map(freezeBuilderBlock));
 }
 
 function validateMetadata(metadata: DocumentMetadata): void {
@@ -369,6 +555,126 @@ function validateMetadata(metadata: DocumentMetadata): void {
   }
 }
 
+interface DetachedBlock {
+  readonly blocks: readonly BuilderBlock[];
+  readonly block: BuilderBlock;
+  readonly parentId: string | null;
+  readonly index: number;
+}
+
+function detachBuilderBlock(
+  blocks: readonly BuilderBlock[],
+  blockId: string,
+  parentId: string | null = null,
+): DetachedBlock | null {
+  for (const [index, block] of blocks.entries()) {
+    if (block.id === blockId) {
+      const remaining = [...blocks];
+      remaining.splice(index, 1);
+      return { blocks: remaining, block, parentId, index };
+    }
+    if (isSectionBlock(block)) {
+      const nested = detachBuilderBlock(block.blocks, blockId, block.id);
+      if (nested !== null) {
+        const updated = [...blocks];
+        updated[index] = Object.freeze({
+          ...block,
+          blocks: Object.freeze([...nested.blocks]),
+        });
+        return { ...nested, blocks: updated };
+      }
+    }
+  }
+  return null;
+}
+
+export function removeBuilderBlockFromTree(
+  blocks: readonly BuilderBlock[],
+  blockId: string,
+): readonly BuilderBlock[] {
+  return detachBuilderBlock(blocks, blockId)?.blocks ?? blocks;
+}
+
+function updateSectionChildren(
+  blocks: readonly BuilderBlock[],
+  parentId: string,
+  update: (children: readonly BuilderBlock[]) => readonly BuilderBlock[],
+): readonly BuilderBlock[] | null {
+  for (const [index, block] of blocks.entries()) {
+    if (!isSectionBlock(block)) {
+      continue;
+    }
+    if (block.id === parentId) {
+      const updated = [...blocks];
+      updated[index] = Object.freeze({
+        ...block,
+        blocks: Object.freeze([...update(block.blocks)]),
+      });
+      return updated;
+    }
+    const nested = updateSectionChildren(block.blocks, parentId, update);
+    if (nested !== null) {
+      const updated = [...blocks];
+      updated[index] = Object.freeze({
+        ...block,
+        blocks: Object.freeze([...nested]),
+      });
+      return updated;
+    }
+  }
+  return null;
+}
+
+function insertBuilderBlock(
+  blocks: readonly BuilderBlock[],
+  parentId: string | null,
+  index: number,
+  block: BuilderBlock,
+): readonly BuilderBlock[] {
+  const insert = (sequence: readonly BuilderBlock[]): readonly BuilderBlock[] => {
+    if (index < 0 || index > sequence.length) {
+      throw new RangeError(`Insert index ${String(index)} is outside the target sequence`);
+    }
+    const updated = [...sequence];
+    updated.splice(index, 0, block);
+    return updated;
+  };
+  if (parentId === null) {
+    return insert(blocks);
+  }
+  const updated = updateSectionChildren(blocks, parentId, insert);
+  if (updated === null) {
+    throw new Error(`Unknown section parent ID: ${parentId}`);
+  }
+  return updated;
+}
+
+function replaceBuilderBlock(
+  blocks: readonly BuilderBlock[],
+  blockId: string,
+  replacement: BuilderBlock,
+): readonly BuilderBlock[] | null {
+  for (const [index, block] of blocks.entries()) {
+    if (block.id === blockId) {
+      const updated = [...blocks];
+      updated[index] = replacement;
+      return updated;
+    }
+    if (isSectionBlock(block)) {
+      const nested = replaceBuilderBlock(block.blocks, blockId, replacement);
+      if (nested !== null) {
+        const updated = [...blocks];
+        updated[index] = Object.freeze({
+          ...block,
+          blocks: Object.freeze([...nested]),
+        });
+        return updated;
+      }
+    }
+  }
+  return null;
+}
+
 export class MemoryDocumentPort implements DocumentPort {
   readonly #listeners = new Set<DocumentListener>();
   #snapshot: DocumentSnapshot;
@@ -378,16 +684,13 @@ export class MemoryDocumentPort implements DocumentPort {
     metadata: DocumentMetadata = defaultDocumentMetadata,
   ) {
     validateMetadata(metadata);
-    for (const block of initialBlocks) {
-      validateBlock(block);
-    }
-    this.#assertUniqueIds(initialBlocks);
+    validateDocumentBlocks(initialBlocks);
     this.#snapshot = Object.freeze({
       revision: 0,
       metadata: Object.freeze({
         modelVersion: Object.freeze({ ...metadata.modelVersion }),
       }),
-      blocks: Object.freeze([...initialBlocks]),
+      blocks: freezeBuilderBlocks(initialBlocks),
     });
   }
 
@@ -398,10 +701,10 @@ export class MemoryDocumentPort implements DocumentPort {
   public dispatch(command: DocumentCommand): void {
     switch (command.kind) {
       case "insert":
-        this.#insert(command.index, command.block);
+        this.#insert(command.parentId ?? null, command.index, command.block);
         return;
       case "move":
-        this.#move(command.blockId, command.index);
+        this.#move(command.blockId, command.parentId ?? null, command.index);
         return;
       case "replace":
         this.#replace(command.blockId, command.block);
@@ -422,89 +725,70 @@ export class MemoryDocumentPort implements DocumentPort {
     };
   }
 
-  #assertUniqueIds(blocks: readonly BuilderBlock[]): void {
-    const ids = new Set<string>();
-    for (const block of blocks) {
-      if (ids.has(block.id)) {
-        throw new Error(`Duplicate document block ID: ${block.id}`);
-      }
-      ids.add(block.id);
-    }
-  }
-
-  #insert(index: number, block: BuilderBlock): void {
-    if (index < 0 || index > this.#snapshot.blocks.length) {
-      throw new RangeError(`Insert index ${String(index)} is outside the document`);
-    }
-
+  #insert(parentId: string | null, index: number, block: BuilderBlock): void {
     validateBlock(block);
-    if (this.#snapshot.blocks.some((candidate) => candidate.id === block.id)) {
+    const candidateIds = new Set(
+      flattenBuilderBlocks(this.#snapshot.blocks).map((candidate) => candidate.id),
+    );
+    if (flattenBuilderBlocks([block]).some((candidate) => candidateIds.has(candidate.id))) {
       throw new Error(`Duplicate document block ID: ${block.id}`);
     }
-
-    const blocks = [...this.#snapshot.blocks];
-    blocks.splice(index, 0, Object.freeze(block));
+    const blocks = insertBuilderBlock(this.#snapshot.blocks, parentId, index, block);
+    validateDocumentBlocks(blocks);
     this.#publish(blocks);
   }
 
-  #move(blockId: string, index: number): void {
-    const currentIndex = this.#snapshot.blocks.findIndex((block) => block.id === blockId);
-    if (currentIndex < 0) {
+  #move(blockId: string, parentId: string | null, index: number): void {
+    const detached = detachBuilderBlock(this.#snapshot.blocks, blockId);
+    if (detached === null) {
       throw new Error(`Unknown document block ID: ${blockId}`);
     }
-
-    const blocks = this.#snapshot.blocks.filter((block) => block.id !== blockId);
-    if (index < 0 || index > blocks.length) {
-      throw new RangeError(`Move index ${String(index)} is outside the document`);
-    }
-
-    const block = this.#snapshot.blocks[currentIndex];
-    if (block === undefined) {
-      throw new Error(`Unknown document block ID: ${blockId}`);
-    }
-    blocks.splice(index, 0, block);
-    if (blocks.every((candidate, candidateIndex) => candidate === this.#snapshot.blocks[candidateIndex])) {
+    if (detached.parentId === parentId && detached.index === index) {
       return;
     }
+    if (
+      isSectionBlock(detached.block) &&
+      (detached.block.id === parentId ||
+        flattenBuilderBlocks(detached.block.blocks).some((block) => block.id === parentId))
+    ) {
+      throw new Error("A section cannot be moved inside itself or one of its descendants");
+    }
+    const blocks = insertBuilderBlock(detached.blocks, parentId, index, detached.block);
+    validateDocumentBlocks(blocks);
     this.#publish(blocks);
   }
 
   #replace(blockId: string, block: BuilderBlock): void {
-    const currentIndex = this.#snapshot.blocks.findIndex((candidate) => candidate.id === blockId);
-    if (currentIndex < 0) {
+    const location = findBuilderBlock(this.#snapshot.blocks, blockId);
+    if (location === null) {
       throw new Error(`Unknown document block ID: ${blockId}`);
     }
-    const currentBlock = this.#snapshot.blocks[currentIndex];
-    if (currentBlock === undefined) {
-      throw new Error(`Unknown document block ID: ${blockId}`);
-    }
-    if (block.id !== blockId || block.typeId !== currentBlock.typeId) {
+    if (block.id !== blockId || block.typeId !== location.block.typeId) {
       throw new Error("A replacement must preserve its block ID and semantic type");
     }
     validateBlock(block);
-    if (block === currentBlock) {
+    if (block === location.block) {
       return;
     }
-
-    const blocks = [...this.#snapshot.blocks];
-    blocks[currentIndex] = Object.freeze(block);
+    const blocks = replaceBuilderBlock(this.#snapshot.blocks, blockId, block);
+    if (blocks === null) {
+      throw new Error(`Unknown document block ID: ${blockId}`);
+    }
+    validateDocumentBlocks(blocks);
     this.#publish(blocks);
   }
 
   #delete(blockId: string): void {
-    const blocks = this.#snapshot.blocks.filter((block) => block.id !== blockId);
-    if (blocks.length === this.#snapshot.blocks.length) {
+    const detached = detachBuilderBlock(this.#snapshot.blocks, blockId);
+    if (detached === null) {
       throw new Error(`Unknown document block ID: ${blockId}`);
     }
-    this.#publish(blocks);
+    this.#publish(detached.blocks);
   }
 
   #replaceAll(metadata: DocumentMetadata, blocks: readonly BuilderBlock[]): void {
     validateMetadata(metadata);
-    for (const block of blocks) {
-      validateBlock(block);
-    }
-    this.#assertUniqueIds(blocks);
+    validateDocumentBlocks(blocks);
     this.#publish(blocks, metadata);
   }
 
@@ -517,7 +801,7 @@ export class MemoryDocumentPort implements DocumentPort {
       metadata: Object.freeze({
         modelVersion: Object.freeze({ ...metadata.modelVersion }),
       }),
-      blocks: Object.freeze([...blocks]),
+      blocks: freezeBuilderBlocks(blocks),
     });
 
     for (const listener of this.#listeners) {

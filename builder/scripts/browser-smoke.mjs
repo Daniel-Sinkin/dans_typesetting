@@ -23,6 +23,7 @@ const canonicalFixturePath = join(
   "canonical",
   "current-features.dans.json",
 );
+const initialBlockCount = 10;
 
 function assert(condition, message) {
   if (!condition) {
@@ -158,7 +159,7 @@ async function waitForBuilder(client) {
   while (Date.now() < deadline) {
     try {
       const ready = await client.evaluate(
-        `document.querySelectorAll("[data-block-id]").length === 6 && document.querySelector(".document-page") !== null`,
+        `document.querySelectorAll("[data-block-id]").length >= ${String(initialBlockCount)} && document.querySelector(".document-page") !== null`,
       );
       if (ready) {
         return;
@@ -168,7 +169,9 @@ async function waitForBuilder(client) {
     }
     await delay(60);
   }
-  throw new Error("The document builder did not become ready");
+  throw new Error(
+    `The document builder did not become ready${client.exceptions.length === 0 ? "" : `: ${client.exceptions.join("; ")}`}`,
+  );
 }
 
 async function reloadBuilder(client) {
@@ -286,7 +289,7 @@ async function exerciseBuilder(client) {
       layers: layers.map((layer) => layer === null ? null : getComputedStyle(layer).zIndex),
     };
   })()`);
-  assert(initial.blocks === 6, "Expected six initial document blocks");
+  assert(initial.blocks === initialBlockCount, "Expected all initial document blocks");
   assert(initial.imageLoaded, "The real sample image did not load");
   assert(initial.structuredMath, "Structured display math was not rendered");
   assert(initial.summation, "Structured summation was not rendered");
@@ -309,6 +312,94 @@ async function exerciseBuilder(client) {
   );
 
   await screenshot(client, "document-builder.png");
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-section']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(80);
+  await client.evaluate(`(() => {
+    const dialog = document.querySelector("[data-testid='block-editor-dialog']");
+    const inputs = dialog.querySelectorAll("input");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    setter.call(inputs[0], "Renamed document structure");
+    inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
+    setter.call(inputs[1], "sec:renamed-structure");
+    inputs[1].dispatchEvent(new Event("input", { bubbles: true }));
+    [...dialog.querySelectorAll("button")].find((button) => button.textContent.includes("Save section")).click();
+  })()`);
+  await delay(100);
+  assert(
+    await client.evaluate(`(() => {
+      const section = document.querySelector("[data-visual-block-id='sample-section']");
+      const toc = document.querySelector(".toc-content");
+      return section.textContent.includes("Renamed document structure") &&
+        section.textContent.includes("sec:renamed-structure") &&
+        toc.textContent.includes("Renamed document structure");
+    })()`),
+    "Section editing did not update the heading and live table of contents",
+  );
+
+  const nestingPoints = await client.evaluate(`(() => {
+    const grip = document.querySelector("[data-block-id='sample-introduction'] .document-block__grip").getBoundingClientRect();
+    const section = document.querySelector("[data-visual-block-id='sample-section']").getBoundingClientRect();
+    return {
+      start: { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 },
+      end: { x: section.x + 90, y: section.bottom + 16 },
+    };
+  })()`);
+  await pointerDrag(client, nestingPoints.start, nestingPoints.end);
+  assert(
+    await client.evaluate(`document.querySelector("[data-block-id='sample-introduction']")?.dataset.sectionDepth === "1"`),
+    "Dragging a root block into a section did not preserve nested ownership",
+  );
+
+  await reloadBuilder(client);
+
+  await client.evaluate(`(() => {
+    const select = document.querySelector("select[data-testid='layout-mode']");
+    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set;
+    setter.call(select, "paged");
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await delay(650);
+  const pagedLayout = await client.evaluate(`(() => {
+    const pages = [...document.querySelectorAll(".document-page")];
+    const pageBounds = pages.map((page) => page.getBoundingClientRect());
+    const blocks = [...document.querySelectorAll("[data-visual-block-id]")];
+    const contained = blocks.every((block) => {
+      const bounds = block.getBoundingClientRect();
+      return pageBounds.some((page) =>
+        bounds.left >= page.left - 1 && bounds.right <= page.right + 1 &&
+        bounds.top >= page.top - 1 && bounds.bottom <= page.bottom + 1
+      );
+    });
+    return {
+      pageCount: pages.length,
+      firstPage: pages[0]?.dataset.pageNumber,
+      contained,
+    };
+  })()`);
+  assert(
+    pagedLayout.pageCount >= 2 && pagedLayout.pageCount <= 5,
+    "Paged mode did not project the bounded page range",
+  );
+  assert(pagedLayout.firstPage === "1", "Paged mode did not begin with page one");
+  assert(pagedLayout.contained, "Paged mode split or overflowed an ordinary block");
+  await client.evaluate(`(() => {
+    const input = document.querySelector("input[data-testid='page-range-start']");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    setter.call(input, "2");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(650);
+  assert(
+    await client.evaluate(`document.querySelector(".document-page")?.dataset.pageNumber === "2"`),
+    "Page-range selection did not move the projected slice",
+  );
+  await screenshot(client, "paged-document-range.png");
+
+  await reloadBuilder(client);
 
   await client.evaluate(`document.querySelector("input[aria-label='Rectangle']").click()`);
   const drawingBounds = await client.evaluate(`(() => {
@@ -432,7 +523,8 @@ async function exerciseBuilder(client) {
   })()`);
   await pointerDrag(client, copyPoints.start, copyPoints.end, 1);
   assert(
-    (await client.evaluate(`document.querySelectorAll("[data-block-id]").length`)) === 7,
+    (await client.evaluate(`document.querySelectorAll("[data-block-id]").length`)) ===
+      initialBlockCount + 1,
     "Alt-drag did not copy the block",
   );
   assert(
@@ -455,14 +547,16 @@ async function exerciseBuilder(client) {
     "Dropping outside did not ask before deletion",
   );
   assert(
-    (await client.evaluate(`document.querySelectorAll("[data-block-id]").length`)) === 5,
+    (await client.evaluate(`document.querySelectorAll("[data-block-id]").length`)) ===
+      initialBlockCount - 1,
     "The detached block jumped back while confirmation was open",
   );
   await client.evaluate(`[
     ...document.querySelector("[role='alertdialog']").querySelectorAll("button")
   ].find((button) => button.textContent.trim() === "Cancel").click()`);
   assert(
-    (await client.evaluate(`document.querySelectorAll("[data-block-id]").length`)) === 6,
+    (await client.evaluate(`document.querySelectorAll("[data-block-id]").length`)) ===
+      initialBlockCount,
     "Cancel did not restore the detached block",
   );
 
@@ -797,7 +891,8 @@ async function exerciseBuilder(client) {
   assert(
     await client.evaluate(`(() => {
       const blocks = [...document.querySelectorAll("[data-block-id]")];
-      return blocks.length === 5 &&
+      return blocks.length >= 9 &&
+        document.body.textContent.includes("Canonical document") &&
         document.body.textContent.includes("A styled canonical paragraph") &&
         document.body.textContent.includes("third.party.block") &&
         document.querySelector("button[data-testid='save-document']") !== null;

@@ -1,6 +1,7 @@
 #include "connectors/latex/code_listing.hpp"
 #include "connectors/latex/color_span.hpp"
 #include "connectors/latex/core_paragraph.hpp"
+#include "connectors/latex/document_shell.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/image.hpp"
 #include "connectors/latex/latex_mixin.hpp"
@@ -10,6 +11,7 @@
 #include "plugins/code_listing.hpp"
 #include "plugins/color_span.hpp"
 #include "plugins/core_paragraph.hpp"
+#include "plugins/document_shell.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
 #include "plugins/latex_mixin.hpp"
@@ -75,10 +77,17 @@ auto make_sample_document()
     using M = dans::document::plugins::Math;
     Document document{Metadata{.major = 0, .minor = 1, .patch = 0}};
 
+    document.blocks().add<TitlePage>(
+        "Dan's Typesetting Experiment", "Daniel Sinkin", "19 July 2026"
+    );
+    document.blocks().add<TableOfContents>();
+    document.blocks().add<PageBreak>();
+
     const auto par_writer = [&](BlockSequence& blocks, std::string_view text)
     { blocks.add<CoreParagraph>(text); };
 
-    auto& introduction = document.blocks().add<Section>("Introduction");
+    auto& introduction =
+        document.blocks().add<Section>("Introduction", ReferenceId{"sec:introduction"});
     par_writer(
         introduction.blocks(),
         "This document is represented as an owning C++ object model and exported through a "
@@ -251,6 +260,15 @@ auto main(const int argc, char* argv[]) -> int
             std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(
                 inline_renderer
             )
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::TitlePageLatexAdapter>()
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::TableOfContentsLatexAdapter>()
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::PageBreakLatexAdapter>()
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::DisplayMathLatexAdapter>()

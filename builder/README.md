@@ -1,12 +1,14 @@
 # Graphical document builder
 
-This prototype embeds one vertically growing document page inside an Excalidraw note canvas.
-Paragraph, image, code-listing, and structured-math plugins contribute palette entries, default block
-construction, vertical measurements, previews, and optional editors. Generic builder code handles
-command dispatch, document flow, insertion previews, animated reflow, copying, and transactional
-detach/delete behaviour. Document previews are rendered below Excalidraw, so sketches and free-form
-notes can be drawn over the page; the small interaction controls are rendered above it. Document
-blocks are not stored as Excalidraw elements.
+This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
+be projected either as one vertically growing continuous view or as whole-block pages. Paragraph,
+image, code-listing, structured-math, title-page, table-of-contents, page-break, and section plugins
+contribute palette entries, default block construction, vertical measurements, previews, and
+optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
+previews, animated reflow, copying, transactional detach/delete behaviour, and page projection.
+Document previews are rendered below Excalidraw, so sketches and free-form notes can be drawn over
+the pages; the small interaction controls are rendered above them. Document blocks are not stored as
+Excalidraw elements.
 
 The graphical writer may be incomplete by design. A registered block type uses its adapter; an
 unknown type is preserved by `DocumentPort` and rendered through one visible opaque-block fallback.
@@ -25,10 +27,12 @@ npm install
 npm run dev
 ```
 
-Open the displayed local URL, then drag Paragraph, Image, Code listing, or Display math from the
-docked Blocks sidebar into the page. Drag an existing block by its handle to reorder it; hold Alt
-while dragging to copy it. Dropping a moved block outside the document keeps it detached until the
-confirmation dialogue either restores or deletes it.
+Open the displayed local URL, then drag a block from the docked Blocks sidebar into the document.
+Drag an existing block by its handle to reorder it or to nest it inside a section; hold Alt while
+dragging to copy it. Dropping a moved block outside the document keeps it detached until the
+confirmation dialogue either restores or deletes it. Title pages are isolated in paged mode, a
+table of contents derives its numbered entries from the live section tree, and explicit page breaks
+advance following content. The page-range controls project at most five pages at once.
 
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
 live composed preview. Normal/bold/italic/bold-italic text, semantic RGB colour spans, hyperlinks,
@@ -47,11 +51,13 @@ Unknown document blocks remain in the flow as opaque labelled previews. Their Ed
 stable handle to the browser console, demonstrating that preview and editing support are independent.
 Ordinary Excalidraw tools remain available for panning, zooming, sketching, and free-form notes.
 
-This slice intentionally uses one growing page and has no pagination. Multiple movable document
-surfaces and cross-page reflow remain later experiments. Save and Load use the canonical document
-format; native materialization of those plugin payloads remains a separate connector task. See
-`../docs/continuation.md` and `../docs/canvas-migration.md` for recovery state and the bespoke-canvas
-plan.
+Paged projection never splits a semantic block: a block that does not fit moves to the next page,
+and one taller than an entire content area becomes a visible warning placeholder. This is an
+authoring policy, not a semantic property of the block. Cross-page dragging works through the same
+recursive insertion slots as continuous mode. Save and Load use the canonical document format;
+native materialization of those plugin payloads remains a separate connector task. Multiple movable
+document surfaces remain a later experiment. See `../docs/continuation.md` and
+`../docs/canvas-migration.md` for recovery state and the bespoke-canvas plan.
 
 ## Verify
 

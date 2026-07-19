@@ -2,9 +2,11 @@
 #define DANS_TYPESETTING_SRC_DOCUMENT_HPP
 
 #include "common.hpp"
+#include "reference_id.hpp"
 
 #include <concepts>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -64,16 +66,20 @@ class Section final : public DocumentBlock
   public:
     static constexpr std::string_view k_type_id = "dans.core.section";
 
-    explicit Section(std::string_view title);
+    explicit Section(
+        std::string_view title, std::optional<ReferenceId> reference_id = std::nullopt
+    );
 
     [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
     [[nodiscard]] auto title() const noexcept -> std::string_view;
+    [[nodiscard]] auto reference_id() const noexcept -> const std::optional<ReferenceId>&;
 
     [[nodiscard]] auto blocks() noexcept -> BlockSequence&;
     [[nodiscard]] auto blocks() const noexcept -> const BlockSequence&;
 
   private:
     std::string title_{};
+    std::optional<ReferenceId> reference_id_{};
     BlockSequence blocks_{};
 };
 

@@ -9,7 +9,8 @@ auto BlockSequence::blocks() const noexcept -> std::span<const std::unique_ptr<D
     return {blocks_.data(), blocks_.size()};
 }
 
-Section::Section(const std::string_view title) : title_{title}
+Section::Section(const std::string_view title, std::optional<ReferenceId> reference_id)
+    : title_{title}, reference_id_{std::move(reference_id)}
 {
     if (title.empty())
     {
@@ -25,6 +26,11 @@ auto Section::type_id() const noexcept -> std::string_view
 auto Section::title() const noexcept -> std::string_view
 {
     return title_;
+}
+
+auto Section::reference_id() const noexcept -> const std::optional<ReferenceId>&
+{
+    return reference_id_;
 }
 
 auto Section::blocks() noexcept -> BlockSequence&

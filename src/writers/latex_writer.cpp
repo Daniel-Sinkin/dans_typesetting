@@ -255,6 +255,12 @@ auto LatexWriter::emit_blocks(const BlockSequence& blocks, LatexOutput& output) 
             write_text_command(
                 output, k_section_commands.at(output.section_depth_), section->title()
             );
+            if (section->reference_id().has_value())
+            {
+                output.write_raw("\\label{");
+                output.write_raw(section->reference_id()->value());
+                output.write_raw("}\n");
+            }
             LatexOutput section_output{output.output_, *this, output.section_depth_ + usize{1}};
             emit_blocks(section->blocks(), section_output);
             continue;

@@ -6,7 +6,10 @@ import {
   createParagraphText,
   MemoryDocumentPort,
   paragraphTypeId,
+  sectionTypeId,
+  type BuilderBlock,
   type ParagraphBlock,
+  type SectionBlock,
 } from "./document";
 
 function paragraph(id: string): ParagraphBlock {
@@ -14,6 +17,16 @@ function paragraph(id: string): ParagraphBlock {
     id,
     typeId: paragraphTypeId,
     inlines: [createParagraphText(`Paragraph ${id}`, `${id}-text`)],
+  };
+}
+
+function section(id: string, blocks: readonly BuilderBlock[] = []): SectionBlock {
+  return {
+    id,
+    typeId: sectionTypeId,
+    title: `Section ${id}`,
+    referenceId: `sec:${id}`,
+    blocks,
   };
 }
 
@@ -130,5 +143,72 @@ describe("MemoryDocumentPort", () => {
       typeId: "dans.future.block",
       opaquePayload: { rows: 2 },
     });
+  });
+
+  it("edits recursive section sequences without flattening their ownership", () => {
+    const port = new MemoryDocumentPort([
+      section("outer", [paragraph("inside")]),
+      paragraph("after"),
+    ]);
+
+    port.dispatch({
+      kind: "insert",
+      parentId: "outer",
+      index: 1,
+      block: paragraph("inserted"),
+    });
+    port.dispatch({
+      kind: "move",
+      blockId: "after",
+      parentId: "outer",
+      index: 2,
+    });
+
+    const outer = port.getSnapshot().blocks[0];
+    expect(outer?.typeId).toBe(sectionTypeId);
+    expect((outer as SectionBlock).blocks.map((block) => block.id)).toEqual([
+      "inside",
+      "inserted",
+      "after",
+    ]);
+    expect(port.getSnapshot().blocks).toHaveLength(1);
+  });
+
+  it("rejects recursive duplicate IDs and moving a section into itself", () => {
+    expect(() =>
+      new MemoryDocumentPort([
+        section("outer", [paragraph("duplicate")]),
+        paragraph("duplicate"),
+      ]),
+    ).toThrow(/Duplicate document block ID/u);
+
+    const port = new MemoryDocumentPort([
+      section("outer", [section("inner", [paragraph("leaf")])]),
+    ]);
+    expect(() => {
+      port.dispatch({
+        kind: "move",
+        blockId: "outer",
+        parentId: "inner",
+        index: 0,
+      });
+    }).toThrow(/descendants/u);
+    expect(() => {
+      port.dispatch({
+        kind: "move",
+        blockId: "outer",
+        parentId: "outer",
+        index: 0,
+      });
+    }).toThrow(/inside itself/u);
+  });
+
+  it("deep-clones section descendants for Alt-drag copies", () => {
+    const original = section("outer", [paragraph("inside")]);
+    const copy = cloneBuilderBlock(original, "outer-copy") as SectionBlock;
+
+    expect(copy.id).toBe("outer-copy");
+    expect(copy.blocks[0]?.id).not.toBe("inside");
+    expect(copy.blocks[0]?.typeId).toBe(paragraphTypeId);
   });
 });

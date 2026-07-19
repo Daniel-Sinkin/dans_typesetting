@@ -14,12 +14,26 @@ export interface BuilderBlockRenderContext {
   readonly documentIndex: number;
   readonly numberingSeries: string | null;
   readonly ordinal: number | null;
+  readonly documentBlocks: readonly BuilderBlock[];
+  readonly sectionDepth: number;
 }
+
+export interface BuilderBlockMeasureContext {
+  readonly documentBlocks: readonly BuilderBlock[];
+  readonly sectionDepth: number;
+}
+
+export type BuilderPaginationPolicy = "flow" | "page_break_after" | "isolated_page";
 
 export interface BuilderBlockAdapter {
   readonly palette: PaletteDescriptor;
   readonly numberingSeries?: string | undefined;
-  measure(block: BuilderBlock, availableWidth: number): number;
+  readonly paginationPolicy?: BuilderPaginationPolicy | undefined;
+  measure(
+    block: BuilderBlock,
+    availableWidth: number,
+    context: BuilderBlockMeasureContext,
+  ): number;
   renderPreview(block: BuilderBlock, context: BuilderBlockRenderContext): ReactNode;
 }
 
@@ -43,7 +57,12 @@ export interface BuilderBlockPlugin extends BuilderBlockAdapter {
 export interface BuilderFallbackAdapter {
   readonly palette: PaletteDescriptor;
   readonly numberingSeries?: string | undefined;
-  measure(block: BuilderBlockEnvelope, availableWidth: number): number;
+  readonly paginationPolicy?: BuilderPaginationPolicy | undefined;
+  measure(
+    block: BuilderBlockEnvelope,
+    availableWidth: number,
+    context: BuilderBlockMeasureContext,
+  ): number;
   renderPreview(block: BuilderBlockEnvelope, context: BuilderBlockRenderContext): ReactNode;
 }
 

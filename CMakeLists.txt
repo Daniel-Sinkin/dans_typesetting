@@ -183,6 +183,16 @@ target_link_libraries(code_listing_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(document_shell_plugin STATIC
+  src/plugins/document_shell.cpp
+  src/plugins/document_shell.hpp
+)
+add_library(dans::document_shell_plugin ALIAS document_shell_plugin)
+target_link_libraries(document_shell_plugin
+  PUBLIC dans::document_core
+  PRIVATE typesetter_warnings
+)
+
 # Opinionated LaTeX document writer and separate connector modules.
 add_library(latex_writer STATIC
   src/writers/latex_writer.cpp
@@ -298,6 +308,19 @@ target_link_libraries(code_listing_latex_connector
     typesetter_warnings
 )
 
+add_library(document_shell_latex_connector STATIC
+  src/connectors/latex/document_shell.cpp
+  src/connectors/latex/document_shell.hpp
+)
+add_library(dans::document_shell_latex_connector ALIAS document_shell_latex_connector)
+target_link_libraries(document_shell_latex_connector
+  PUBLIC
+    dans::document_shell_plugin
+    dans::latex_writer
+  PRIVATE
+    typesetter_warnings
+)
+
 add_executable(document_example
   app/main.cpp
 )
@@ -305,6 +328,7 @@ target_link_libraries(document_example PRIVATE
   dans::code_listing_latex_connector
   dans::color_span_latex_connector
   dans::core_paragraph_latex_connector
+  dans::document_shell_latex_connector
   dans::image_latex_connector
   dans::hyperlink_latex_connector
   dans::latex_mixin_latex_connector
@@ -336,6 +360,15 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_transport_test COMMAND native_transport_test)
+
+  add_executable(native_document_shell_test
+    tests/native_document_shell_test.cpp
+  )
+  target_link_libraries(native_document_shell_test PRIVATE
+    dans::document_shell_latex_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_document_shell_test COMMAND native_document_shell_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source

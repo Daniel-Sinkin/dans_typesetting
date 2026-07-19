@@ -47,6 +47,10 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Hyperlink | `dans.inline.hyperlink` |
 | Figure | `dans.image.figure` |
 | Listing | `dans.code.listing` |
+| Section | `dans.core.section` |
+| Title page | `dans.document.title_page` |
+| Table of contents | `dans.document.table_of_contents` |
+| Page break | `dans.document.page_break` |
 
 Adding a plugin is not complete merely because its native class exists. A
 complete vertical slice needs semantic data, validation, at least one useful
@@ -90,10 +94,35 @@ for their encapsulated runtime data structures.
 See [canonical-transport.md](canonical-transport.md) for the normative shape and
 current compatibility policy.
 
-## Next architectural gate: semantic document shell
+## Semantic document shell and page policy
 
-The next completed vertical slice should add ordinary title, table-of-contents,
-page-break, and section block plugins to the canonical protocol, their native
-LaTeX connectors, and their graphical adapters. Continuous and paged graphical
-layout can then consume those semantics without embedding page policy in the
-document core.
+Title pages, tables of contents, and explicit page breaks are ordinary plugin
+blocks. They are neither fields on `Document` nor special preamble state. A
+section remains a core structural block because its nested sequence is the
+format primitive that makes heading hierarchy, numbering, references, and ToC
+traversal unambiguous.
+
+The LaTeX connector lowers those contracts to `titlepage`,
+`\tableofcontents`, `\clearpage`, and labelled section commands. The graphical
+writer applies plugin-declared page policies while measuring a recursive flow:
+
+- continuous mode keeps one growing authoring surface;
+- paged mode projects a selected range of at most five pages;
+- semantic blocks are indivisible in this development writer;
+- an oversized block is represented by a warning instead of silently
+  overflowing;
+- section children retain their owner and insertion sequence rather than being
+  flattened in the document model.
+
+Page dimensions and policies remain writer concerns. Other writers may ignore
+preferred sizes or implement fragmentable paragraphs without changing the
+semantic contracts.
+
+## Next architectural gate: embedded drawing block
+
+The next vertical slice should make an Excalidraw drawing an ordinary,
+referenceable document block. Its semantic payload owns a bounded drawing scene;
+the graphical connector edits that scene in place, while the LaTeX connector
+exports it to a deterministic vector or raster asset. The surrounding canvas
+must remain implementation state rather than leaking into the canonical
+document format.
