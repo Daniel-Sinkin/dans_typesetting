@@ -331,6 +331,18 @@ target_link_libraries(core_paragraph_latex_connector
     typesetter_warnings
 )
 
+# Shared TeX expression notation consumed by LaTeX and Markdown math
+# connectors. It has no document-container or writer dependency.
+add_library(math_tex_expression_connector STATIC
+  src/connectors/tex_math_expression.cpp
+  src/connectors/tex_math_expression.hpp
+)
+add_library(dans::math_tex_expression_connector ALIAS math_tex_expression_connector)
+target_link_libraries(math_tex_expression_connector
+  PUBLIC dans::math_plugin
+  PRIVATE typesetter_warnings
+)
+
 add_library(math_latex_connector STATIC
   src/connectors/latex/math.cpp
   src/connectors/latex/math.hpp
@@ -341,6 +353,7 @@ target_link_libraries(math_latex_connector
     dans::math_plugin
     dans::core_paragraph_latex_connector
   PRIVATE
+    dans::math_tex_expression_connector
     typesetter_warnings
 )
 
@@ -514,6 +527,177 @@ target_link_libraries(document_shell_latex_connector
     typesetter_warnings
 )
 
+# Opinionated Markdown writer and plugin-specific connector modules. TeX math
+# notation is shared with the LaTeX connector because common Markdown math
+# extensions consume the same expression language inside $ delimiters.
+add_library(markdown_writer STATIC
+  src/writers/markdown_writer.cpp
+  src/writers/markdown_writer.hpp
+)
+add_library(dans::markdown_writer ALIAS markdown_writer)
+target_link_libraries(markdown_writer
+  PUBLIC dans::document_core
+  PRIVATE typesetter_warnings
+)
+
+add_library(core_paragraph_markdown_connector STATIC
+  src/connectors/markdown/core_paragraph.cpp
+  src/connectors/markdown/core_paragraph.hpp
+)
+add_library(dans::core_paragraph_markdown_connector ALIAS core_paragraph_markdown_connector)
+target_link_libraries(core_paragraph_markdown_connector
+  PUBLIC
+    dans::core_paragraph
+    dans::markdown_writer
+  PRIVATE typesetter_warnings
+)
+
+add_library(document_shell_markdown_connector STATIC
+  src/connectors/markdown/document_shell.cpp
+  src/connectors/markdown/document_shell.hpp
+)
+add_library(dans::document_shell_markdown_connector ALIAS document_shell_markdown_connector)
+target_link_libraries(document_shell_markdown_connector
+  PUBLIC
+    dans::document_shell_plugin
+    dans::markdown_writer
+  PRIVATE typesetter_warnings
+)
+
+add_library(hyperlink_markdown_connector STATIC
+  src/connectors/markdown/hyperlink.cpp
+  src/connectors/markdown/hyperlink.hpp
+)
+add_library(dans::hyperlink_markdown_connector ALIAS hyperlink_markdown_connector)
+target_link_libraries(hyperlink_markdown_connector
+  PUBLIC
+    dans::hyperlink_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(inline_code_markdown_connector STATIC
+  src/connectors/markdown/inline_code.cpp
+  src/connectors/markdown/inline_code.hpp
+)
+add_library(dans::inline_code_markdown_connector ALIAS inline_code_markdown_connector)
+target_link_libraries(inline_code_markdown_connector
+  PUBLIC
+    dans::inline_code_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(color_span_markdown_connector STATIC
+  src/connectors/markdown/color_span.cpp
+  src/connectors/markdown/color_span.hpp
+)
+add_library(dans::color_span_markdown_connector ALIAS color_span_markdown_connector)
+target_link_libraries(color_span_markdown_connector
+  PUBLIC
+    dans::color_span_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(footnote_markdown_connector STATIC
+  src/connectors/markdown/footnote.cpp
+  src/connectors/markdown/footnote.hpp
+)
+add_library(dans::footnote_markdown_connector ALIAS footnote_markdown_connector)
+target_link_libraries(footnote_markdown_connector
+  PUBLIC
+    dans::footnote_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(reference_markdown_connector STATIC
+  src/connectors/markdown/reference.cpp
+  src/connectors/markdown/reference.hpp
+)
+add_library(dans::reference_markdown_connector ALIAS reference_markdown_connector)
+target_link_libraries(reference_markdown_connector
+  PUBLIC
+    dans::reference_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(image_markdown_connector STATIC
+  src/connectors/markdown/image.cpp
+  src/connectors/markdown/image.hpp
+)
+add_library(dans::image_markdown_connector ALIAS image_markdown_connector)
+target_link_libraries(image_markdown_connector
+  PUBLIC
+    dans::image_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(item_list_markdown_connector STATIC
+  src/connectors/markdown/item_list.cpp
+  src/connectors/markdown/item_list.hpp
+)
+add_library(dans::item_list_markdown_connector ALIAS item_list_markdown_connector)
+target_link_libraries(item_list_markdown_connector
+  PUBLIC
+    dans::item_list_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(code_listing_markdown_connector STATIC
+  src/connectors/markdown/code_listing.cpp
+  src/connectors/markdown/code_listing.hpp
+)
+add_library(dans::code_listing_markdown_connector ALIAS code_listing_markdown_connector)
+target_link_libraries(code_listing_markdown_connector
+  PUBLIC
+    dans::code_listing_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(table_markdown_connector STATIC
+  src/connectors/markdown/table.cpp
+  src/connectors/markdown/table.hpp
+)
+add_library(dans::table_markdown_connector ALIAS table_markdown_connector)
+target_link_libraries(table_markdown_connector
+  PUBLIC
+    dans::table_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
+add_library(math_markdown_connector STATIC
+  src/connectors/markdown/math.cpp
+  src/connectors/markdown/math.hpp
+)
+add_library(dans::math_markdown_connector ALIAS math_markdown_connector)
+target_link_libraries(math_markdown_connector
+  PUBLIC
+    dans::math_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE
+    dans::math_tex_expression_connector
+    typesetter_warnings
+)
+
+add_library(bibliography_markdown_connector STATIC
+  src/connectors/markdown/bibliography.cpp
+  src/connectors/markdown/bibliography.hpp
+)
+add_library(dans::bibliography_markdown_connector ALIAS bibliography_markdown_connector)
+target_link_libraries(bibliography_markdown_connector
+  PUBLIC
+    dans::bibliography_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
 add_executable(document_example
   app/main.cpp
 )
@@ -645,6 +829,29 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_bibliography_test COMMAND native_bibliography_test)
+
+  add_executable(native_markdown_test
+    tests/native_markdown_test.cpp
+  )
+  target_compile_definitions(native_markdown_test PRIVATE
+    DANS_TYPESETTING_MARKDOWN_TEST_OUTPUT="${CMAKE_CURRENT_BINARY_DIR}/native-markdown-test.md"
+  )
+  target_link_libraries(native_markdown_test PRIVATE
+    dans::bibliography_markdown_connector
+    dans::code_listing_markdown_connector
+    dans::color_span_markdown_connector
+    dans::document_shell_markdown_connector
+    dans::footnote_markdown_connector
+    dans::hyperlink_markdown_connector
+    dans::image_markdown_connector
+    dans::inline_code_markdown_connector
+    dans::item_list_markdown_connector
+    dans::math_markdown_connector
+    dans::reference_markdown_connector
+    dans::table_markdown_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_markdown_test COMMAND native_markdown_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source

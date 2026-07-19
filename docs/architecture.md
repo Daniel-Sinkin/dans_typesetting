@@ -10,11 +10,11 @@ The project has four distinct jobs:
 4. Authoring applications edit a versioned transport representation and never
    use a writer's output as semantic storage.
 
-The native LaTeX path currently follows this split. `Document` knows neither
-LaTeX nor the concrete paragraph/image/math plugins. `LatexWriter` knows how to
-walk the document and delegates concrete blocks to registered adapters. Core
-Paragraph has its own inline consumption endpoint, and paragraph-like hosts
-share its inline adapter registry.
+The native LaTeX and Markdown paths currently follow this split. `Document`
+knows neither backend nor the concrete paragraph/image/math plugins. Each
+writer walks core sections and delegates concrete blocks to registered
+adapters. Core Paragraph has a writer-specific inline consumption endpoint,
+and paragraph-like hosts share that writer's inline adapter registry.
 
 The browser builder follows the same shape with `DocumentPort`,
 `BuilderPluginRegistry`, and `BuilderInlinePluginRegistry`. Excalidraw is a
@@ -279,3 +279,9 @@ keeps bibliography numbering out of the semantic record. The contract is also
 usable for future glossaries, symbol indices, or datasets without adding a
 central ever-growing callback interface. See
 [bibliography.md](bibliography.md) for the source-adapter and writer policy.
+
+The native Markdown writer uses the same resource pattern for bibliography
+entries and a parallel target-descriptor pattern for referenceable blocks.
+This lets it derive links and visible numbers without importing plugin
+implementation details. See [markdown-writer.md](markdown-writer.md) for the
+profile and its explicit degradation policy.

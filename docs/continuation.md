@@ -245,12 +245,14 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Begin a deliberately small Markdown writer vertical slice over the completed
-semantic contracts, keeping plugin-specific lowering in connector modules. It
-should establish explicit unsupported-content behavior before expanding toward
-the Jupyter writer. Theorems/definitions/lemmas, composite figures, external
-listing inclusion, and richer thesis mathematics remain independent plugin
-slices rather than additions to generic document core.
+Build the Jupyter writer as a notebook-container layer over the completed
+Markdown connector contracts. Notebook structure, cell metadata, and binary
+asset policy belong to that writer; semantic plugin lowering should reuse the
+tested Markdown fragments where a Markdown cell has equivalent behavior and
+remain independently registered where it does not. Theorems/definitions/
+lemmas, composite figures, external listing inclusion, and richer thesis
+mathematics remain independent plugin slices rather than additions to generic
+document core.
 
 Current deliberate compromises to reassess later:
 

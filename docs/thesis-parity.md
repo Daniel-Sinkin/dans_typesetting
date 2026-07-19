@@ -104,5 +104,6 @@ Porting these slices exercises variety without copying hundreds of paragraphs:
 6. Composite/subfigure support.
 7. CUDA/raw/optional-caption listings (implemented base contract).
 8. Citations and BibTeX/JSON bibliography (implemented base contract).
-9. Markdown and Jupyter writer conformance over the same fixtures.
+9. Markdown and Jupyter writer conformance over the same fixtures (Markdown
+   base implemented; Jupyter remains).
 10. Final pagination and cross-page editing refinements.
