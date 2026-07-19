@@ -23,7 +23,7 @@ describe("graphical structured display math", () => {
     expect(plugin.numberedOccurrences?.(block)).toEqual([
       {
         occurrenceId: block.lines[0]?.id,
-        numberingSeries: "equation",
+        numberingSeries: "Equation",
       },
     ]);
   });
@@ -57,8 +57,8 @@ describe("graphical structured display math", () => {
     };
 
     expect(plugin.numberedOccurrences?.(block)).toEqual([
-      { occurrenceId: "line-a", numberingSeries: "equation" },
-      { occurrenceId: "line-b", numberingSeries: "equation" },
+      { occurrenceId: "line-a", numberingSeries: "Equation" },
+      { occurrenceId: "line-b", numberingSeries: "Equation" },
     ]);
     expect(plugin.referenceTargets?.(block)).toEqual([
       { referenceId: "eq:a", occurrenceId: "line-a", label: "Equation" },

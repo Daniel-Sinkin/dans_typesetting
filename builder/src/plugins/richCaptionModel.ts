@@ -4,16 +4,18 @@ import type { BuilderInlineNode } from "../model/document";
 export function freezeRichCaption(
   inlines: readonly BuilderInlineNode[],
   context: string,
+  requireContent = true,
 ): readonly BuilderInlineNode[] {
-  validateRichCaption(inlines, context);
+  validateRichCaption(inlines, context, requireContent);
   return Object.freeze([...inlines]);
 }
 
 export function validateRichCaption(
   inlines: readonly BuilderInlineNode[],
   context: string,
+  requireContent = true,
 ): void {
-  if (inlines.length === 0) {
+  if (requireContent && inlines.length === 0) {
     throw new Error(`${context} requires at least one inline node`);
   }
   const inlineIds = new Set<string>();

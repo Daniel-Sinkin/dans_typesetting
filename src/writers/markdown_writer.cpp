@@ -255,7 +255,8 @@ auto MarkdownOutput::reference_link(const ReferenceId& reference_id) const -> st
             "Markdown reference target '" + std::string{reference_id.value()} + "' does not exist"
         };
     }
-    return "[" + target->label + " " + target->number + "](#" + target->anchor + ")";
+    return "[" + escape_markdown_text(target->label) + " " + target->number + "](#" + target->anchor
+           + ")";
 }
 
 auto MarkdownOutput::resource_number(

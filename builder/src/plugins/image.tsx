@@ -15,7 +15,7 @@ export function createImagePlugin(
 ): BuilderBlockPlugin {
   return {
     typeId: imageTypeId,
-    numberingSeries: "figure",
+    numberingSeries: "Figure",
     palette: {
       label: "Image",
       description: "A captioned, referenceable figure",

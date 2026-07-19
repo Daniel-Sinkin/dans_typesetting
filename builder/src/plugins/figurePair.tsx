@@ -29,7 +29,7 @@ export function createFigurePairPlugin(
 ): BuilderBlockPlugin {
   return {
     typeId: figurePairTypeId,
-    numberingSeries: "figure",
+    numberingSeries: "Figure",
     palette: {
       label: "Figure pair",
       description: "Two horizontal panels with rich captions and optional targets",

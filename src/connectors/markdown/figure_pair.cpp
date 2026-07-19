@@ -36,7 +36,7 @@ auto FigurePairMarkdownAdapter::targets(const DocumentBlock& block) const
         .reference_id =
             figure->reference_id().has_value() ? &figure->reference_id().value() : nullptr,
         .label = "Figure",
-        .numbering_series = "figure",
+        .numbering_series = "Figure",
     }};
     constexpr std::array<std::string_view, 2> k_suffixes{"a", "b"};
     const auto panels = figure->panels();
@@ -49,7 +49,7 @@ auto FigurePairMarkdownAdapter::targets(const DocumentBlock& block) const
                 writers::MarkdownTargetDescriptor{
                     .reference_id = &reference_id.value(),
                     .label = "Figure",
-                    .numbering_series = "figure",
+                    .numbering_series = "Figure",
                     .advances_numbering = false,
                     .number_suffix = k_suffixes[index],
                 }

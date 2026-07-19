@@ -31,7 +31,7 @@ auto DisplayMathMarkdownAdapter::targets(const DocumentBlock& block) const
                 writers::MarkdownTargetDescriptor{
                     .reference_id = line.reference_id.has_value() ? &*line.reference_id : nullptr,
                     .label = "Equation",
-                    .numbering_series = "equation",
+                    .numbering_series = "Equation",
                 }
             );
         }

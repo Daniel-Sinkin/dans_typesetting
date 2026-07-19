@@ -116,7 +116,7 @@ describe("source-authored LaTeX mathematics", () => {
     const unnumbered = createLatexMathDisplay("x = y", false, null, "plain");
 
     expect(latexMathDisplayPlugin.numberedOccurrences?.(numbered)).toEqual([
-      { occurrenceId: "source", numberingSeries: "equation" },
+      { occurrenceId: "source", numberingSeries: "Equation" },
     ]);
     expect(latexMathDisplayPlugin.numberedOccurrences?.(unnumbered)).toEqual([]);
     const copyForInsert = latexMathDisplayPlugin.copyForInsert;

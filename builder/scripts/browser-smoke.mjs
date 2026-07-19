@@ -25,7 +25,7 @@ const canonicalFixturePath = join(
 );
 const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
 const sampleBibtexPath = join(resultsDirectory, "sample-bibliography.bib");
-const initialBlockCount = 17;
+const initialBlockCount = 19;
 const initialParagraphSegmentCount = 20;
 
 function assert(condition, message) {
@@ -80,6 +80,17 @@ async function waitForHttp(url, timeoutMs = 12_000) {
     await delay(80);
   }
   throw new Error(`Timed out waiting for ${url}`);
+}
+
+async function waitForBrowserCondition(client, expression, timeoutMs = 12_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await client.evaluate(expression)) {
+      return;
+    }
+    await delay(80);
+  }
+  throw new Error(`Timed out waiting for browser condition: ${expression}`);
 }
 
 async function installedChrome() {
@@ -268,6 +279,13 @@ async function exerciseBuilder(client) {
   await client.send("Page.enable");
   await waitForBuilder(client);
   await delay(700);
+  await waitForBrowserCondition(
+    client,
+    `(() => {
+      const image = document.querySelector("[data-visual-block-id='sample-python-plot'] .python-plot-preview img");
+      return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
+    })()`,
+  );
 
   const initial = await client.evaluate(`(() => {
     const image = document.querySelector(".image-content img");
@@ -305,6 +323,9 @@ async function exerciseBuilder(client) {
       listingCaptionCode: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption .inline-code-content")?.textContent === "std::println",
       drawingPreview: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] img")?.src.startsWith("blob:") ?? false,
       drawingNumber: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] figcaption")?.textContent.includes("Figure 3:") ?? false,
+      pythonPlotPreview: document.querySelector("[data-visual-block-id='sample-python-plot'] .python-plot-preview img")?.src.startsWith("blob:") ?? false,
+      pythonPlotNumber: document.querySelector("[data-visual-block-id='sample-captioned-plot'] .captioned-block-preview__caption")?.textContent.includes("Figure 4:") ?? false,
+      pythonPlotTarget: document.getElementById("dans-reference-fig%3Alive-python-plot") !== null,
       itemListPresentation: document.querySelector("[data-visual-block-id='sample-item-list'] ol")?.dataset.listPresentation ?? null,
       itemListCount: document.querySelectorAll("[data-visual-block-id='sample-item-list'] li").length,
       itemListMath: document.querySelector("[data-visual-block-id='sample-item-list'] .latex-math-inline .katex") !== null,
@@ -355,6 +376,9 @@ async function exerciseBuilder(client) {
   );
   assert(initial.drawingPreview, "The Excalidraw scene was not projected through SVG");
   assert(initial.drawingNumber, "The embedded drawing did not join figure numbering");
+  assert(initial.pythonPlotPreview, "The trusted Python plot was not projected through SVG");
+  assert(initial.pythonPlotNumber, "Captioned did not join shared Figure numbering");
+  assert(initial.pythonPlotTarget, "Captioned did not publish its stable reference target");
   assert(initial.itemListPresentation === "enumerated", "The semantic list presentation was not rendered");
   assert(initial.itemListCount === 3, "The semantic list lost an item");
   assert(initial.itemListMath, "List items did not consume the shared inline-math adapter");
@@ -365,6 +389,51 @@ async function exerciseBuilder(client) {
   assert(initial.tableReference, "The semantic table did not publish a live reference target");
   assert(initial.paddingNested, "Padding did not place its named child sequence inside its bounds");
   assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3"]), "Canvas layering is incorrect");
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-python-plot']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await waitForBrowserCondition(
+    client,
+    `document.querySelector("[data-testid='python-plot-editor'] .python-plot-preview img") instanceof HTMLImageElement`,
+  );
+  const originalPlotPreview = await client.evaluate(
+    `document.querySelector("[data-testid='python-plot-editor'] .python-plot-preview img")?.src ?? ""`,
+  );
+  await client.evaluate(`(() => {
+    const source = document.querySelector("[data-testid='python-plot-source']");
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    setter.call(source, source.value.replace("Live Python / Matplotlib plot", "Browser smoke plot"));
+    source.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await waitForBrowserCondition(
+    client,
+    `(() => {
+      const image = document.querySelector("[data-testid='python-plot-editor'] .python-plot-preview img");
+      return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0 && image.src !== ${JSON.stringify(originalPlotPreview)};
+    })()`,
+  );
+  await screenshot(client, "python-plot-editor.png");
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='python-plot-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Save Python plot")).click();
+  })()`);
+  await delay(150);
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-python-plot']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(100);
+  assert(
+    await client.evaluate(`document.querySelector("[data-testid='python-plot-source']")?.value.includes("Browser smoke plot") ?? false`),
+    "The Python plot editor did not commit trusted source",
+  );
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='python-plot-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.trim() === "Cancel").click();
+  })()`);
+  await delay(100);
 
   await client.evaluate(`(() => {
     const block = document.querySelector("[data-block-id='sample-opaque-block']");

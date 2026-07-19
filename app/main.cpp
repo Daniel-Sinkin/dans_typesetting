@@ -1,4 +1,5 @@
 #include "connectors/latex/bibliography.hpp"
+#include "connectors/latex/captioned.hpp"
 #include "connectors/latex/code_listing.hpp"
 #include "connectors/latex/color_span.hpp"
 #include "connectors/latex/document_shell.hpp"
@@ -14,10 +15,12 @@
 #include "connectors/latex/math.hpp"
 #include "connectors/latex/padding.hpp"
 #include "connectors/latex/paragraph.hpp"
+#include "connectors/latex/python_plot.hpp"
 #include "connectors/latex/reference.hpp"
 #include "connectors/latex/table.hpp"
 #include "document.hpp"
 #include "plugins/bibliography.hpp"
+#include "plugins/captioned.hpp"
 #include "plugins/code_listing.hpp"
 #include "plugins/color_span.hpp"
 #include "plugins/document_shell.hpp"
@@ -34,6 +37,7 @@
 #include "plugins/math_matvec.hpp"
 #include "plugins/padding.hpp"
 #include "plugins/paragraph.hpp"
+#include "plugins/python_plot.hpp"
 #include "plugins/reference.hpp"
 #include "plugins/table.hpp"
 #include "plugins/table_csv.hpp"
@@ -44,13 +48,33 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <print>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <string_view>
 #include <utility>
 
 namespace
 {
+auto read_text_file(const std::filesystem::path& path) -> std::string
+{
+    std::ifstream input{path, std::ios::binary};
+    if (!input)
+    {
+        throw std::runtime_error{"Could not open text asset: " + path.string()};
+    }
+    std::ostringstream contents{};
+    contents << input.rdbuf();
+    if (!contents)
+    {
+        throw std::runtime_error{"Could not read text asset: " + path.string()};
+    }
+    return contents.str();
+}
+
 auto make_energy_equation()
 {
     using M = dans::document::plugins::Math;
@@ -335,6 +359,17 @@ auto make_sample_document()
         DrawingWidth::from_percent(72.0)
     );
 
+    auto& generated_plot = media.blocks().add<Captioned>(
+        "Figure",
+        "A writer-resolved Matplotlib plot whose trusted Python source remains semantic data.",
+        ReferenceId{"fig:python-plot"}
+    );
+    generated_plot.set_content<PythonPlot>(
+        read_text_file(DANS_TYPESETTING_SAMPLE_PYTHON_PLOT_SOURCE),
+        RelativeWidth::from_percent(82.0),
+        PixelExtent{1280, 720}
+    );
+
     auto& figure_reference = media.blocks().add<Paragraph>();
     figure_reference.append_text("The visible number in ");
     figure_reference.inlines().add<Reference>(sample_figure_id);
@@ -347,7 +382,9 @@ auto make_sample_document()
     panel_reference.inlines().add<Reference>(ReferenceId{"fig:model-comparison:left"});
     panel_reference.append_text(", and ");
     panel_reference.inlines().add<Reference>(ReferenceId{"fig:model-comparison:right"});
-    panel_reference.append_text(".");
+    panel_reference.append_text(", and the generic caption wrapper publishes ");
+    panel_reference.inlines().add<Reference>(ReferenceId{"fig:python-plot"});
+    panel_reference.append_text(" without coupling Python to figure semantics.");
 
     auto& mathematics = document.blocks().add<Section>("Display mathematics");
     par_writer(
@@ -537,6 +574,11 @@ auto run(const int argc, char** argv) -> int
             std::make_unique<dans::document::connectors::latex::PaddingLatexAdapter>()
         );
         writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::CaptionedLatexAdapter>(
+                inline_renderer
+            )
+        );
+        writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::TitlePageLatexAdapter>()
         );
         writer.register_block_adapter(
@@ -564,6 +606,13 @@ auto run(const int argc, char** argv) -> int
             std::make_unique<dans::document::connectors::latex::ExcalidrawDrawingLatexAdapter>(
                 [drawing_asset_path](const dans::document::plugins::ExcalidrawDrawing&)
                 { return std::filesystem::path{drawing_asset_path}; }
+            )
+        );
+        const auto python_plot_asset_path = output_path.parent_path() / "sample-python-plot.pdf";
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::PythonPlotLatexAdapter>(
+                [python_plot_asset_path](const dans::document::plugins::PythonPlot&)
+                { return std::filesystem::path{python_plot_asset_path}; }
             )
         );
         writer.register_block_adapter(

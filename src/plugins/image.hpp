@@ -4,6 +4,7 @@
 
 #include "document.hpp"
 #include "plugins/inline_sequence.hpp"
+#include "plugins/media.hpp"
 #include "reference_id.hpp"
 
 #include <filesystem>
@@ -25,23 +26,6 @@ class ImageSource final
     std::filesystem::path path_{};
 };
 
-// Author intent expressed relative to the width offered by the containing
-// layout context. A LaTeX figure maps this to \linewidth.
-class RelativeWidth final
-{
-  public:
-    RelativeWidth() = default;
-
-    [[nodiscard]] static auto from_fraction(f64 fraction) -> RelativeWidth;
-    [[nodiscard]] static auto from_percent(f64 percent) -> RelativeWidth;
-    [[nodiscard]] auto fraction() const noexcept -> f64;
-
-  private:
-    explicit RelativeWidth(f64 fraction, int) noexcept;
-
-    f64 fraction_{1.0};
-};
-
 class InlineImageHeight final
 {
   public:
@@ -52,22 +36,6 @@ class InlineImageHeight final
 
   private:
     f64 em_{1.0};
-};
-
-// A preferred image-layout box in logical pixels. It intentionally does not
-// prescribe a physical DPI: pixel-native exporters can honor it directly,
-// while print exporters decide how (or whether) to map it into physical units.
-class PixelExtent final
-{
-  public:
-    PixelExtent(u32 width, u32 height);
-
-    [[nodiscard]] auto width() const noexcept -> u32;
-    [[nodiscard]] auto height() const noexcept -> u32;
-
-  private:
-    u32 width_{};
-    u32 height_{};
 };
 
 // A small image participating in an Inline Sequence. Its height

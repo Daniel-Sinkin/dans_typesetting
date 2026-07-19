@@ -11,7 +11,7 @@ import { DrawingScenePreview } from "./drawingPreview";
 
 export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
   typeId: excalidrawDrawingTypeId,
-  numberingSeries: "figure",
+  numberingSeries: "Figure",
   palette: {
     label: "Excalidraw drawing",
     description: "A bounded scene edited directly inside the document",

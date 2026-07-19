@@ -30,7 +30,7 @@ export function createMathPlugin(
 ): BuilderBlockPlugin {
   return {
     typeId: mathDisplayTypeId,
-    numberingSeries: "equation",
+    numberingSeries: "Equation",
     palette: {
       label: "Display math",
       description: "A structured, recursively nested equation",
@@ -58,7 +58,7 @@ export function createMathPlugin(
         .filter((line) => line.numbered)
         .map((line) => ({
           occurrenceId: line.id,
-          numberingSeries: "equation",
+          numberingSeries: "Equation",
         }));
     },
     referenceTargets(block) {

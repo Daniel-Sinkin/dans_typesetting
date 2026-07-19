@@ -2,8 +2,10 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+import { pythonPlotRendererPlugin } from "./src/server/pythonPlotServer";
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), pythonPlotRendererPlugin()],
   define: {
     "process.env.IS_PREACT": JSON.stringify("false"),
   },

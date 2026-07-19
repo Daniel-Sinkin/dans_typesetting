@@ -84,7 +84,7 @@ auto TableMarkdownAdapter::targets(const DocumentBlock& block) const
     return {{
         .reference_id = table->reference_id().has_value() ? &*table->reference_id() : nullptr,
         .label = "Table",
-        .numbering_series = "table",
+        .numbering_series = "Table",
     }};
 }
 

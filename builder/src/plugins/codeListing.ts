@@ -19,7 +19,7 @@ export function createCodeListingPlugin(
 ): BuilderBlockPlugin {
   return {
     typeId: codeListingTypeId,
-    numberingSeries: "listing",
+    numberingSeries: "Listing",
     palette: {
       label: "Code listing",
       description: "C++, CUDA, Julia, or unclassified source text",

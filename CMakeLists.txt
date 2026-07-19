@@ -215,6 +215,20 @@ target_link_libraries(padding_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(captioned_plugin STATIC
+  src/plugins/captioned.cpp
+  src/plugins/captioned.hpp
+)
+add_library(dans::captioned_plugin ALIAS captioned_plugin)
+target_link_libraries(captioned_plugin
+  PUBLIC
+    dans::document_core
+    dans::inline_sequence
+  PRIVATE
+    dans::text_plugin
+    typesetter_warnings
+)
+
 add_library(table_csv_plugin STATIC
   src/plugins/table_csv.cpp
   src/plugins/table_csv.hpp
@@ -279,16 +293,40 @@ target_link_libraries(hyperlink_plugin
     typesetter_warnings
 )
 
+add_library(media_plugin STATIC
+  src/plugins/media.cpp
+  src/plugins/media.hpp
+)
+add_library(dans::media_plugin ALIAS media_plugin)
+target_link_libraries(media_plugin
+  PUBLIC dans::document_core
+  PRIVATE typesetter_warnings
+)
+
 add_library(image_plugin STATIC
   src/plugins/image.cpp
   src/plugins/image.hpp
 )
 add_library(dans::image_plugin ALIAS image_plugin)
 target_link_libraries(image_plugin
-  PUBLIC dans::inline_sequence
+  PUBLIC
+    dans::inline_sequence
+    dans::media_plugin
   PRIVATE
     dans::text_plugin
     typesetter_warnings
+)
+
+add_library(python_plot_plugin STATIC
+  src/plugins/python_plot.cpp
+  src/plugins/python_plot.hpp
+)
+add_library(dans::python_plot_plugin ALIAS python_plot_plugin)
+target_link_libraries(python_plot_plugin
+  PUBLIC
+    dans::document_core
+    dans::media_plugin
+  PRIVATE typesetter_warnings
 )
 
 add_library(figure_pair_plugin STATIC
@@ -502,6 +540,19 @@ target_link_libraries(latex_mixin_latex_connector
     typesetter_warnings
 )
 
+add_library(captioned_latex_connector STATIC
+  src/connectors/latex/captioned.cpp
+  src/connectors/latex/captioned.hpp
+)
+add_library(dans::captioned_latex_connector ALIAS captioned_latex_connector)
+target_link_libraries(captioned_latex_connector
+  PUBLIC
+    dans::captioned_plugin
+    dans::inline_sequence_latex_connector
+    dans::latex_writer
+  PRIVATE typesetter_warnings
+)
+
 add_library(color_span_latex_connector STATIC
   src/connectors/latex/color_span.cpp
   src/connectors/latex/color_span.hpp
@@ -565,6 +616,19 @@ target_link_libraries(image_latex_connector
     dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
+)
+
+add_library(python_plot_latex_connector STATIC
+  src/connectors/latex/python_plot.cpp
+  src/connectors/latex/python_plot.hpp
+  src/connectors/latex/graphics.hpp
+)
+add_library(dans::python_plot_latex_connector ALIAS python_plot_latex_connector)
+target_link_libraries(python_plot_latex_connector
+  PUBLIC
+    dans::python_plot_plugin
+    dans::latex_writer
+  PRIVATE typesetter_warnings
 )
 
 add_library(figure_pair_latex_connector STATIC
@@ -840,6 +904,31 @@ target_link_libraries(math_markdown_connector
     typesetter_warnings
 )
 
+add_library(captioned_markdown_connector STATIC
+  src/connectors/markdown/captioned.cpp
+  src/connectors/markdown/captioned.hpp
+)
+add_library(dans::captioned_markdown_connector ALIAS captioned_markdown_connector)
+target_link_libraries(captioned_markdown_connector
+  PUBLIC
+    dans::captioned_plugin
+    dans::inline_sequence_markdown_connector
+    dans::markdown_writer
+  PRIVATE typesetter_warnings
+)
+
+add_library(python_plot_markdown_connector STATIC
+  src/connectors/markdown/python_plot.cpp
+  src/connectors/markdown/python_plot.hpp
+)
+add_library(dans::python_plot_markdown_connector ALIAS python_plot_markdown_connector)
+target_link_libraries(python_plot_markdown_connector
+  PUBLIC
+    dans::python_plot_plugin
+    dans::markdown_writer
+  PRIVATE typesetter_warnings
+)
+
 add_library(latex_math_markdown_connector STATIC
   src/connectors/markdown/latex_math.cpp
   src/connectors/markdown/latex_math.hpp
@@ -885,10 +974,12 @@ add_executable(document_example
 )
 target_link_libraries(document_example PRIVATE
   dans::bibliography_latex_connector
+  dans::captioned_latex_connector
   dans::code_listing_latex_connector
   dans::color_span_latex_connector
   dans::paragraph_latex_connector
   dans::padding_latex_connector
+  dans::python_plot_latex_connector
   dans::document_shell_latex_connector
   dans::excalidraw_drawing_latex_connector
   dans::figure_pair_latex_connector
@@ -953,6 +1044,24 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_padding_test COMMAND native_padding_test)
+
+  add_executable(native_captioned_python_plot_test
+    tests/native_captioned_python_plot_test.cpp
+  )
+  target_link_libraries(native_captioned_python_plot_test PRIVATE
+    dans::captioned_latex_connector
+    dans::captioned_markdown_connector
+    dans::image_latex_connector
+    dans::image_markdown_connector
+    dans::paragraph_latex_connector
+    dans::paragraph_markdown_connector
+    dans::python_plot_latex_connector
+    dans::python_plot_markdown_connector
+    dans::reference_latex_connector
+    dans::reference_markdown_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_captioned_python_plot_test COMMAND native_captioned_python_plot_test)
 
   add_executable(native_excalidraw_drawing_test
     tests/native_excalidraw_drawing_test.cpp
@@ -1107,6 +1216,7 @@ endif()
 find_program(TYPESETTING_LATEXMK_EXECUTABLE NAMES latexmk REQUIRED)
 find_program(TYPESETTING_LUALATEX_EXECUTABLE NAMES lualatex REQUIRED)
 find_program(TYPESETTING_RSVG_CONVERT_EXECUTABLE NAMES rsvg-convert REQUIRED)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 set(TYPESETTING_SAMPLE_TEX "${CMAKE_CURRENT_BINARY_DIR}/sample-document.tex")
 set(TYPESETTING_SAMPLE_PDF "${CMAKE_CURRENT_BINARY_DIR}/sample-document.pdf")
@@ -1114,6 +1224,13 @@ set(TYPESETTING_SAMPLE_IMAGE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/assets/sample-i
 set(TYPESETTING_SAMPLE_IMAGE_PDF "${CMAKE_CURRENT_BINARY_DIR}/sample-image.pdf")
 set(TYPESETTING_SAMPLE_EXCALIDRAW_SVG "${CMAKE_CURRENT_SOURCE_DIR}/assets/sample-excalidraw.svg")
 set(TYPESETTING_SAMPLE_EXCALIDRAW_PDF "${CMAKE_CURRENT_BINARY_DIR}/sample-excalidraw.pdf")
+set(TYPESETTING_SAMPLE_PYTHON_PLOT_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/assets/sample-python-plot.py")
+set(TYPESETTING_SAMPLE_PYTHON_PLOT_PDF "${CMAKE_CURRENT_BINARY_DIR}/sample-python-plot.pdf")
+set(TYPESETTING_PYTHON_PLOT_RENDERER "${CMAKE_CURRENT_SOURCE_DIR}/builder/scripts/render_python_plot.py")
+
+target_compile_definitions(document_example PRIVATE
+  DANS_TYPESETTING_SAMPLE_PYTHON_PLOT_SOURCE="${TYPESETTING_SAMPLE_PYTHON_PLOT_SOURCE}"
+)
 
 add_custom_command(
   OUTPUT "${TYPESETTING_SAMPLE_IMAGE_PDF}"
@@ -1136,8 +1253,25 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${TYPESETTING_SAMPLE_TEX}"
   COMMAND $<TARGET_FILE:document_example> "${TYPESETTING_SAMPLE_TEX}"
-  DEPENDS document_example
+  DEPENDS
+    document_example
+    "${TYPESETTING_SAMPLE_PYTHON_PLOT_SOURCE}"
   COMMENT "Serializing the sample document model to LaTeX"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT "${TYPESETTING_SAMPLE_PYTHON_PLOT_PDF}"
+  COMMAND "${Python3_EXECUTABLE}"
+    "${TYPESETTING_PYTHON_PLOT_RENDERER}"
+    --source "${TYPESETTING_SAMPLE_PYTHON_PLOT_SOURCE}"
+    --output "${TYPESETTING_SAMPLE_PYTHON_PLOT_PDF}"
+    --width 1280
+    --height 720
+  DEPENDS
+    "${TYPESETTING_PYTHON_PLOT_RENDERER}"
+    "${TYPESETTING_SAMPLE_PYTHON_PLOT_SOURCE}"
+  COMMENT "Rendering the sample trusted Python plot asset"
   VERBATIM
 )
 
@@ -1165,6 +1299,7 @@ add_custom_command(
     "${TYPESETTING_SAMPLE_TEX}"
     "${TYPESETTING_SAMPLE_EXCALIDRAW_PDF}"
     "${TYPESETTING_SAMPLE_IMAGE_PDF}"
+    "${TYPESETTING_SAMPLE_PYTHON_PLOT_PDF}"
   BYPRODUCTS
     "${CMAKE_CURRENT_BINARY_DIR}/sample-document.aux"
     "${CMAKE_CURRENT_BINARY_DIR}/sample-document.fdb_latexmk"

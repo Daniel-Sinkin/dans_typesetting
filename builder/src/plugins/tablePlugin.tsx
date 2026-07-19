@@ -23,7 +23,7 @@ export function createTablePlugin(
 ): BuilderBlockPlugin {
   return {
     typeId: tableTypeId,
-    numberingSeries: "table",
+    numberingSeries: "Table",
     palette: {
       label: "Table",
       description: "A numbered rectangular grid of inline-rich cells",

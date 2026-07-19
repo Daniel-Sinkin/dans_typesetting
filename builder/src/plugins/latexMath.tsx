@@ -42,7 +42,7 @@ export const latexMathInlinePlugin: BuilderInlinePlugin = {
 
 export const latexMathDisplayPlugin: BuilderBlockPlugin = {
   typeId: latexMathDisplayTypeId,
-  numberingSeries: "equation",
+  numberingSeries: "Equation",
   palette: {
     label: "Display math",
     description: "LaTeX math source inside implicit $$ delimiters",
@@ -55,7 +55,7 @@ export const latexMathDisplayPlugin: BuilderBlockPlugin = {
   numberedOccurrences(block) {
     const math = requireLatexMathDisplay(block);
     return math.numbered
-      ? [{ occurrenceId: math.id, numberingSeries: "equation" }]
+      ? [{ occurrenceId: math.id, numberingSeries: "Equation" }]
       : [];
   },
   referenceTargets(block) {

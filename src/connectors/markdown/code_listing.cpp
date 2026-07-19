@@ -73,7 +73,7 @@ auto CodeListingMarkdownAdapter::targets(const DocumentBlock& block) const
     return {{
         .reference_id = listing->reference_id().has_value() ? &*listing->reference_id() : nullptr,
         .label = "Listing",
-        .numbering_series = "listing",
+        .numbering_series = "Listing",
     }};
 }
 

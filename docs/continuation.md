@@ -3,6 +3,26 @@
 This file records recovery information for a fresh development session. Update
 it at every milestone rather than relying on conversation history.
 
+## Current Captioned/Python-plot milestone
+
+The tranche after `f5481ed` adds `dans.layout.captioned` and
+`dans.plot.python` across native and browser implementations. Captioned owns an
+optional case-sensitive string category, optional target, rich caption, and
+exactly one generic child. PythonPlot owns only trusted source, relative width,
+and target extent. The active sample wraps the plot as `Figure 4`.
+
+The builder executes trusted source through a bounded local Vite subprocess
+capability and displays returned SVG via a Blob image. CMake calls the same
+Python renderer to create the PDF asset used by the native LaTeX example.
+Generated assets are never canonical payload data. Tests cover real rendering,
+diagnostics, timeout, browser edit/save/reopen, canonical round trips, shared
+numbering, native connectors, and compiled PDF output. See `captioned.md` and
+`python-plots.md`.
+
+The next planned compositional slice remains Grid: generic block-bearing cells,
+gaps, and edge information, with Table retaining its independent
+InlineSequence-cell contract.
+
 ## Verified checkpoints
 
 Commit `bfe1471` contains the native LaTeX prototype and the first Excalidraw

@@ -74,6 +74,8 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Rich table | `dans.table` |
 | References block | `dans.bibliography.references` |
 | Padding | `dans.layout.padding` |
+| Generic caption wrapper | `dans.layout.captioned` |
+| Trusted Python plot | `dans.plot.python` |
 
 Adding a plugin is not complete merely because its native class exists. A
 complete vertical slice needs semantic data, validation, at least one useful
@@ -120,6 +122,21 @@ The graphical adapter must measure and place every endpoint it exposes. Section
 depth and table-of-contents traversal. See
 [nested-block-sequences.md](nested-block-sequences.md) and
 [padding.md](padding.md).
+
+## Generic captions and generated media
+
+`Captioned` is a compositional block with exactly one child endpoint. Its
+optional category string is semantic numbering-series identity, its optional
+reference ID is target identity, and its Inline Sequence contains only the
+author's caption. Writers derive ordinals and generated prefixes. Existing
+specialized figures/tables/listings remain independent plugins but publish the
+same capitalized category strings, avoiding inheritance or an exhaustive enum.
+
+`PythonPlot` is a separate uncaptioned source block. It stores trusted Python,
+relative width, and target pixel extent; browser SVG and publication PDF files
+are writer-owned projections supplied through an execution capability or asset
+resolver. See [captioned.md](captioned.md) and
+[python-plots.md](python-plots.md).
 
 ## Canonical transport
 

@@ -76,6 +76,10 @@ import {
 } from "../plugins/latexMathModel";
 import { paddingPlugin } from "../plugins/padding";
 import { createPaddingBlock } from "../plugins/paddingModel";
+import { createCaptionedPlugin } from "../plugins/captioned";
+import { createCaptionedBlock } from "../plugins/captionedModel";
+import { pythonPlotPlugin } from "../plugins/pythonPlot";
+import { createPythonPlotBlock } from "../plugins/pythonPlotModel";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -282,6 +286,18 @@ const initialBlocks = [
     canvasHeight: 390,
     scene: createSampleExcalidrawScene(),
   }),
+  createCaptionedBlock(
+    "sample-captioned-plot",
+    createPythonPlotBlock("sample-python-plot"),
+    "Figure",
+    [
+      createText(
+        "A live Matplotlib plot generated from editable Python source.",
+        "sample-python-plot-caption",
+      ),
+    ],
+    "fig:live-python-plot",
+  ),
   createLatexMathDisplay(
     String.raw`\begin{aligned}
 (1 + 2) - 3
@@ -479,6 +495,11 @@ const pluginRegistry = new BuilderPluginRegistry(
     createItemListPlugin(inlinePluginRegistry),
     createTablePlugin(inlinePluginRegistry, tableCsvCapability),
     paddingPlugin,
+    pythonPlotPlugin,
+    createCaptionedPlugin(
+      inlinePluginRegistry,
+      (blockId) => pythonPlotPlugin.createDefault(blockId),
+    ),
     createBibliographyPlugin(bibliographySourceCapability),
   ],
   opaqueBlockAdapter,

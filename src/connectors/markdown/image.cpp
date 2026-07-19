@@ -53,7 +53,7 @@ auto FigureMarkdownAdapter::targets(const DocumentBlock& block) const
         .reference_id =
             figure->reference_id().has_value() ? &figure->reference_id().value() : nullptr,
         .label = "Figure",
-        .numbering_series = "figure",
+        .numbering_series = "Figure",
     }};
 }
 

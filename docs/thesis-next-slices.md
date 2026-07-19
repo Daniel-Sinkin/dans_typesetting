@@ -12,6 +12,12 @@ tabulars, 22 `lstlisting` plus 8 `verbatim` blocks, 24 `pmatrix`, 5 `bmatrix`,
 
 ## Completed slices
 
+**Generic captions and live Python plots** are implemented. One-child
+`Captioned` wrappers provide string-keyed shared numbering, rich captions, and
+optional targets without coupling those concerns to generated media. Trusted
+NumPy/Matplotlib source has live SVG authoring and writer-resolved PDF/Markdown
+assets, with exact browser persistence and a compiled publication sample.
+
 **Optional figure and figure-pair targets** are implemented. Forty-six figures
 have captions without labels and four of five figure pairs have no group label.
 Ordinary figures and pair groups now keep their writer-owned numbering while

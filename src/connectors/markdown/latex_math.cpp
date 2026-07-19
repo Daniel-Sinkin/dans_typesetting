@@ -27,7 +27,7 @@ auto LatexMathDisplayMarkdownAdapter::targets(const DocumentBlock& block) const
     return {writers::MarkdownTargetDescriptor{
         .reference_id = math->reference_id().has_value() ? &*math->reference_id() : nullptr,
         .label = "Equation",
-        .numbering_series = "equation",
+        .numbering_series = "Equation",
     }};
 }
 

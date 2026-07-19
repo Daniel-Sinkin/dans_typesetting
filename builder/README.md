@@ -3,6 +3,7 @@
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
 be projected as one vertically growing continuous view, as whole-block A4 pages, or as 16:9 slides. Paragraph,
 image, two-panel figure, embedded-drawing, semantic-list, rich-table, bibliography, code-listing,
+generic-caption, trusted-Python-plot,
 text-authored math, title-page, table-of-contents, page-break, and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
 optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
@@ -17,6 +18,18 @@ targets, and controls; the owning plugin adapter supplies measurement and
 placement. The Padding plugin is the first ordinary composite and makes its
 single inset `content` sequence directly draggable. See
 `../docs/nested-block-sequences.md`.
+
+`Captioned` is a generic one-child composition block. Its optional string
+category joins writer-derived numbering (for example `Figure`), while its rich
+caption and optional reference remain independent of the nested plugin. The
+sample wraps an uncaptioned Python plot and demonstrates that existing figures
+and generated plots share live numbering.
+
+Python-plot editing executes explicitly trusted local source through a bounded
+Vite capability and displays the returned SVG through an image boundary. It is
+not a sandbox. The editor preloads `np`/`plt`, live-updates source and sizing,
+and persists only source plus rendering intent. See
+`../docs/python-plots.md`.
 
 The graphical writer may be incomplete by design. A registered block type uses its adapter; an
 unknown type is preserved by `DocumentPort` and rendered through one visible opaque-block fallback.

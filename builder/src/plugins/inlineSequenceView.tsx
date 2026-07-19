@@ -30,6 +30,7 @@ export interface InlineSequenceEditorProps {
   readonly registry: BuilderInlinePluginRegistry;
   readonly context: BuilderInlineRenderContext;
   readonly onChange: (inlines: readonly BuilderInlineNode[]) => void;
+  readonly allowEmpty?: boolean;
 }
 
 function moveEntry<T>(entries: readonly T[], from: number, to: number): readonly T[] {
@@ -51,6 +52,7 @@ export function InlineSequenceEditor({
   registry,
   context,
   onChange,
+  allowEmpty = false,
 }: InlineSequenceEditorProps) {
   return (
     <section className="inline-sequence-editor">
@@ -101,7 +103,7 @@ export function InlineSequenceEditor({
                 <button
                   className="danger-action"
                   type="button"
-                  disabled={inlines.length === 1}
+                  disabled={!allowEmpty && inlines.length === 1}
                   onClick={() => {
                     onChange(inlines.filter((candidate) => candidate.id !== inline.id));
                   }}
