@@ -14,7 +14,7 @@ auto InlineImageLatexAdapter::inline_type_id() const noexcept -> std::string_vie
 }
 
 auto InlineImageLatexAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphLatexOutput& output
+    const plugins::InlineNode& node, InlineLatexOutput& output
 ) const -> void
 {
     const auto* image = dynamic_cast<const plugins::InlineImage*>(&node);
@@ -30,9 +30,7 @@ auto InlineImageLatexAdapter::serialize(
     output.write_raw("}}");
 }
 
-FigureLatexAdapter::FigureLatexAdapter(
-    std::shared_ptr<const CoreParagraphInlineLatexRenderer> inline_renderer
-)
+FigureLatexAdapter::FigureLatexAdapter(std::shared_ptr<const InlineLatexRenderer> inline_renderer)
     : inline_renderer_{std::move(inline_renderer)}
 {
     if (inline_renderer_ == nullptr)

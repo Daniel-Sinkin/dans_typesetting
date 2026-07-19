@@ -11,7 +11,7 @@ auto FootnoteLatexAdapter::inline_type_id() const noexcept -> std::string_view
 }
 
 auto FootnoteLatexAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphLatexOutput& output
+    const plugins::InlineNode& node, InlineLatexOutput& output
 ) const -> void
 {
     const auto* footnote = dynamic_cast<const plugins::Footnote*>(&node);

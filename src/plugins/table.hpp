@@ -1,8 +1,10 @@
-// Semantic rich-table data extending the Core Paragraph inline contract.
+// Semantic rich-table data consuming the shared Inline Sequence contract.
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_TABLE_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_TABLE_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "document.hpp"
+#include "plugins/inline_sequence.hpp"
+#include "plugins/text.hpp"
 #include "reference_id.hpp"
 
 #include <memory>
@@ -25,7 +27,7 @@ class TableCell final
   public:
     [[nodiscard]] auto inlines() noexcept -> InlineSequence&;
     [[nodiscard]] auto inlines() const noexcept -> const InlineSequence&;
-    auto append_text(std::string_view text, TextStyle style = TextStyle::normal) -> CoreText&;
+    auto append_text(std::string_view text, TextStyle style = TextStyle::normal) -> Text&;
 
   private:
     InlineSequence inlines_{};

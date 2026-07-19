@@ -8,8 +8,8 @@ import type { ImageBlock } from "../plugins/imageModel";
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import {
   opaqueInlineAdapter,
-  paragraphTextInlinePlugin,
-} from "../plugins/paragraphInline";
+  textInlinePlugin,
+} from "../plugins/text";
 import { sectionPlugin } from "../plugins/documentShell";
 import {
   createMathDisplayLine,
@@ -22,7 +22,7 @@ import { createMathIdentifier } from "../model/math";
 import { createMathPlugin } from "../plugins/mathPlugin";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
-  [paragraphTextInlinePlugin],
+  [textInlinePlugin],
   opaqueInlineAdapter,
 );
 const imagePlugin = createImagePlugin(inlineRegistry);

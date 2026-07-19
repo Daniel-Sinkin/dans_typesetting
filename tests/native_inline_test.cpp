@@ -1,13 +1,13 @@
 // tests/native_inline_test.cpp — exercise semantic prose through the LaTeX connector boundary.
-#include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/footnote.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/inline_code.hpp"
+#include "connectors/latex/paragraph.hpp"
 #include "document.hpp"
-#include "plugins/core_paragraph.hpp"
 #include "plugins/footnote.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/inline_code.hpp"
+#include "plugins/paragraph.hpp"
 #include "writers/latex_writer.hpp"
 
 #include <memory>
@@ -37,7 +37,7 @@ auto render_sample() -> std::string
     using namespace dans::document::plugins;
 
     Document document{Metadata{.major = 1, .minor = 0, .patch = 0}};
-    auto& paragraph = document.blocks().add<CoreParagraph>();
+    auto& paragraph = document.blocks().add<Paragraph>();
     paragraph.append_text("plain & safe; ");
     paragraph.append_text("bold", TextStyle::bold);
     paragraph.append_text("; ");
@@ -48,19 +48,19 @@ auto render_sample() -> std::string
     paragraph.inlines().add<Hyperlink>("https://example.com/a_b?x=1&y=2#result");
     paragraph.append_text("; ");
     auto& labelled = paragraph.inlines().add<Hyperlink>("www.example.com/results");
-    labelled.label().add<CoreText>("label", TextStyle::bold);
+    labelled.label().add<Text>("label", TextStyle::bold);
     paragraph.append_text("; note");
     auto& footnote = paragraph.inlines().add<Footnote>();
     footnote.append_text("See ");
     auto& footnote_link = footnote.inlines().add<Hyperlink>("https://example.com/source");
-    footnote_link.label().add<CoreText>("source", TextStyle::italic);
+    footnote_link.label().add<Text>("source", TextStyle::italic);
     paragraph.append_text("; code ");
     paragraph.inlines().add<InlineCode>(R"(block_size<&>{}_50%$#~^\)");
 
     auto inline_renderer =
-        std::make_shared<dans::document::connectors::latex::CoreParagraphInlineLatexRenderer>();
+        std::make_shared<dans::document::connectors::latex::InlineLatexRenderer>();
     inline_renderer->register_inline_adapter(
-        std::make_unique<dans::document::connectors::latex::CoreTextLatexAdapter>()
+        std::make_unique<dans::document::connectors::latex::TextLatexAdapter>()
     );
     inline_renderer->register_inline_adapter(
         std::make_unique<dans::document::connectors::latex::HyperlinkLatexAdapter>()
@@ -74,9 +74,7 @@ auto render_sample() -> std::string
 
     dans::document::writers::LatexWriter writer;
     writer.register_block_adapter(
-        std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(
-            inline_renderer
-        )
+        std::make_unique<dans::document::connectors::latex::ParagraphLatexAdapter>(inline_renderer)
     );
     std::ostringstream output;
     writer.serialize(document, output);
@@ -115,7 +113,7 @@ auto expect_invalid_footnote_content() -> void
     const auto rejected = [](const bool nested)
     {
         Document document{Metadata{.major = 1, .minor = 0, .patch = 0}};
-        auto& paragraph = document.blocks().add<CoreParagraph>("Text");
+        auto& paragraph = document.blocks().add<Paragraph>("Text");
         auto& footnote = paragraph.inlines().add<Footnote>();
         if (nested)
         {
@@ -123,16 +121,16 @@ auto expect_invalid_footnote_content() -> void
         }
 
         auto inline_renderer =
-            std::make_shared<dans::document::connectors::latex::CoreParagraphInlineLatexRenderer>();
+            std::make_shared<dans::document::connectors::latex::InlineLatexRenderer>();
         inline_renderer->register_inline_adapter(
-            std::make_unique<dans::document::connectors::latex::CoreTextLatexAdapter>()
+            std::make_unique<dans::document::connectors::latex::TextLatexAdapter>()
         );
         inline_renderer->register_inline_adapter(
             std::make_unique<dans::document::connectors::latex::FootnoteLatexAdapter>()
         );
         dans::document::writers::LatexWriter writer;
         writer.register_block_adapter(
-            std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(
+            std::make_unique<dans::document::connectors::latex::ParagraphLatexAdapter>(
                 inline_renderer
             )
         );

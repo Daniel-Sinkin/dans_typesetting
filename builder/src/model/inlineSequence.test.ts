@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { createParagraphText } from "./document";
+import { createText } from "./document";
 import { insertInlineNode, moveInlineNode, removeInlineNode } from "./inlineSequence";
 
-const one = createParagraphText("one", "one");
-const two = createParagraphText("two", "two");
-const three = createParagraphText("three", "three");
+const one = createText("one", "one");
+const two = createText("two", "two");
+const three = createText("three", "three");
 
 describe("inline-sequence operations", () => {
   it("inserts and removes stable inline nodes", () => {
@@ -38,8 +38,8 @@ describe("inline-sequence operations", () => {
 
   it("rejects invalid positions and duplicate IDs", () => {
     expect(() => insertInlineNode([one], 2, two)).toThrow(RangeError);
-    expect(() => insertInlineNode([one], 1, createParagraphText("copy", "one"))).toThrow(
-      /Duplicate paragraph inline ID/,
+    expect(() => insertInlineNode([one], 1, createText("copy", "one"))).toThrow(
+      /Duplicate inline ID/,
     );
     expect(() => removeInlineNode([one], 1)).toThrow(RangeError);
     expect(() => moveInlineNode([one], 0, 2)).toThrow(RangeError);

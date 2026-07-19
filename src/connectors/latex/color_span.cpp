@@ -13,9 +13,8 @@ auto ColorSpanLatexAdapter::inline_type_id() const noexcept -> std::string_view
     return ColorSpan::k_type_id;
 }
 
-auto ColorSpanLatexAdapter::serialize(
-    const InlineNode& node, CoreParagraphLatexOutput& output
-) const -> void
+auto ColorSpanLatexAdapter::serialize(const InlineNode& node, InlineLatexOutput& output) const
+    -> void
 {
     const auto* color_span = dynamic_cast<const ColorSpan*>(&node);
     if (color_span == nullptr)

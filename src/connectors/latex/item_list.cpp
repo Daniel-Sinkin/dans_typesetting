@@ -7,7 +7,7 @@
 namespace dans::document::connectors::latex
 {
 ItemListLatexAdapter::ItemListLatexAdapter(
-    std::shared_ptr<const CoreParagraphInlineLatexRenderer> inline_renderer
+    std::shared_ptr<const InlineLatexRenderer> inline_renderer
 )
     : inline_renderer_{std::move(inline_renderer)}
 {

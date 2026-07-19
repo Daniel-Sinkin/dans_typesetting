@@ -1,7 +1,7 @@
 #ifndef DANS_TYPESETTING_SRC_CONNECTORS_LATEX_LATEX_MIXIN_HPP
 #define DANS_TYPESETTING_SRC_CONNECTORS_LATEX_LATEX_MIXIN_HPP
 
-#include "connectors/latex/core_paragraph.hpp"
+#include "connectors/latex/inline_sequence.hpp"
 #include "plugins/latex_mixin.hpp"
 
 #include <string_view>
@@ -15,11 +15,11 @@ class LatexBlockAdapter final : public writers::LatexBlockAdapter
     auto serialize(const DocumentBlock& block, writers::LatexOutput& output) const -> void override;
 };
 
-class InlineLatexAdapter final : public CoreParagraphInlineLatexAdapter
+class RawInlineLatexAdapter final : public InlineLatexAdapter
 {
   public:
     [[nodiscard]] auto inline_type_id() const noexcept -> std::string_view override;
-    auto serialize(const plugins::InlineNode& node, CoreParagraphLatexOutput& output) const
+    auto serialize(const plugins::InlineNode& node, InlineLatexOutput& output) const
         -> void override;
 };
 }  // namespace dans::document::connectors::latex

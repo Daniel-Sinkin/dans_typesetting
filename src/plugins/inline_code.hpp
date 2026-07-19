@@ -2,7 +2,7 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_INLINE_CODE_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_INLINE_CODE_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "plugins/inline_sequence.hpp"
 
 #include <string>
 #include <string_view>

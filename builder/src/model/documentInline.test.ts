@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createHyperlinkInline,
   createMathInline,
-  createParagraphText,
+  createText,
   MemoryDocumentPort,
   paragraphTypeId,
   type BuilderInlineNode,
@@ -17,7 +17,7 @@ function paragraph(inlines: readonly BuilderInlineNode[]): ParagraphBlock {
 
 describe("paragraph inline transport", () => {
   it("uses the same semantic paragraph IDs and explicit text styles as native C++", () => {
-    const text = createParagraphText("important", "text", "bold_italic");
+    const text = createText("important", "text", "bold_italic");
     expect(paragraphTypeId).toBe("dans.core.paragraph");
     expect(text).toEqual({
       id: "text",
@@ -43,7 +43,7 @@ describe("paragraph inline transport", () => {
     const targetOnly = createHyperlinkInline("www.example.com", [], "target-only");
     const labelled = createHyperlinkInline(
       "https://example.com/results",
-      [createParagraphText("results", "label", "bold")],
+      [createText("results", "label", "bold")],
       "labelled",
     );
     expect(() => new MemoryDocumentPort([paragraph([targetOnly, labelled])])).not.toThrow();

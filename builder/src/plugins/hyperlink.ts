@@ -1,10 +1,10 @@
-// Register semantic hyperlinks with the Core Paragraph graphical contract.
+// Register semantic hyperlinks with the shared Inline Sequence contract.
 import { createElement } from "react";
 
 import type { BuilderInlinePlugin } from "../builder/inlinePlugin";
 import {
   createHyperlinkInline,
-  createParagraphText,
+  createText,
   hyperlinkInlineTypeId,
 } from "../model/document";
 import { HyperlinkEditor, HyperlinkPreview } from "./hyperlinkView";
@@ -22,7 +22,7 @@ export const hyperlinkInlinePlugin: BuilderInlinePlugin = {
   createDefault(inlineId) {
     return createHyperlinkInline(
       "https://example.com",
-      [createParagraphText("Example link")],
+      [createText("Example link")],
       inlineId,
     );
   },

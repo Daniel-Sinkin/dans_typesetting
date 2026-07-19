@@ -1,6 +1,6 @@
 // Verify semantic listing modes, optional metadata, and LaTeX lowering.
 #include "connectors/latex/code_listing.hpp"
-#include "connectors/latex/core_paragraph.hpp"
+#include "connectors/latex/paragraph.hpp"
 #include "document.hpp"
 #include "plugins/code_listing.hpp"
 #include "reference_id.hpp"
@@ -19,8 +19,8 @@ namespace
 using dans::document::Document;
 using dans::document::ReferenceId;
 using dans::document::connectors::latex::CodeListingLatexAdapter;
-using dans::document::connectors::latex::CoreParagraphInlineLatexRenderer;
-using dans::document::connectors::latex::CoreTextLatexAdapter;
+using dans::document::connectors::latex::InlineLatexRenderer;
+using dans::document::connectors::latex::TextLatexAdapter;
 using dans::document::plugins::CodeLanguage;
 using dans::document::plugins::CodeListing;
 using dans::document::writers::LatexWriter;
@@ -50,8 +50,8 @@ auto expect_rejected(Operation&& operation, const std::string_view message) -> v
 
 auto make_writer() -> LatexWriter
 {
-    auto renderer = std::make_shared<CoreParagraphInlineLatexRenderer>();
-    renderer->register_inline_adapter(std::make_unique<CoreTextLatexAdapter>());
+    auto renderer = std::make_shared<InlineLatexRenderer>();
+    renderer->register_inline_adapter(std::make_unique<TextLatexAdapter>());
     LatexWriter writer;
     writer.register_block_adapter(std::make_unique<CodeListingLatexAdapter>(renderer));
     return writer;

@@ -1,7 +1,7 @@
 # Rich caption contract
 
 Ordinary figures, paired figures, tables, and captioned code listings consume
-the Core Paragraph plugin's ordered inline sequence. A caption is therefore not
+the standalone Inline Sequence contract. A caption is therefore not
 a writer-ready string: it may contain styled Core Text, semantic inline code,
 structured inline mathematics, colour spans, hyperlinks, references,
 citations, footnotes, and preserved opaque extensions when their adapters are
@@ -24,8 +24,8 @@ cleared; target publication is not the condition for joining a numbering series.
 
 ## Graphical editing
 
-The graphical connector has one reusable inline-sequence preview/editor owned
-by the Core Paragraph integration rather than by tables. Figures, paired
+The graphical connector has one reusable inline-sequence preview/editor shared
+by every host rather than owned by Paragraph or tables. Figures, paired
 figures, table captions/cells, and listings all compose that control. It shows
 the sequential caption, invokes each segment plugin's payload editor, supports
 adding/removing/reordering segments, and preserves unsupported nodes as visible

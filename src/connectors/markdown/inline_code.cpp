@@ -35,7 +35,7 @@ auto InlineCodeMarkdownAdapter::inline_type_id() const noexcept -> std::string_v
 }
 
 auto InlineCodeMarkdownAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphMarkdownOutput& output
+    const plugins::InlineNode& node, InlineMarkdownOutput& output
 ) const -> void
 {
     const auto* code = dynamic_cast<const plugins::InlineCode*>(&node);

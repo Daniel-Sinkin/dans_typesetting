@@ -8,7 +8,7 @@ import type {
 } from "../builder/inlinePlugin";
 import {
   createBlockId,
-  paragraphTextInlineTypeId,
+  textInlineTypeId,
   type BuilderInlineNode,
 } from "../model/document";
 import { InlinePayloadEditor } from "./paragraphEditor";
@@ -87,7 +87,7 @@ export function FootnoteEditor({
   context,
 }: BuilderInlineEditorProps) {
   const footnote = requireFootnote(inline);
-  const [newInlineType, setNewInlineType] = useState(paragraphTextInlineTypeId);
+  const [newInlineType, setNewInlineType] = useState(textInlineTypeId);
   const availablePlugins = registry
     .palettePlugins()
     .filter((plugin) => plugin.numberingSeries !== "footnote");

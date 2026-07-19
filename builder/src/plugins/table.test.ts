@@ -5,12 +5,12 @@ import { BuilderPluginRegistry } from "../builder/plugin";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
 import {
   createMathInline,
-  createParagraphText,
+  createText,
   MemoryDocumentPort,
 } from "../model/document";
 import { createMathInteger } from "../model/math";
 import { projectDocumentTransport } from "../transport/projectTransport";
-import { opaqueInlineAdapter, paragraphTextInlinePlugin } from "./paragraphInline";
+import { opaqueInlineAdapter, textInlinePlugin } from "./text";
 import { opaqueBlockAdapter } from "./opaque";
 import {
   parseTableCsv,
@@ -25,29 +25,29 @@ import {
 import { createTablePlugin } from "./tablePlugin";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
-  [paragraphTextInlinePlugin],
+  [textInlinePlugin],
   opaqueInlineAdapter,
 );
 
 function sampleTable() {
   return createRichTableBlock(
     "table",
-    [createParagraphText("Runtime", "caption")],
+    [createText("Runtime", "caption")],
     [
       createBuilderTableRow("header", [
         createBuilderTableCell("header-name", [
-          createParagraphText("Name", "header-name-text"),
+          createText("Name", "header-name-text"),
         ]),
         createBuilderTableCell("header-value", [
-          createParagraphText("Value", "header-value-text"),
+          createText("Value", "header-value-text"),
         ]),
       ]),
       createBuilderTableRow("data", [
         createBuilderTableCell("data-name", [
-          createParagraphText("CUDA, C++", "data-name-text"),
+          createText("CUDA, C++", "data-name-text"),
         ]),
         createBuilderTableCell("data-value", [
-          createParagraphText("1.25", "data-value-text"),
+          createText("1.25", "data-value-text"),
         ]),
       ]),
     ],
@@ -111,7 +111,7 @@ describe("semantic tables and CSV extension", () => {
     );
     const structured = createRichTableBlock(
       "structured",
-      [createParagraphText("Math", "math-caption")],
+      [createText("Math", "math-caption")],
       [
         createBuilderTableRow("math-row", [
           createBuilderTableCell("math-cell", [
@@ -130,19 +130,19 @@ describe("semantic tables and CSV extension", () => {
     expect(() =>
       createRichTableBlock(
         "ragged",
-        [createParagraphText("Caption", "caption-ragged")],
+        [createText("Caption", "caption-ragged")],
         [
           createBuilderTableRow("row-a", [
             createBuilderTableCell("cell-a", [
-              createParagraphText("A", "cell-a-text"),
+              createText("A", "cell-a-text"),
             ]),
           ]),
           createBuilderTableRow("row-b", [
             createBuilderTableCell("cell-b", [
-              createParagraphText("B", "cell-b-text"),
+              createText("B", "cell-b-text"),
             ]),
             createBuilderTableCell("cell-c", [
-              createParagraphText("C", "cell-c-text"),
+              createText("C", "cell-c-text"),
             ]),
           ]),
         ],

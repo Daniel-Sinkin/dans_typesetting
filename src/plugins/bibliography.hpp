@@ -2,7 +2,8 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_BIBLIOGRAPHY_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_BIBLIOGRAPHY_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "document.hpp"
+#include "plugins/inline_sequence.hpp"
 
 #include <initializer_list>
 #include <memory>

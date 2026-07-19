@@ -2,17 +2,17 @@
 #ifndef DANS_TYPESETTING_SRC_CONNECTORS_LATEX_INLINE_CODE_HPP
 #define DANS_TYPESETTING_SRC_CONNECTORS_LATEX_INLINE_CODE_HPP
 
-#include "connectors/latex/core_paragraph.hpp"
+#include "connectors/latex/inline_sequence.hpp"
 
 #include <string_view>
 
 namespace dans::document::connectors::latex
 {
-class InlineCodeLatexAdapter final : public CoreParagraphInlineLatexAdapter
+class InlineCodeLatexAdapter final : public InlineLatexAdapter
 {
   public:
     [[nodiscard]] auto inline_type_id() const noexcept -> std::string_view override;
-    auto serialize(const plugins::InlineNode& node, CoreParagraphLatexOutput& output) const
+    auto serialize(const plugins::InlineNode& node, InlineLatexOutput& output) const
         -> void override;
 };
 }  // namespace dans::document::connectors::latex

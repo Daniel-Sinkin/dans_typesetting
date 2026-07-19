@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createHyperlinkInline,
-  createParagraphText,
+  createText,
   MemoryDocumentPort,
   paragraphTypeId,
   type ParagraphBlock,
@@ -23,7 +23,7 @@ function paragraph(footnote: FootnoteInline): ParagraphBlock {
     id: "paragraph",
     typeId: paragraphTypeId,
     inlines: Object.freeze([
-      createParagraphText("Statement", "statement"),
+      createText("Statement", "statement"),
       footnote,
     ]),
   });
@@ -50,10 +50,10 @@ describe("semantic inline footnotes", () => {
   it("round-trips styled, linked nested inline content exactly", () => {
     const note = createFootnoteInline(
       [
-        createParagraphText("See ", "note-text", "italic"),
+        createText("See ", "note-text", "italic"),
         createHyperlinkInline(
           "https://example.com/source",
-          [createParagraphText("source", "source-label", "bold")],
+          [createText("source", "source-label", "bold")],
           "source-link",
         ),
       ],
@@ -74,7 +74,7 @@ describe("semantic inline footnotes", () => {
   it("rejects empty and directly nested footnotes", () => {
     expect(() => createFootnoteInline([], "empty")).toThrow(/at least one/u);
     const inner = createFootnoteInline(
-      [createParagraphText("Inner", "inner-text")],
+      [createText("Inner", "inner-text")],
       "inner",
     );
     expect(() => createFootnoteInline([inner], "outer")).toThrow(/cannot directly contain/u);

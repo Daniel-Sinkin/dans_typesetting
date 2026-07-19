@@ -27,7 +27,7 @@ auto ColorSpanMarkdownAdapter::inline_type_id() const noexcept -> std::string_vi
 }
 
 auto ColorSpanMarkdownAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphMarkdownOutput& output
+    const plugins::InlineNode& node, InlineMarkdownOutput& output
 ) const -> void
 {
     const auto* span = dynamic_cast<const plugins::ColorSpan*>(&node);

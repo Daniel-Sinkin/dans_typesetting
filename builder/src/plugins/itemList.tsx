@@ -8,7 +8,7 @@ import type {
 import type { BuilderBlockEditorProps } from "../builder/plugin";
 import {
   createBlockId,
-  createParagraphText,
+  createText,
   type BuilderInlineNode,
 } from "../model/document";
 import { InlinePayloadEditor } from "./paragraphEditor";
@@ -167,7 +167,7 @@ export function ItemListEditor({
       </fieldset>
 
       <p className="editor-guidance">
-        Each item owns a Core Paragraph inline sequence. The list plugin knows only ordering and
+        Each item owns an Inline Sequence. The list plugin knows only ordering and
         bullet/number presentation; text, colour, links, and mathematics remain independent inline
         extensions.
       </p>
@@ -363,7 +363,7 @@ export function ItemListEditor({
             Object.freeze([
               ...current,
               createBuilderListItem(createBlockId(), [
-                createParagraphText("A new list item."),
+                createText("A new list item."),
               ]),
             ]),
           );

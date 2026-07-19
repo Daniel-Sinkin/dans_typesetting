@@ -1,4 +1,4 @@
-// Core Paragraph's graphical inline connectors.
+// Register ordinary text with the graphical Inline Sequence contract.
 import { createElement } from "react";
 
 import type {
@@ -6,18 +6,18 @@ import type {
   BuilderInlinePlugin,
 } from "../builder/inlinePlugin";
 import {
-  createParagraphText,
-  paragraphTextInlineTypeId,
+  createText,
+  textInlineTypeId,
 } from "../model/document";
 import {
   OpaqueInlinePreview,
-  ParagraphTextEditor,
-  ParagraphTextPreview,
-} from "./paragraphInlineView";
-import { requireParagraphText } from "./paragraphInlineSupport";
+  TextEditor,
+  TextPreview,
+} from "./textView";
+import { requireText } from "./textSupport";
 
-export const paragraphTextInlinePlugin: BuilderInlinePlugin = {
-  typeId: paragraphTextInlineTypeId,
+export const textInlinePlugin: BuilderInlinePlugin = {
+  typeId: textInlineTypeId,
   palette: {
     label: "Text",
     description: "An ordinary editable text run",
@@ -25,17 +25,17 @@ export const paragraphTextInlinePlugin: BuilderInlinePlugin = {
     accentColor: "#f06595",
   },
   createDefault(inlineId) {
-    return createParagraphText("New text segment", inlineId);
+    return createText("New text segment", inlineId);
   },
   plainText(inline) {
-    return requireParagraphText(inline).text;
+    return requireText(inline).text;
   },
   renderPreview(inline) {
-    return createElement(ParagraphTextPreview, { inline });
+    return createElement(TextPreview, { inline });
   },
   editor: {
     render(props) {
-      return createElement(ParagraphTextEditor, props);
+      return createElement(TextEditor, props);
     },
   },
 };

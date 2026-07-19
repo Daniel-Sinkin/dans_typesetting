@@ -11,7 +11,7 @@ auto HyperlinkMarkdownAdapter::inline_type_id() const noexcept -> std::string_vi
 }
 
 auto HyperlinkMarkdownAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphMarkdownOutput& output
+    const plugins::InlineNode& node, InlineMarkdownOutput& output
 ) const -> void
 {
     const auto* link = dynamic_cast<const plugins::Hyperlink*>(&node);

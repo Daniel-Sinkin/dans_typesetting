@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createMathDisplayLine,
-  createParagraphText,
+  createText,
   mathDisplayTypeId,
   MemoryDocumentPort,
   paragraphTypeId,
@@ -20,7 +20,7 @@ function paragraph(id: string): ParagraphBlock {
   return {
     id,
     typeId: paragraphTypeId,
-    inlines: [createParagraphText(`Paragraph ${id}`, `${id}-text`)],
+    inlines: [createText(`Paragraph ${id}`, `${id}-text`)],
   };
 }
 
@@ -118,7 +118,7 @@ describe("MemoryDocumentPort", () => {
     const port = new MemoryDocumentPort([paragraph("one")]);
     const replacement = {
       ...paragraph("one"),
-      inlines: [createParagraphText("Edited", "edited-text")],
+      inlines: [createText("Edited", "edited-text")],
     };
 
     port.dispatch({ kind: "replace", blockId: "one", block: replacement });
@@ -233,7 +233,7 @@ describe("MemoryDocumentPort", () => {
     const original = section("outer", [paragraph("inside")]);
     const replacement = {
       ...paragraph("inside"),
-      inlines: [createParagraphText("Draft preview", "inside-text")],
+      inlines: [createText("Draft preview", "inside-text")],
     } satisfies ParagraphBlock;
     const projected = replaceBuilderBlockInTree([original], "inside", replacement);
 

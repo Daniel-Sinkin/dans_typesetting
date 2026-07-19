@@ -1,7 +1,7 @@
 // builder/src/plugins/image.tsx — register rich semantic figures with graphical editing.
 import type { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import type { BuilderBlockPlugin } from "../builder/plugin";
-import { createParagraphText } from "../model/document";
+import { createText } from "../model/document";
 import { ImageEditor, ImagePreview } from "./imageEditor";
 import {
   createImageBlock,
@@ -26,7 +26,7 @@ export function createImagePlugin(
       return createImageBlock(
         blockId,
         "/sample-domain-decomposition.svg",
-        [createParagraphText("A new figure caption.")],
+        [createText("A new figure caption.")],
       );
     },
     referenceTarget(block) {

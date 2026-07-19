@@ -4,7 +4,7 @@ import {
   createHyperlinkInline,
   createMathDisplayLine,
   createMathInline,
-  createParagraphText,
+  createText,
   createReferenceInline,
   defaultDocumentMetadata,
   mathDisplayTypeId,
@@ -43,16 +43,16 @@ function representativeBlocks(): readonly BuilderBlock[] {
     id: "intro",
     typeId: paragraphTypeId,
     inlines: [
-      createParagraphText("Styled", "text", "bold_italic"),
+      createText("Styled", "text", "bold_italic"),
       createColorSpanInline(
         { red: 12, green: 34, blue: 56 },
-        [createParagraphText(" colour", "colour-text")],
+        [createText(" colour", "colour-text")],
         "colour",
       ),
       createMathInline(expression, "inline-math"),
       createHyperlinkInline(
         "https://example.com/results",
-        [createParagraphText(" results", "link-text", "italic")],
+        [createText(" results", "link-text", "italic")],
         "link",
       ),
       createReferenceInline("fig:representative", "reference"),
@@ -67,7 +67,7 @@ function representativeBlocks(): readonly BuilderBlock[] {
   const figure = createImageBlock(
     "figure",
     "/figure.png",
-    [createParagraphText("A figure", "figure-caption", "bold")],
+    [createText("A figure", "figure-caption", "bold")],
     "fig:representative",
     0.7,
   );

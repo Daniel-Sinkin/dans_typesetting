@@ -1,4 +1,4 @@
-// Define graphical adapters for Core Paragraph's extensible inline-node contract.
+// Define graphical adapters for the shared extensible Inline Sequence contract.
 import type { ReactNode } from "react";
 
 import type { BuilderInlineNode } from "../model/document";

@@ -1,11 +1,11 @@
-// Verify semantic lists through the shared Core Paragraph inline connector.
-#include "connectors/latex/core_paragraph.hpp"
+// Verify semantic lists through the shared Inline Sequence connector.
 #include "connectors/latex/item_list.hpp"
 #include "connectors/latex/math.hpp"
+#include "connectors/latex/paragraph.hpp"
 #include "document.hpp"
-#include "plugins/core_paragraph.hpp"
 #include "plugins/item_list.hpp"
 #include "plugins/math.hpp"
+#include "plugins/paragraph.hpp"
 #include "writers/latex_writer.hpp"
 
 #include <exception>
@@ -19,10 +19,10 @@
 namespace
 {
 using dans::document::Document;
-using dans::document::connectors::latex::CoreParagraphInlineLatexRenderer;
-using dans::document::connectors::latex::CoreTextLatexAdapter;
+using dans::document::connectors::latex::InlineLatexRenderer;
 using dans::document::connectors::latex::InlineMathLatexAdapter;
 using dans::document::connectors::latex::ItemListLatexAdapter;
+using dans::document::connectors::latex::TextLatexAdapter;
 using dans::document::plugins::ItemList;
 using dans::document::plugins::ListPresentation;
 using dans::document::plugins::Math;
@@ -47,8 +47,8 @@ auto render_list(const ListPresentation presentation) -> std::string
     structured.append_text("structured ");
     structured.inlines().add<Math::Inline>(Math::equal(Math::id_E, Math::id_4));
 
-    auto inline_renderer = std::make_shared<CoreParagraphInlineLatexRenderer>();
-    inline_renderer->register_inline_adapter(std::make_unique<CoreTextLatexAdapter>());
+    auto inline_renderer = std::make_shared<InlineLatexRenderer>();
+    inline_renderer->register_inline_adapter(std::make_unique<TextLatexAdapter>());
     inline_renderer->register_inline_adapter(std::make_unique<InlineMathLatexAdapter>());
     LatexWriter writer;
     writer.register_block_adapter(std::make_unique<ItemListLatexAdapter>(inline_renderer));
@@ -75,8 +75,8 @@ auto run_test() -> void
     );
     expect(enumerated.contains("\\end{enumerate}"), "Enumerated list was not closed");
 
-    auto inline_renderer = std::make_shared<CoreParagraphInlineLatexRenderer>();
-    inline_renderer->register_inline_adapter(std::make_unique<CoreTextLatexAdapter>());
+    auto inline_renderer = std::make_shared<InlineLatexRenderer>();
+    inline_renderer->register_inline_adapter(std::make_unique<TextLatexAdapter>());
     LatexWriter writer;
     writer.register_block_adapter(std::make_unique<ItemListLatexAdapter>(inline_renderer));
     Document empty_document;

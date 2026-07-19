@@ -3,7 +3,7 @@ import type { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import type { BuilderBlockPlugin } from "../builder/plugin";
 import {
   createBlockId,
-  createParagraphText,
+  createText,
   type BuilderBlock,
 } from "../model/document";
 import { ItemListEditor, ItemListPreview } from "./itemList";
@@ -31,7 +31,7 @@ export function createItemListPlugin(
         typeId: itemListTypeId,
         presentation: "itemized",
         items: Object.freeze([
-          createBuilderListItem(createBlockId(), [createParagraphText("A new list item.")]),
+          createBuilderListItem(createBlockId(), [createText("A new list item.")]),
         ]),
       });
     },

@@ -8,7 +8,7 @@ and two independent optional metadata fields:
 - `language` is `cpp`, `cuda`, `julia`, or `raw`;
 - `code` is non-empty and byte-preserving apart from the canonical JSON string
   encoding;
-- `caption` is either absent or a non-empty Core Paragraph inline sequence;
+- `caption` is either absent or a non-empty Inline Sequence;
 - `referenceId` is either absent or a stable semantic target.
 
 Language is a writer hint, not a parser promise. In particular, CUDA reuses

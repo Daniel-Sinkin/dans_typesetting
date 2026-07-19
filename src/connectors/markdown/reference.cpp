@@ -11,7 +11,7 @@ auto ReferenceMarkdownAdapter::inline_type_id() const noexcept -> std::string_vi
 }
 
 auto ReferenceMarkdownAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphMarkdownOutput& output
+    const plugins::InlineNode& node, InlineMarkdownOutput& output
 ) const -> void
 {
     const auto* reference = dynamic_cast<const plugins::Reference*>(&node);

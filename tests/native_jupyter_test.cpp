@@ -1,17 +1,17 @@
 // tests/native_jupyter_test.cpp — verify nbformat structure and Markdown preservation.
 #include "connectors/markdown/code_listing.hpp"
-#include "connectors/markdown/core_paragraph.hpp"
 #include "connectors/markdown/document_shell.hpp"
 #include "connectors/markdown/figure_pair.hpp"
 #include "connectors/markdown/inline_code.hpp"
 #include "connectors/markdown/math.hpp"
+#include "connectors/markdown/paragraph.hpp"
 #include "document.hpp"
 #include "plugins/code_listing.hpp"
-#include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
 #include "plugins/figure_pair.hpp"
 #include "plugins/inline_code.hpp"
 #include "plugins/math.hpp"
+#include "plugins/paragraph.hpp"
 #include "transport/json.hpp"
 #include "writers/jupyter_writer.hpp"
 #include "writers/markdown_writer.hpp"
@@ -55,8 +55,8 @@ auto join_source(const JsonValue& source) -> std::string
 
 auto make_markdown_writer() -> std::shared_ptr<dans::document::writers::MarkdownWriter>
 {
-    auto inline_renderer = std::make_shared<markdown::CoreParagraphInlineMarkdownRenderer>();
-    inline_renderer->register_inline_adapter(std::make_unique<markdown::CoreTextMarkdownAdapter>());
+    auto inline_renderer = std::make_shared<markdown::InlineMarkdownRenderer>();
+    inline_renderer->register_inline_adapter(std::make_unique<markdown::TextMarkdownAdapter>());
     inline_renderer->register_inline_adapter(
         std::make_unique<markdown::InlineCodeMarkdownAdapter>()
     );
@@ -66,7 +66,7 @@ auto make_markdown_writer() -> std::shared_ptr<dans::document::writers::Markdown
 
     auto writer = std::make_shared<dans::document::writers::MarkdownWriter>();
     writer->register_block_adapter(
-        std::make_unique<markdown::CoreParagraphMarkdownAdapter>(inline_renderer)
+        std::make_unique<markdown::ParagraphMarkdownAdapter>(inline_renderer)
     );
     writer->register_block_adapter(std::make_unique<markdown::TitlePageMarkdownAdapter>());
     writer->register_block_adapter(
@@ -87,7 +87,7 @@ auto make_document() -> dans::document::Document
     Document document{Metadata{.major = 3, .minor = 2, .patch = 1}};
     document.blocks().add<TitlePage>("Notebook export", "Daniel", "19 July 2026");
     auto& section = document.blocks().add<Section>("Mixed-language material");
-    auto& paragraph = section.blocks().add<CoreParagraph>("Call ");
+    auto& paragraph = section.blocks().add<Paragraph>("Call ");
     paragraph.inlines().add<InlineCode>("cudaDeviceSynchronize()");
     paragraph.append_text(" and require ");
     paragraph.inlines().add<Math::Inline>(Math::less_equal(Math::id_partial, Math::id_infinity));

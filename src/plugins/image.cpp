@@ -1,6 +1,8 @@
 // src/plugins/image.cpp — validate and implement semantic image content.
 #include "plugins/image.hpp"
 
+#include "plugins/text.hpp"
+
 #include <cmath>
 #include <stdexcept>
 #include <utility>
@@ -123,7 +125,7 @@ Figure::Figure(
     {
         throw std::invalid_argument{"A figure must have a caption"};
     }
-    caption_.add<CoreText>(caption);
+    caption_.add<Text>(caption);
 }
 
 auto Figure::type_id() const noexcept -> std::string_view

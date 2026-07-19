@@ -4,7 +4,7 @@ import { copyBuilderInlineForInsert } from "../builder/copyInline";
 import type { BuilderBlockPlugin } from "../builder/plugin";
 import {
   createBlockId,
-  createParagraphText,
+  createText,
   type BuilderBlock,
 } from "../model/document";
 import type { TableCsvCapability } from "./tableCsv";
@@ -33,15 +33,15 @@ export function createTablePlugin(
     createDefault(blockId): BuilderBlock {
       return createRichTableBlock(
         blockId,
-        [createParagraphText("A new table caption.")],
+        [createText("A new table caption.")],
         [
           createBuilderTableRow(createBlockId(), [
-            createBuilderTableCell(createBlockId(), [createParagraphText("Column A")]),
-            createBuilderTableCell(createBlockId(), [createParagraphText("Column B")]),
+            createBuilderTableCell(createBlockId(), [createText("Column A")]),
+            createBuilderTableCell(createBlockId(), [createText("Column B")]),
           ]),
           createBuilderTableRow(createBlockId(), [
-            createBuilderTableCell(createBlockId(), [createParagraphText("Value A")]),
-            createBuilderTableCell(createBlockId(), [createParagraphText("Value B")]),
+            createBuilderTableCell(createBlockId(), [createText("Value A")]),
+            createBuilderTableCell(createBlockId(), [createText("Value B")]),
           ]),
         ],
         ["left", "left"],

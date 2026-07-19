@@ -36,7 +36,7 @@ auto import_table_csv_file(
     Table& table, const std::filesystem::path& path, TableCsvImportOptions options = {}
 ) -> void;
 
-// CSV is a plain-text projection. CoreText leaves are concatenated; exporting
+// CSV is a plain-text projection. Text leaves are concatenated; exporting
 // any other inline extension is rejected instead of silently losing meaning.
 [[nodiscard]] auto table_to_csv(const Table& table) -> std::string;
 auto write_table_csv_file(const Table& table, const std::filesystem::path& path) -> void;

@@ -2,7 +2,8 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_IMAGE_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_IMAGE_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "document.hpp"
+#include "plugins/inline_sequence.hpp"
 #include "reference_id.hpp"
 
 #include <filesystem>
@@ -69,7 +70,7 @@ class PixelExtent final
     u32 height_{};
 };
 
-// A small image participating in a Core Paragraph inline sequence. Its height
+// A small image participating in an Inline Sequence. Its height
 // is expressed in em so emoji-like assets follow the surrounding text size.
 class InlineImage final : public InlineNode
 {
@@ -88,7 +89,7 @@ class InlineImage final : public InlineNode
 };
 
 // A captioned block image with an optional semantic reference target. Captions
-// use the Core Paragraph inline contract, so inline extensions such as math and
+// use the shared Inline Sequence contract, so inline extensions such as math and
 // colour work there without Figure depending on their concrete implementations.
 class Figure final : public DocumentBlock
 {

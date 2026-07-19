@@ -5,7 +5,7 @@ import { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import { BuilderPluginRegistry } from "../builder/plugin";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
 import {
-  createParagraphText,
+  createText,
   MemoryDocumentPort,
 } from "../model/document";
 import { projectDocumentTransport } from "../transport/projectTransport";
@@ -19,11 +19,11 @@ import { createImagePlugin } from "./image";
 import { opaqueBlockAdapter } from "./opaque";
 import {
   opaqueInlineAdapter,
-  paragraphTextInlinePlugin,
-} from "./paragraphInline";
+  textInlinePlugin,
+} from "./text";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
-  [paragraphTextInlinePlugin],
+  [textInlinePlugin],
   opaqueInlineAdapter,
 );
 const figurePairPlugin = createFigurePairPlugin(inlineRegistry);
@@ -35,7 +35,7 @@ function samplePair(referenceId: string | null = "fig:pair") {
     createFigurePanel(
       "left",
       "/left.png",
-      [createParagraphText("Left", "left-caption")],
+      [createText("Left", "left-caption")],
       "fig:pair:left",
       1280,
       720,
@@ -43,12 +43,12 @@ function samplePair(referenceId: string | null = "fig:pair") {
     createFigurePanel(
       "right",
       "/right.png",
-      [createParagraphText("Right", "right-caption", "italic")],
+      [createText("Right", "right-caption", "italic")],
       "fig:pair:right",
       720,
       1280,
     ),
-    [createParagraphText("Comparison", "pair-caption", "bold")],
+    [createText("Comparison", "pair-caption", "bold")],
     referenceId,
     0.47,
   );
@@ -148,9 +148,9 @@ describe("semantic figure pairs", () => {
     expect(() =>
       createFigurePairBlock(
         "wide",
-        createFigurePanel("left", "/left.png", [createParagraphText("Left")]),
-        createFigurePanel("right", "/right.png", [createParagraphText("Right")]),
-        [createParagraphText("Pair")],
+        createFigurePanel("left", "/left.png", [createText("Left")]),
+        createFigurePanel("right", "/right.png", [createText("Right")]),
+        [createText("Pair")],
         "fig:wide",
         0.51,
       ),
@@ -161,11 +161,11 @@ describe("semantic figure pairs", () => {
         createFigurePanel(
           "left",
           "/left.png",
-          [createParagraphText("Left")],
+          [createText("Left")],
           "fig:duplicate",
         ),
-        createFigurePanel("right", "/right.png", [createParagraphText("Right")]),
-        [createParagraphText("Pair")],
+        createFigurePanel("right", "/right.png", [createText("Right")]),
+        [createText("Pair")],
         "fig:duplicate",
       ),
     ).toThrow(/must be distinct/u);

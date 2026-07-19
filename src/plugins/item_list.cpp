@@ -16,9 +16,9 @@ auto ListItem::inlines() const noexcept -> const InlineSequence&
     return inlines_;
 }
 
-auto ListItem::append_text(const std::string_view text, const TextStyle style) -> CoreText&
+auto ListItem::append_text(const std::string_view text, const TextStyle style) -> Text&
 {
-    return inlines_.add<CoreText>(text, style);
+    return inlines_.add<Text>(text, style);
 }
 
 ItemList::ItemList(const ListPresentation presentation) noexcept : presentation_{presentation}

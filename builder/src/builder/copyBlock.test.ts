@@ -8,7 +8,7 @@ import { createImageBlock, type ImageBlock } from "../plugins/imageModel";
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import { sectionPlugin } from "../plugins/documentShell";
 import {
-  createParagraphText,
+  createText,
   paragraphTypeId,
   sectionTypeId,
   type SectionBlock,
@@ -19,8 +19,8 @@ import { createFootnoteInline, type FootnoteInline } from "../plugins/footnoteMo
 import { createParagraphPlugin } from "../plugins/paragraph";
 import {
   opaqueInlineAdapter,
-  paragraphTextInlinePlugin,
-} from "../plugins/paragraphInline";
+  textInlinePlugin,
+} from "../plugins/text";
 import {
   createBuilderTableCell,
   createBuilderTableRow,
@@ -30,7 +30,7 @@ import {
 import { createTablePlugin } from "../plugins/tablePlugin";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
-  [paragraphTextInlinePlugin, footnoteInlinePlugin],
+  [textInlinePlugin, footnoteInlinePlugin],
   opaqueInlineAdapter,
 );
 const imagePlugin = createImagePlugin(inlineRegistry);
@@ -70,7 +70,7 @@ describe("plugin-aware block copies", () => {
     const figure: ImageBlock = createImageBlock(
       "figure",
       "/figure.png",
-      [createParagraphText("Original figure", "figure-caption")],
+      [createText("Original figure", "figure-caption")],
       "fig:original",
       0.7,
     );
@@ -94,14 +94,14 @@ describe("plugin-aware block copies", () => {
 
   it("refreshes nested inline IDs through paragraph and footnote copy hooks", () => {
     const note = createFootnoteInline(
-      [createParagraphText("Note", "note-text")],
+      [createText("Note", "note-text")],
       "note",
     );
     const paragraph: ParagraphBlock = Object.freeze({
       id: "paragraph",
       typeId: paragraphTypeId,
       inlines: Object.freeze([
-        createParagraphText("Statement", "statement"),
+        createText("Statement", "statement"),
         note,
       ]),
     });
@@ -122,11 +122,11 @@ describe("plugin-aware block copies", () => {
   it("copies rich table structure while clearing target and nested identity", () => {
     const source = createRichTableBlock(
       "table",
-      [createParagraphText("Caption", "caption")],
+      [createText("Caption", "caption")],
       [
         createBuilderTableRow("row", [
           createBuilderTableCell("cell", [
-            createParagraphText("Value", "value"),
+            createText("Value", "value"),
           ]),
         ]),
       ],

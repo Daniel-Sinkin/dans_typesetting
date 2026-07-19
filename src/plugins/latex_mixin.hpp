@@ -1,7 +1,8 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_LATEX_MIXIN_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_LATEX_MIXIN_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "document.hpp"
+#include "plugins/inline_sequence.hpp"
 
 #include <string>
 #include <string_view>

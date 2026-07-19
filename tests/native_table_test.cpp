@@ -1,12 +1,12 @@
 // Verify rich semantic tables plus the independent plain-text CSV adapter.
-#include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/footnote.hpp"
 #include "connectors/latex/math.hpp"
+#include "connectors/latex/paragraph.hpp"
 #include "connectors/latex/table.hpp"
 #include "document.hpp"
-#include "plugins/core_paragraph.hpp"
 #include "plugins/footnote.hpp"
 #include "plugins/math.hpp"
+#include "plugins/paragraph.hpp"
 #include "plugins/table.hpp"
 #include "plugins/table_csv.hpp"
 #include "reference_id.hpp"
@@ -24,11 +24,11 @@ namespace
 {
 using dans::document::Document;
 using dans::document::ReferenceId;
-using dans::document::connectors::latex::CoreParagraphInlineLatexRenderer;
-using dans::document::connectors::latex::CoreTextLatexAdapter;
 using dans::document::connectors::latex::FootnoteLatexAdapter;
+using dans::document::connectors::latex::InlineLatexRenderer;
 using dans::document::connectors::latex::InlineMathLatexAdapter;
 using dans::document::connectors::latex::TableLatexAdapter;
+using dans::document::connectors::latex::TextLatexAdapter;
 using dans::document::plugins::Footnote;
 using dans::document::plugins::Math;
 using dans::document::plugins::Table;
@@ -59,10 +59,10 @@ auto expect_rejected(Operation&& operation, const std::string_view message) -> v
     expect(rejected, message);
 }
 
-auto make_inline_renderer() -> std::shared_ptr<CoreParagraphInlineLatexRenderer>
+auto make_inline_renderer() -> std::shared_ptr<InlineLatexRenderer>
 {
-    auto renderer = std::make_shared<CoreParagraphInlineLatexRenderer>();
-    renderer->register_inline_adapter(std::make_unique<CoreTextLatexAdapter>());
+    auto renderer = std::make_shared<InlineLatexRenderer>();
+    renderer->register_inline_adapter(std::make_unique<TextLatexAdapter>());
     renderer->register_inline_adapter(std::make_unique<InlineMathLatexAdapter>());
     renderer->register_inline_adapter(std::make_unique<FootnoteLatexAdapter>());
     return renderer;

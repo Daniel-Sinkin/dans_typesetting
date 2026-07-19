@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { copyBuilderBlockForInsert } from "../builder/copyBlock";
 import { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import { BuilderPluginRegistry } from "../builder/plugin";
-import { createParagraphText } from "../model/document";
+import { createText } from "../model/document";
 import { createCodeListingPlugin } from "./codeListing";
 import {
   createCodeListingBlock,
@@ -12,11 +12,11 @@ import {
 import { opaqueBlockAdapter } from "./opaque";
 import {
   opaqueInlineAdapter,
-  paragraphTextInlinePlugin,
-} from "./paragraphInline";
+  textInlinePlugin,
+} from "./text";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
-  [paragraphTextInlinePlugin],
+  [textInlinePlugin],
   opaqueInlineAdapter,
 );
 const listingPlugin = createCodeListingPlugin(inlineRegistry);
@@ -27,7 +27,7 @@ describe("semantic rich code listings", () => {
       "captioned",
       "cuda",
       "__global__ void kernel() {}",
-      [createParagraphText("Kernel", "caption", "italic")],
+      [createText("Kernel", "caption", "italic")],
     );
     const referenced = createCodeListingBlock(
       "referenced",
@@ -52,7 +52,7 @@ describe("semantic rich code listings", () => {
       "source",
       "julia",
       "energy(x) = sum(abs2, x)",
-      [createParagraphText("Energy", "caption", "bold")],
+      [createText("Energy", "caption", "bold")],
       "lst:energy",
     );
     const copied = requireCodeListingBlock(

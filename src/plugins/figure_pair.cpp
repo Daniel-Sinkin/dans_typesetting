@@ -1,6 +1,8 @@
 // src/plugins/figure_pair.cpp — validate and implement two-panel figures.
 #include "plugins/figure_pair.hpp"
 
+#include "plugins/text.hpp"
+
 #include <stdexcept>
 #include <utility>
 
@@ -19,7 +21,7 @@ FigurePanel::FigurePanel(
     {
         throw std::invalid_argument{"A figure panel must have a caption"};
     }
-    caption_.add<CoreText>(caption);
+    caption_.add<Text>(caption);
 }
 
 auto FigurePanel::source() const noexcept -> const ImageSource&
@@ -95,7 +97,7 @@ FigurePair::FigurePair(
     {
         throw std::invalid_argument{"Figure-pair panel reference IDs must be distinct"};
     }
-    caption_.add<CoreText>(caption);
+    caption_.add<Text>(caption);
 }
 
 auto FigurePair::type_id() const noexcept -> std::string_view

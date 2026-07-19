@@ -6,9 +6,7 @@
 
 namespace dans::document::connectors::latex
 {
-TableLatexAdapter::TableLatexAdapter(
-    std::shared_ptr<const CoreParagraphInlineLatexRenderer> inline_renderer
-)
+TableLatexAdapter::TableLatexAdapter(std::shared_ptr<const InlineLatexRenderer> inline_renderer)
     : inline_renderer_{std::move(inline_renderer)}
 {
     if (inline_renderer_ == nullptr)

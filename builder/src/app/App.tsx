@@ -3,7 +3,7 @@ import { DocumentBuilder } from "./DocumentBuilder";
 import { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import { BuilderPluginRegistry } from "../builder/plugin";
 import {
-  createParagraphText,
+  createText,
   createMathDisplayLine,
   createMathInline,
   createHyperlinkInline,
@@ -49,8 +49,8 @@ import { opaqueBlockAdapter } from "../plugins/opaque";
 import { createParagraphPlugin } from "../plugins/paragraph";
 import {
   opaqueInlineAdapter,
-  paragraphTextInlinePlugin,
-} from "../plugins/paragraphInline";
+  textInlinePlugin,
+} from "../plugins/text";
 import {
   colorSpanInlinePlugin,
   createColorSpanInline,
@@ -93,7 +93,7 @@ import {
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
-    paragraphTextInlinePlugin,
+    textInlinePlugin,
     colorSpanInlinePlugin,
     createInlineMathPlugin(basicMathInputParser, [mathMatVecEditorExtension]),
     hyperlinkInlinePlugin,
@@ -132,20 +132,20 @@ const initialBlocks = [
     id: "sample-introduction",
     typeId: paragraphTypeId,
     inlines: Object.freeze([
-      createParagraphText(
+      createText(
         "This development rendering preserves an ordered inline sequence. ",
         "sample-introduction-text-a",
       ),
-      createParagraphText(
+      createText(
         "Styled text",
         "sample-introduction-styled-text",
         "bold_italic",
       ),
-      createParagraphText(" and ", "sample-introduction-text-link-join"),
+      createText(" and ", "sample-introduction-text-link-join"),
       createHyperlinkInline(
         "https://example.com/typesetting",
         [
-          createParagraphText(
+          createText(
             "clickable links",
             "sample-introduction-link-label",
             "bold",
@@ -153,7 +153,7 @@ const initialBlocks = [
         ],
         "sample-introduction-link",
       ),
-      createParagraphText(" can sit beside ", "sample-introduction-text-math-join"),
+      createText(" can sit beside ", "sample-introduction-text-math-join"),
       createMathInline(
         createMathBinary(
           "approximately_equals",
@@ -170,37 +170,37 @@ const initialBlocks = [
         ),
         "sample-introduction-inline-math",
       ),
-      createParagraphText(
+      createText(
         " remains editable as structured inline mathematics. ",
         "sample-introduction-text-b",
       ),
       createColorSpanInline(
         { red: 38, green: 96, blue: 168 },
         [
-          createParagraphText(
+          createText(
             "Colour is supplied by a nested semantic inline plugin.",
             "sample-introduction-colour-text",
           ),
         ],
         "sample-introduction-colour",
       ),
-      createParagraphText(" See ", "sample-introduction-reference-join"),
+      createText(" See ", "sample-introduction-reference-join"),
       createReferenceInline(
         "fig:domain-decomposition",
         "sample-introduction-reference",
       ),
-      createParagraphText(" for the decomposition.", "sample-introduction-reference-tail"),
-      createParagraphText(" Footnotes remain semantic", "sample-introduction-footnote-join"),
+      createText(" for the decomposition.", "sample-introduction-reference-tail"),
+      createText(" Footnotes remain semantic", "sample-introduction-footnote-join"),
       createFootnoteInline(
         [
-          createParagraphText(
+          createText(
             "This note has ",
             "sample-introduction-footnote-text",
           ),
           createHyperlinkInline(
             "https://example.com/footnotes",
             [
-              createParagraphText(
+              createText(
                 "a clickable source",
                 "sample-introduction-footnote-link-label",
                 "italic",
@@ -208,18 +208,18 @@ const initialBlocks = [
             ],
             "sample-introduction-footnote-link",
           ),
-          createParagraphText(" in its inline sequence.", "sample-introduction-footnote-tail"),
+          createText(" in its inline sequence.", "sample-introduction-footnote-tail"),
         ],
         "sample-introduction-footnote",
       ),
-      createParagraphText(".", "sample-introduction-footnote-period"),
-      createParagraphText(" CUDA synchronization uses ", "sample-introduction-code-join"),
+      createText(".", "sample-introduction-footnote-period"),
+      createText(" CUDA synchronization uses ", "sample-introduction-code-join"),
       createInlineCode(
         "cudaDeviceSynchronize()",
         "sample-introduction-inline-code",
       ),
-      createParagraphText(".", "sample-introduction-code-period"),
-      createParagraphText(
+      createText(".", "sample-introduction-code-period"),
+      createText(
         " Prior tensor-network work ",
         "sample-introduction-citation-join",
       ),
@@ -227,7 +227,7 @@ const initialBlocks = [
         ["verstraete2008", "orus2014"],
         "sample-introduction-citation",
       ),
-      createParagraphText(
+      createText(
         " motivates this experiment.",
         "sample-introduction-citation-tail",
       ),
@@ -237,7 +237,7 @@ const initialBlocks = [
     "sample-figure",
     "/sample-domain-decomposition.svg",
     [
-      createParagraphText(
+      createText(
         "A browser-rendered figure with ",
         "sample-figure-caption-text",
         "bold",
@@ -253,14 +253,14 @@ const initialBlocks = [
       createColorSpanInline(
         { red: 38, green: 96, blue: 168 },
         [
-          createParagraphText(
+          createText(
             " with colour",
             "sample-figure-caption-color-text",
           ),
         ],
         "sample-figure-caption-color",
       ),
-      createParagraphText(
+      createText(
         " in its rich caption.",
         "sample-figure-caption-tail",
       ),
@@ -273,7 +273,7 @@ const initialBlocks = [
       "sample-figure-pair-left",
       "/sample-domain-decomposition.svg",
       [
-        createParagraphText("Single-coupling model ", "sample-pair-left-text"),
+        createText("Single-coupling model ", "sample-pair-left-text"),
         createMathInline(
           createMathScript(
             createMathIdentifier("J"),
@@ -289,7 +289,7 @@ const initialBlocks = [
       "sample-figure-pair-right",
       "/sample-domain-decomposition.svg",
       [
-        createParagraphText("Frustrated model ", "sample-pair-right-text"),
+        createText("Frustrated model ", "sample-pair-right-text"),
         createMathInline(
           createMathBinary(
             "minus",
@@ -310,7 +310,7 @@ const initialBlocks = [
       "fig:paired-models:right",
     ),
     [
-      createParagraphText(
+      createText(
         "Side-by-side model comparison with independently referenceable panels.",
         "sample-pair-caption",
       ),
@@ -413,12 +413,12 @@ const initialBlocks = [
       "}",
     ].join("\n"),
     [
-      createParagraphText(
+      createText(
         "A selectable C++ block containing ",
         "sample-listing-caption-text",
       ),
       createInlineCode("std::println", "sample-listing-caption-code"),
-      createParagraphText(".", "sample-listing-caption-tail"),
+      createText(".", "sample-listing-caption-tail"),
     ],
     "lst:hello-typesetter",
   ),
@@ -428,14 +428,14 @@ const initialBlocks = [
     presentation: "enumerated",
     items: Object.freeze([
       createBuilderListItem("sample-list-item-contract", [
-        createParagraphText(
+        createText(
           "Keep the semantic list contract small.",
           "sample-list-item-contract-text",
           "bold",
         ),
       ]),
       createBuilderListItem("sample-list-item-inline", [
-        createParagraphText("Reuse ", "sample-list-item-inline-text-a"),
+        createText("Reuse ", "sample-list-item-inline-text-a"),
         createMathInline(
           createMathBinary(
             "equals",
@@ -448,13 +448,13 @@ const initialBlocks = [
           ),
           "sample-list-item-inline-math",
         ),
-        createParagraphText(
+        createText(
           " through the inline registry.",
           "sample-list-item-inline-text-b",
         ),
       ]),
       createBuilderListItem("sample-list-item-writer", [
-        createParagraphText(
+        createText(
           "Let each writer choose bullets or numbering.",
           "sample-list-item-writer-text",
         ),
@@ -463,22 +463,22 @@ const initialBlocks = [
   }),
   createRichTableBlock(
     "sample-table",
-    [createParagraphText("Representative kernel runtimes.", "sample-table-caption")],
+    [createText("Representative kernel runtimes.", "sample-table-caption")],
     [
       createBuilderTableRow("sample-table-header", [
         createBuilderTableCell("sample-table-header-kernel", [
-          createParagraphText("Kernel", "sample-table-header-kernel-text", "bold"),
+          createText("Kernel", "sample-table-header-kernel-text", "bold"),
         ]),
         createBuilderTableCell("sample-table-header-lattice", [
-          createParagraphText("Lattice", "sample-table-header-lattice-text", "bold"),
+          createText("Lattice", "sample-table-header-lattice-text", "bold"),
         ]),
         createBuilderTableCell("sample-table-header-runtime", [
-          createParagraphText("Runtime (ms)", "sample-table-header-runtime-text", "bold"),
+          createText("Runtime (ms)", "sample-table-header-runtime-text", "bold"),
         ]),
       ]),
       createBuilderTableRow("sample-table-contract", [
         createBuilderTableCell("sample-table-contract-kernel", [
-          createParagraphText("contract", "sample-table-contract-kernel-text"),
+          createText("contract", "sample-table-contract-kernel-text"),
         ]),
         createBuilderTableCell("sample-table-contract-lattice", [
           createMathInline(
@@ -491,10 +491,10 @@ const initialBlocks = [
           ),
         ]),
         createBuilderTableCell("sample-table-contract-runtime", [
-          createParagraphText("1.25", "sample-table-contract-runtime-text"),
+          createText("1.25", "sample-table-contract-runtime-text"),
           createFootnoteInline(
             [
-              createParagraphText(
+              createText(
                 "Median of ten measurements.",
                 "sample-table-runtime-footnote-text",
               ),
@@ -505,13 +505,13 @@ const initialBlocks = [
       ]),
       createBuilderTableRow("sample-table-svd", [
         createBuilderTableCell("sample-table-svd-kernel", [
-          createParagraphText("svd", "sample-table-svd-kernel-text"),
+          createText("svd", "sample-table-svd-kernel-text"),
         ]),
         createBuilderTableCell("sample-table-svd-lattice", [
-          createParagraphText("32 × 32", "sample-table-svd-lattice-text"),
+          createText("32 × 32", "sample-table-svd-lattice-text"),
         ]),
         createBuilderTableCell("sample-table-svd-runtime", [
-          createParagraphText("8.50", "sample-table-svd-runtime-text"),
+          createText("8.50", "sample-table-svd-runtime-text"),
         ]),
       ]),
     ],
@@ -528,12 +528,12 @@ const initialBlocks = [
     id: "sample-conclusion",
     typeId: paragraphTypeId,
     inlines: Object.freeze([
-      createParagraphText(
+      createText(
         "Alt-drag copies blocks. Ordinary dragging reorders them, and dropping outside the document asks before deletion. See ",
         "sample-conclusion-text",
       ),
       createReferenceInline("tab:kernel-runtime", "sample-conclusion-table-reference"),
-      createParagraphText(" for the current measurements.", "sample-conclusion-tail"),
+      createText(" for the current measurements.", "sample-conclusion-tail"),
     ]),
   }),
   createBibliographyBlock(

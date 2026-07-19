@@ -2,7 +2,8 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_FOOTNOTE_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_FOOTNOTE_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "plugins/inline_sequence.hpp"
+#include "plugins/text.hpp"
 
 #include <string_view>
 
@@ -21,7 +22,7 @@ class Footnote final : public InlineNode
     [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
     [[nodiscard]] auto inlines() noexcept -> InlineSequence&;
     [[nodiscard]] auto inlines() const noexcept -> const InlineSequence&;
-    auto append_text(std::string_view text, TextStyle style = TextStyle::normal) -> CoreText&;
+    auto append_text(std::string_view text, TextStyle style = TextStyle::normal) -> Text&;
 
   private:
     InlineSequence inlines_{};

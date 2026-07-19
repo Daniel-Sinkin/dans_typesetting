@@ -1,7 +1,6 @@
 #include "connectors/latex/bibliography.hpp"
 #include "connectors/latex/code_listing.hpp"
 #include "connectors/latex/color_span.hpp"
-#include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/document_shell.hpp"
 #include "connectors/latex/excalidraw_drawing.hpp"
 #include "connectors/latex/figure_pair.hpp"
@@ -12,13 +11,13 @@
 #include "connectors/latex/item_list.hpp"
 #include "connectors/latex/latex_mixin.hpp"
 #include "connectors/latex/math.hpp"
+#include "connectors/latex/paragraph.hpp"
 #include "connectors/latex/reference.hpp"
 #include "connectors/latex/table.hpp"
 #include "document.hpp"
 #include "plugins/bibliography.hpp"
 #include "plugins/code_listing.hpp"
 #include "plugins/color_span.hpp"
-#include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
 #include "plugins/excalidraw_drawing.hpp"
 #include "plugins/figure_pair.hpp"
@@ -30,6 +29,7 @@
 #include "plugins/latex_mixin.hpp"
 #include "plugins/math.hpp"
 #include "plugins/math_matvec.hpp"
+#include "plugins/paragraph.hpp"
 #include "plugins/reference.hpp"
 #include "plugins/table.hpp"
 #include "plugins/table_csv.hpp"
@@ -166,11 +166,11 @@ auto make_sample_document()
     document.blocks().add<PageBreak>();
 
     const auto par_writer = [&](BlockSequence& blocks, std::string_view text)
-    { blocks.add<CoreParagraph>(text); };
+    { blocks.add<Paragraph>(text); };
 
     auto& introduction =
         document.blocks().add<Section>("Introduction", ReferenceId{"sec:introduction"});
-    auto& introduction_text = introduction.blocks().add<CoreParagraph>();
+    auto& introduction_text = introduction.blocks().add<Paragraph>();
     introduction_text.append_text(
         "This document is represented as an owning C++ object model and exported through a "
         "separate LaTeX writer. Tensor-network background is summarized in "
@@ -195,7 +195,7 @@ auto make_sample_document()
     );
 
     auto& inline_extensions = architecture.blocks().add<Section>("Inline composition");
-    auto& inline_paragraph = inline_extensions.blocks().add<CoreParagraph>();
+    auto& inline_paragraph = inline_extensions.blocks().add<Paragraph>();
     inline_paragraph.append_text("A paragraph can combine ordinary text, inline math such as ");
     inline_paragraph.inlines().add<Math::Inline>(M::id_x.subscript(M::id_i).superscript(M::id_2));
     inline_paragraph.append_text(", and ");
@@ -203,7 +203,7 @@ auto make_sample_document()
     inline_paragraph.append_text(" as semantic inline code, plus ");
     auto& color_span =
         inline_paragraph.inlines().add<ColorSpan>(RgbColor{.red = 38, .green = 96, .blue = 168});
-    color_span.inlines().add<CoreText>("a coloured span containing both text and ");
+    color_span.inlines().add<Text>("a coloured span containing both text and ");
     color_span.inlines().add<Math::Inline>(M::add(M::id_alpha, M::id_beta));
     inline_paragraph.append_text(", a tiny inline image ");
     inline_paragraph.inlines().add<InlineImage>(
@@ -213,7 +213,7 @@ auto make_sample_document()
     inline_paragraph.inlines().add<InlineLatex>(R"(\LaTeX{})");
     inline_paragraph.append_text(" in one ordered inline sequence.");
 
-    auto& styled_paragraph = inline_extensions.blocks().add<CoreParagraph>();
+    auto& styled_paragraph = inline_extensions.blocks().add<Paragraph>();
     styled_paragraph.append_text("Text leaves can be ");
     styled_paragraph.append_text("bold", TextStyle::bold);
     styled_paragraph.append_text(", ");
@@ -225,17 +225,17 @@ auto make_sample_document()
     styled_paragraph.append_text(" or use a nested label such as ");
     auto& labelled_link =
         styled_paragraph.inlines().add<Hyperlink>("https://example.com/thesis?part=1#results");
-    labelled_link.label().add<CoreText>("the results", TextStyle::bold);
+    labelled_link.label().add<Text>("the results", TextStyle::bold);
     styled_paragraph.append_text(". Footnotes share that same content contract");
     auto& footnote = styled_paragraph.inlines().add<Footnote>();
     footnote.append_text("A note can contain ");
     auto& footnote_link = footnote.inlines().add<Hyperlink>("https://example.com/source");
-    footnote_link.label().add<CoreText>("a styled source", TextStyle::italic);
+    footnote_link.label().add<Text>("a styled source", TextStyle::italic);
     footnote.append_text(" without storing its visible number.");
     styled_paragraph.append_text(".");
 
     auto& escaping = architecture.blocks().add<Section>("Backend-owned escaping");
-    escaping.blocks().add<CoreParagraph>(
+    escaping.blocks().add<Paragraph>(
         "The paragraph model stores ordinary text such as CUDA & C++, block_size, and 50% "
         "without containing LaTeX escape sequences."
     );
@@ -274,7 +274,7 @@ auto make_sample_document()
     );
     benchmark_table.set_column_alignment(1, TableColumnAlignment::center);
     benchmark_table.set_column_alignment(2, TableColumnAlignment::right);
-    auto& table_reference = tables.blocks().add<CoreParagraph>("The values summarized in ");
+    auto& table_reference = tables.blocks().add<Paragraph>("The values summarized in ");
     table_reference.inlines().add<Reference>(benchmark_table_id);
     table_reference.append_text(
         " retain a stable target while their visible number is writer-owned."
@@ -289,9 +289,9 @@ auto make_sample_document()
         RelativeWidth::from_percent(52.0),
         PixelExtent{1280, 720}
     );
-    figure.caption().add<CoreText>(" Captions share the inline contract, including ");
+    figure.caption().add<Text>(" Captions share the inline contract, including ");
     figure.caption().add<Math::Inline>(M::id_A.subscript(M::csv(M::id_4, M::id_3)));
-    figure.caption().add<CoreText>(".");
+    figure.caption().add<Text>(".");
 
     auto first_panel = FigurePanel{
         ImageSource{"sample-image.pdf"},
@@ -323,13 +323,13 @@ auto make_sample_document()
         DrawingWidth::from_percent(72.0)
     );
 
-    auto& figure_reference = media.blocks().add<CoreParagraph>();
+    auto& figure_reference = media.blocks().add<Paragraph>();
     figure_reference.append_text("The visible number in ");
     figure_reference.inlines().add<Reference>(sample_figure_id);
     figure_reference.append_text(
         " belongs to the exporter, while the document model retains only its stable ID."
     );
-    auto& panel_reference = media.blocks().add<CoreParagraph>("Composite targets resolve as ");
+    auto& panel_reference = media.blocks().add<Paragraph>("Composite targets resolve as ");
     panel_reference.inlines().add<Reference>(ReferenceId{"fig:model-comparison"});
     panel_reference.append_text(", ");
     panel_reference.inlines().add<Reference>(ReferenceId{"fig:model-comparison:left"});
@@ -372,7 +372,7 @@ auto make_sample_document()
         make_numeric_literal_equation(), numeric_literal_equation_id
     );
 
-    auto& equation_references = mathematics.blocks().add<CoreParagraph>();
+    auto& equation_references = mathematics.blocks().add<Paragraph>();
     equation_references.append_text("The aligned group retains distinct targets: ");
     equation_references.inlines().add<Reference>(energy_equation_id);
     equation_references.append_text(" and ");
@@ -416,7 +416,7 @@ auto make_sample_document()
         CodeLanguage::raw,
         "Raw, byte-preserving source text can omit both caption and reference metadata.\n"
     );
-    auto& listing_reference = listings.blocks().add<CoreParagraph>();
+    auto& listing_reference = listings.blocks().add<Paragraph>();
     listing_reference.append_text("The captionless CUDA kernel remains referenceable as ");
     listing_reference.inlines().add<Reference>(ReferenceId{"lst:cuda-scale"});
     listing_reference.append_text(".");
@@ -477,15 +477,15 @@ auto run(const int argc, char** argv) -> int
         const auto document = make_sample_document();
         dans::document::writers::LatexWriter writer;
         auto inline_renderer =
-            std::make_shared<dans::document::connectors::latex::CoreParagraphInlineLatexRenderer>();
+            std::make_shared<dans::document::connectors::latex::InlineLatexRenderer>();
         inline_renderer->register_inline_adapter(
-            std::make_unique<dans::document::connectors::latex::CoreTextLatexAdapter>()
+            std::make_unique<dans::document::connectors::latex::TextLatexAdapter>()
         );
         inline_renderer->register_inline_adapter(
             std::make_unique<dans::document::connectors::latex::InlineMathLatexAdapter>()
         );
         inline_renderer->register_inline_adapter(
-            std::make_unique<dans::document::connectors::latex::InlineLatexAdapter>()
+            std::make_unique<dans::document::connectors::latex::RawInlineLatexAdapter>()
         );
         inline_renderer->register_inline_adapter(
             std::make_unique<dans::document::connectors::latex::ColorSpanLatexAdapter>()
@@ -509,7 +509,7 @@ auto run(const int argc, char** argv) -> int
             std::make_unique<dans::document::connectors::latex::CitationLatexAdapter>()
         );
         writer.register_block_adapter(
-            std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(
+            std::make_unique<dans::document::connectors::latex::ParagraphLatexAdapter>(
                 inline_renderer
             )
         );

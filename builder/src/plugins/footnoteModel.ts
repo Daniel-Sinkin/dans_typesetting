@@ -1,7 +1,7 @@
 // Semantic inline footnote payload; visible numbering belongs to each writer.
 import {
   createBlockId,
-  createParagraphText,
+  createText,
   type BuilderInlineNode,
 } from "../model/document";
 
@@ -43,7 +43,7 @@ export function validateFootnoteInline(footnote: FootnoteInline): void {
 
 export function createFootnoteInline(
   inlines: readonly BuilderInlineNode[] = [
-    createParagraphText("A new footnote."),
+    createText("A new footnote."),
   ],
   id: string = createBlockId(),
 ): FootnoteInline {

@@ -8,7 +8,7 @@ import type {
 } from "../builder/inlinePlugin";
 import {
   createBlockId,
-  paragraphTextInlineTypeId,
+  textInlineTypeId,
   type BuilderInlineNode,
 } from "../model/document";
 import { InlinePayloadEditor } from "./paragraphEditor";
@@ -57,7 +57,7 @@ export function HyperlinkEditor({
   context,
 }: BuilderInlineEditorProps) {
   const link = requireHyperlink(inline);
-  const [newLabelType, setNewLabelType] = useState(paragraphTextInlineTypeId);
+  const [newLabelType, setNewLabelType] = useState(textInlineTypeId);
   const availableLabelPlugins = registry
     .palettePlugins()
     .filter((plugin) => plugin.typeId !== link.typeId);

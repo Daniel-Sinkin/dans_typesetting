@@ -52,7 +52,7 @@ are regenerated when parsing serialized data.
 
 ## Deliberate limits
 
-Math text is not a Core Paragraph inline sequence: it does not contain colour,
+Math text is not an Inline Sequence: it does not contain colour,
 links, citations, footnotes, inline math, or nested prose styles. Underbrace
 owns exactly one annotation expression and does not imply evaluation or a
 general accent system. Overbraces, overset/underset, labelled arrows, multiline

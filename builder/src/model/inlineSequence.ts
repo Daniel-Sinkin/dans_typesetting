@@ -1,4 +1,4 @@
-// Pure ordered-inline-sequence operations used by graphical paragraph editors.
+// Pure ordered-inline-sequence operations shared by every graphical inline host.
 import type { BuilderInlineNode } from "./document";
 
 function requireExistingIndex(inlines: readonly BuilderInlineNode[], index: number): void {
@@ -20,7 +20,7 @@ export function insertInlineNode(
 ): readonly BuilderInlineNode[] {
   requireInsertionIndex(inlines, index);
   if (inlines.some((candidate) => candidate.id === inline.id)) {
-    throw new Error(`Duplicate paragraph inline ID: ${inline.id}`);
+    throw new Error(`Duplicate inline ID: ${inline.id}`);
   }
   const nextInlines = [...inlines];
   nextInlines.splice(index, 0, inline);

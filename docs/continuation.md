@@ -55,7 +55,7 @@ Commit `9444d55` adds semantic exactly-two-panel figures across native LaTeX,
 Markdown/Jupyter, canonical transport, and graphical authoring.
 
 Commit `0d17dc2` converges ordinary-figure and code-listing captions on the
-plugin-owned Core Paragraph inline contract in canonical and graphical paths.
+standalone Inline Sequence contract in canonical and graphical paths.
 
 Commit `57a271b` expands the structured relation, product, arrow, Greek, and
 physics-symbol vocabulary across native and graphical writers.
@@ -122,7 +122,7 @@ See `math-vocabulary.md` for precedence, aliases, and intentional omissions.
 
 The preceding rich-caption convergence slice adds:
 
-- plugin-owned Core Paragraph caption sequences for ordinary figures and code
+- plugin-owned Inline Sequence captions for ordinary figures and code
   listings in the graphical/canonical model, matching their existing native
   LaTeX and Markdown contracts;
 - styled text, inline code, structured math, colour, links, references,
@@ -144,7 +144,7 @@ The preceding paired-figure slice adds:
   a generic layout grid;
 - optional group and panel reference targets sharing one writer-owned figure
   ordinal, with `a` and `b` suffixes for panel references;
-- rich Core Paragraph captions for the group and both panels, independent
+- rich Inline Sequence captions for the group and both panels, independent
   image sources, optional pixel-size hints, and a shared relative-width hint;
 - native LaTeX lowering through `subcaption`, semantic Markdown lowering as a
   two-column table, and automatic Jupyter composition through Markdown;
@@ -177,7 +177,7 @@ See `bibliography.md` for the normalized record and adapter contract.
 
 The preceding semantic inline-code slice adds:
 
-- `dans.code.inline` as an independent Core Paragraph extension rather than a
+- `dans.code.inline` as an independent Inline Sequence extension rather than a
   prose style or raw-LaTeX escape;
 - a single-line validated native model and escaped `\texttt{...}` LaTeX
   connector;
@@ -252,7 +252,7 @@ respectively writer and graphical CSV-import policies.
 
 The preceding semantic inline-footnote slice adds:
 
-- `dans.inline.footnote` as a non-empty nested Core Paragraph inline host;
+- `dans.inline.footnote` as a non-empty nested Inline Sequence host;
 - generic plugin-declared nested-inline traversal and writer-owned occurrence
   numbering, shared by paragraphs and semantic list items;
 - live graphical superscript markers, hover/focus note previews, and nested
@@ -289,7 +289,7 @@ The semantic target/reference slice adds:
 The preceding semantic item-list slice adds:
 
 - `dans.list` with explicit itemized/enumerated presentation;
-- stable ordered items, each owning the Core Paragraph inline contract;
+- stable ordered items, each owning the Inline Sequence contract;
 - native semantic classes and a LaTeX connector using the shared inline
   renderer rather than learning concrete text/math/link types;
 - canonical plugin codecs with item/inline identity and round-trip validation;

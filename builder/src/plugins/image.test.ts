@@ -5,7 +5,7 @@ import { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import { BuilderPluginRegistry } from "../builder/plugin";
 import {
   createMathInline,
-  createParagraphText,
+  createText,
   MemoryDocumentPort,
 } from "../model/document";
 import { createMathIdentifier } from "../model/math";
@@ -23,11 +23,11 @@ import {
 import { opaqueBlockAdapter } from "./opaque";
 import {
   opaqueInlineAdapter,
-  paragraphTextInlinePlugin,
-} from "./paragraphInline";
+  textInlinePlugin,
+} from "./text";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
-  [paragraphTextInlinePlugin],
+  [textInlinePlugin],
   opaqueInlineAdapter,
 );
 const imagePlugin = createImagePlugin(inlineRegistry);
@@ -47,7 +47,7 @@ describe("semantic rich figures", () => {
       "figure",
       "/figure.svg",
       [
-        createParagraphText("Spectrum ", "caption-text", "bold"),
+        createText("Spectrum ", "caption-text", "bold"),
         createMathInline(createMathIdentifier("E"), "caption-math"),
       ],
       "fig:spectrum",
@@ -110,7 +110,7 @@ describe("semantic rich figures", () => {
     const source = createImageBlock(
       "source",
       "/source.png",
-      [createParagraphText("Caption", "caption")],
+      [createText("Caption", "caption")],
       "fig:source",
     );
     const copied = requireImageBlock(
@@ -128,15 +128,15 @@ describe("semantic rich figures", () => {
     );
     expect(() =>
       createImageBlock("duplicate", "/figure.png", [
-        createParagraphText("A", "same"),
-        createParagraphText("B", "same"),
+        createText("A", "same"),
+        createText("B", "same"),
       ]),
     ).toThrow(/Duplicate figure caption inline ID/u);
     expect(() =>
       createImageBlock(
         "dimensions",
         "/figure.png",
-        [createParagraphText("Caption")],
+        [createText("Caption")],
         null,
         0.5,
         0,

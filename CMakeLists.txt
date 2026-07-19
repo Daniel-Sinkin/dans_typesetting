@@ -113,25 +113,49 @@ target_link_libraries(canonical_transport
   PRIVATE typesetter_warnings
 )
 
-# First plugin module: ordinary paragraphs.
-add_library(core_paragraph STATIC
-  src/plugins/core_paragraph.cpp
-  src/plugins/core_paragraph.hpp
+# Foundational ordered-inline protocol, independent of any particular host.
+add_library(inline_sequence STATIC
+  src/plugins/inline_sequence.cpp
+  src/plugins/inline_sequence.hpp
 )
-add_library(dans::core_paragraph ALIAS core_paragraph)
-target_link_libraries(core_paragraph
+add_library(dans::inline_sequence ALIAS inline_sequence)
+target_link_libraries(inline_sequence
   PUBLIC dans::document_core
   PRIVATE typesetter_warnings
 )
 
-# Plugin modules extending the Core Paragraph inline contract and document blocks.
+# Ordinary text is an inline leaf plugin independent of any particular host.
+add_library(text_plugin STATIC
+  src/plugins/text.cpp
+  src/plugins/text.hpp
+)
+add_library(dans::text_plugin ALIAS text_plugin)
+target_link_libraries(text_plugin
+  PUBLIC dans::inline_sequence
+  PRIVATE typesetter_warnings
+)
+
+# Paragraph is one semantic host of Inline Sequence and ordinary text.
+add_library(paragraph_plugin STATIC
+  src/plugins/paragraph.cpp
+  src/plugins/paragraph.hpp
+)
+add_library(dans::paragraph_plugin ALIAS paragraph_plugin)
+target_link_libraries(paragraph_plugin
+  PUBLIC
+    dans::inline_sequence
+    dans::text_plugin
+  PRIVATE typesetter_warnings
+)
+
+# Plugin modules extending the Inline Sequence contract and document blocks.
 add_library(math_plugin STATIC
   src/plugins/math.cpp
   src/plugins/math.hpp
 )
 add_library(dans::math_plugin ALIAS math_plugin)
 target_link_libraries(math_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC dans::inline_sequence
   PRIVATE typesetter_warnings
 )
 
@@ -151,7 +175,9 @@ add_library(item_list_plugin STATIC
 )
 add_library(dans::item_list_plugin ALIAS item_list_plugin)
 target_link_libraries(item_list_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC
+    dans::inline_sequence
+    dans::text_plugin
   PRIVATE typesetter_warnings
 )
 
@@ -161,7 +187,9 @@ add_library(table_plugin STATIC
 )
 add_library(dans::table_plugin ALIAS table_plugin)
 target_link_libraries(table_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC
+    dans::inline_sequence
+    dans::text_plugin
   PRIVATE typesetter_warnings
 )
 
@@ -181,7 +209,7 @@ add_library(latex_mixin_plugin STATIC
 )
 add_library(dans::latex_mixin_plugin ALIAS latex_mixin_plugin)
 target_link_libraries(latex_mixin_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC dans::inline_sequence
   PRIVATE typesetter_warnings
 )
 
@@ -191,7 +219,7 @@ add_library(color_span_plugin STATIC
 )
 add_library(dans::color_span_plugin ALIAS color_span_plugin)
 target_link_libraries(color_span_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC dans::inline_sequence
   PRIVATE typesetter_warnings
 )
 
@@ -201,7 +229,7 @@ add_library(reference_plugin STATIC
 )
 add_library(dans::reference_plugin ALIAS reference_plugin)
 target_link_libraries(reference_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC dans::inline_sequence
   PRIVATE typesetter_warnings
 )
 
@@ -211,7 +239,9 @@ add_library(footnote_plugin STATIC
 )
 add_library(dans::footnote_plugin ALIAS footnote_plugin)
 target_link_libraries(footnote_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC
+    dans::inline_sequence
+    dans::text_plugin
   PRIVATE typesetter_warnings
 )
 
@@ -221,8 +251,10 @@ add_library(hyperlink_plugin STATIC
 )
 add_library(dans::hyperlink_plugin ALIAS hyperlink_plugin)
 target_link_libraries(hyperlink_plugin
-  PUBLIC dans::core_paragraph
-  PRIVATE typesetter_warnings
+  PUBLIC dans::inline_sequence
+  PRIVATE
+    dans::text_plugin
+    typesetter_warnings
 )
 
 add_library(image_plugin STATIC
@@ -231,8 +263,10 @@ add_library(image_plugin STATIC
 )
 add_library(dans::image_plugin ALIAS image_plugin)
 target_link_libraries(image_plugin
-  PUBLIC dans::core_paragraph
-  PRIVATE typesetter_warnings
+  PUBLIC dans::inline_sequence
+  PRIVATE
+    dans::text_plugin
+    typesetter_warnings
 )
 
 add_library(figure_pair_plugin STATIC
@@ -242,7 +276,9 @@ add_library(figure_pair_plugin STATIC
 add_library(dans::figure_pair_plugin ALIAS figure_pair_plugin)
 target_link_libraries(figure_pair_plugin
   PUBLIC dans::image_plugin
-  PRIVATE typesetter_warnings
+  PRIVATE
+    dans::text_plugin
+    typesetter_warnings
 )
 
 add_library(excalidraw_drawing_plugin STATIC
@@ -261,8 +297,10 @@ add_library(code_listing_plugin STATIC
 )
 add_library(dans::code_listing_plugin ALIAS code_listing_plugin)
 target_link_libraries(code_listing_plugin
-  PUBLIC dans::core_paragraph
-  PRIVATE typesetter_warnings
+  PUBLIC dans::inline_sequence
+  PRIVATE
+    dans::text_plugin
+    typesetter_warnings
 )
 
 add_library(inline_code_plugin STATIC
@@ -271,7 +309,7 @@ add_library(inline_code_plugin STATIC
 )
 add_library(dans::inline_code_plugin ALIAS inline_code_plugin)
 target_link_libraries(inline_code_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC dans::inline_sequence
   PRIVATE typesetter_warnings
 )
 
@@ -281,7 +319,7 @@ add_library(bibliography_plugin STATIC
 )
 add_library(dans::bibliography_plugin ALIAS bibliography_plugin)
 target_link_libraries(bibliography_plugin
-  PUBLIC dans::core_paragraph
+  PUBLIC dans::inline_sequence
   PRIVATE typesetter_warnings
 )
 
@@ -328,17 +366,29 @@ target_link_libraries(latex_writer
   PRIVATE typesetter_warnings
 )
 
-add_library(core_paragraph_latex_connector STATIC
-  src/connectors/latex/core_paragraph.cpp
-  src/connectors/latex/core_paragraph.hpp
+add_library(inline_sequence_latex_connector STATIC
+  src/connectors/latex/inline_sequence.cpp
+  src/connectors/latex/inline_sequence.hpp
 )
-add_library(dans::core_paragraph_latex_connector ALIAS core_paragraph_latex_connector)
-target_link_libraries(core_paragraph_latex_connector
+add_library(dans::inline_sequence_latex_connector ALIAS inline_sequence_latex_connector)
+target_link_libraries(inline_sequence_latex_connector
   PUBLIC
-    dans::core_paragraph
+    dans::inline_sequence
     dans::latex_writer
   PRIVATE
     typesetter_warnings
+)
+
+add_library(paragraph_latex_connector STATIC
+  src/connectors/latex/paragraph.cpp
+  src/connectors/latex/paragraph.hpp
+)
+add_library(dans::paragraph_latex_connector ALIAS paragraph_latex_connector)
+target_link_libraries(paragraph_latex_connector
+  PUBLIC
+    dans::inline_sequence_latex_connector
+    dans::paragraph_plugin
+  PRIVATE typesetter_warnings
 )
 
 # Shared TeX expression notation consumed by LaTeX and Markdown math
@@ -361,7 +411,7 @@ add_library(dans::math_latex_connector ALIAS math_latex_connector)
 target_link_libraries(math_latex_connector
   PUBLIC
     dans::math_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     dans::math_tex_expression_connector
     typesetter_warnings
@@ -375,7 +425,7 @@ add_library(dans::item_list_latex_connector ALIAS item_list_latex_connector)
 target_link_libraries(item_list_latex_connector
   PUBLIC
     dans::item_list_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -388,7 +438,7 @@ add_library(dans::table_latex_connector ALIAS table_latex_connector)
 target_link_libraries(table_latex_connector
   PUBLIC
     dans::table_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -401,7 +451,7 @@ add_library(dans::latex_mixin_latex_connector ALIAS latex_mixin_latex_connector)
 target_link_libraries(latex_mixin_latex_connector
   PUBLIC
     dans::latex_mixin_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -414,7 +464,7 @@ add_library(dans::color_span_latex_connector ALIAS color_span_latex_connector)
 target_link_libraries(color_span_latex_connector
   PUBLIC
     dans::color_span_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -427,7 +477,7 @@ add_library(dans::reference_latex_connector ALIAS reference_latex_connector)
 target_link_libraries(reference_latex_connector
   PUBLIC
     dans::reference_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -440,7 +490,7 @@ add_library(dans::footnote_latex_connector ALIAS footnote_latex_connector)
 target_link_libraries(footnote_latex_connector
   PUBLIC
     dans::footnote_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -453,7 +503,7 @@ add_library(dans::hyperlink_latex_connector ALIAS hyperlink_latex_connector)
 target_link_libraries(hyperlink_latex_connector
   PUBLIC
     dans::hyperlink_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -466,7 +516,7 @@ add_library(dans::image_latex_connector ALIAS image_latex_connector)
 target_link_libraries(image_latex_connector
   PUBLIC
     dans::image_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -479,7 +529,7 @@ add_library(dans::figure_pair_latex_connector ALIAS figure_pair_latex_connector)
 target_link_libraries(figure_pair_latex_connector
   PUBLIC
     dans::figure_pair_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE typesetter_warnings
 )
 
@@ -505,7 +555,7 @@ add_library(dans::code_listing_latex_connector ALIAS code_listing_latex_connecto
 target_link_libraries(code_listing_latex_connector
   PUBLIC
     dans::code_listing_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -518,7 +568,7 @@ add_library(dans::inline_code_latex_connector ALIAS inline_code_latex_connector)
 target_link_libraries(inline_code_latex_connector
   PUBLIC
     dans::inline_code_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -531,7 +581,7 @@ add_library(dans::bibliography_latex_connector ALIAS bibliography_latex_connecto
 target_link_libraries(bibliography_latex_connector
   PUBLIC
     dans::bibliography_plugin
-    dans::core_paragraph_latex_connector
+    dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
 )
@@ -562,15 +612,27 @@ target_link_libraries(markdown_writer
   PRIVATE typesetter_warnings
 )
 
-add_library(core_paragraph_markdown_connector STATIC
-  src/connectors/markdown/core_paragraph.cpp
-  src/connectors/markdown/core_paragraph.hpp
+add_library(inline_sequence_markdown_connector STATIC
+  src/connectors/markdown/inline_sequence.cpp
+  src/connectors/markdown/inline_sequence.hpp
 )
-add_library(dans::core_paragraph_markdown_connector ALIAS core_paragraph_markdown_connector)
-target_link_libraries(core_paragraph_markdown_connector
+add_library(dans::inline_sequence_markdown_connector ALIAS inline_sequence_markdown_connector)
+target_link_libraries(inline_sequence_markdown_connector
   PUBLIC
-    dans::core_paragraph
+    dans::inline_sequence
     dans::markdown_writer
+  PRIVATE typesetter_warnings
+)
+
+add_library(paragraph_markdown_connector STATIC
+  src/connectors/markdown/paragraph.cpp
+  src/connectors/markdown/paragraph.hpp
+)
+add_library(dans::paragraph_markdown_connector ALIAS paragraph_markdown_connector)
+target_link_libraries(paragraph_markdown_connector
+  PUBLIC
+    dans::inline_sequence_markdown_connector
+    dans::paragraph_plugin
   PRIVATE typesetter_warnings
 )
 
@@ -594,7 +656,7 @@ add_library(dans::hyperlink_markdown_connector ALIAS hyperlink_markdown_connecto
 target_link_libraries(hyperlink_markdown_connector
   PUBLIC
     dans::hyperlink_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -606,7 +668,7 @@ add_library(dans::inline_code_markdown_connector ALIAS inline_code_markdown_conn
 target_link_libraries(inline_code_markdown_connector
   PUBLIC
     dans::inline_code_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -618,7 +680,7 @@ add_library(dans::color_span_markdown_connector ALIAS color_span_markdown_connec
 target_link_libraries(color_span_markdown_connector
   PUBLIC
     dans::color_span_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -630,7 +692,7 @@ add_library(dans::footnote_markdown_connector ALIAS footnote_markdown_connector)
 target_link_libraries(footnote_markdown_connector
   PUBLIC
     dans::footnote_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -642,7 +704,7 @@ add_library(dans::reference_markdown_connector ALIAS reference_markdown_connecto
 target_link_libraries(reference_markdown_connector
   PUBLIC
     dans::reference_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -654,7 +716,7 @@ add_library(dans::image_markdown_connector ALIAS image_markdown_connector)
 target_link_libraries(image_markdown_connector
   PUBLIC
     dans::image_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -666,7 +728,7 @@ add_library(dans::figure_pair_markdown_connector ALIAS figure_pair_markdown_conn
 target_link_libraries(figure_pair_markdown_connector
   PUBLIC
     dans::figure_pair_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -678,7 +740,7 @@ add_library(dans::item_list_markdown_connector ALIAS item_list_markdown_connecto
 target_link_libraries(item_list_markdown_connector
   PUBLIC
     dans::item_list_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -690,7 +752,7 @@ add_library(dans::code_listing_markdown_connector ALIAS code_listing_markdown_co
 target_link_libraries(code_listing_markdown_connector
   PUBLIC
     dans::code_listing_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -702,7 +764,7 @@ add_library(dans::table_markdown_connector ALIAS table_markdown_connector)
 target_link_libraries(table_markdown_connector
   PUBLIC
     dans::table_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -714,7 +776,7 @@ add_library(dans::math_markdown_connector ALIAS math_markdown_connector)
 target_link_libraries(math_markdown_connector
   PUBLIC
     dans::math_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE
     dans::math_tex_expression_connector
     typesetter_warnings
@@ -728,7 +790,7 @@ add_library(dans::bibliography_markdown_connector ALIAS bibliography_markdown_co
 target_link_libraries(bibliography_markdown_connector
   PUBLIC
     dans::bibliography_plugin
-    dans::core_paragraph_markdown_connector
+    dans::inline_sequence_markdown_connector
   PRIVATE typesetter_warnings
 )
 
@@ -755,7 +817,7 @@ target_link_libraries(document_example PRIVATE
   dans::bibliography_latex_connector
   dans::code_listing_latex_connector
   dans::color_span_latex_connector
-  dans::core_paragraph_latex_connector
+  dans::paragraph_latex_connector
   dans::document_shell_latex_connector
   dans::excalidraw_drawing_latex_connector
   dans::figure_pair_latex_connector
@@ -778,7 +840,7 @@ if(BUILD_TESTING)
     tests/native_inline_test.cpp
   )
   target_link_libraries(native_inline_test PRIVATE
-    dans::core_paragraph_latex_connector
+    dans::paragraph_latex_connector
     dans::footnote_latex_connector
     dans::hyperlink_latex_connector
     dans::inline_code_latex_connector
@@ -823,6 +885,7 @@ if(BUILD_TESTING)
   target_link_libraries(native_item_list_test PRIVATE
     dans::item_list_latex_connector
     dans::math_latex_connector
+    dans::paragraph_latex_connector
     typesetter_warnings
   )
   add_test(NAME native_item_list_test COMMAND native_item_list_test)
@@ -833,6 +896,7 @@ if(BUILD_TESTING)
   target_link_libraries(native_table_test PRIVATE
     dans::footnote_latex_connector
     dans::math_latex_connector
+    dans::paragraph_latex_connector
     dans::table_csv_plugin
     dans::table_latex_connector
     typesetter_warnings
@@ -863,6 +927,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(native_code_listing_test PRIVATE
     dans::code_listing_latex_connector
+    dans::paragraph_latex_connector
     typesetter_warnings
   )
   add_test(NAME native_code_listing_test COMMAND native_code_listing_test)
@@ -877,6 +942,7 @@ if(BUILD_TESTING)
     dans::bibliography_bibtex_plugin
     dans::bibliography_json_plugin
     dans::bibliography_latex_connector
+    dans::paragraph_latex_connector
     typesetter_warnings
   )
   add_test(NAME native_bibliography_test COMMAND native_bibliography_test)
@@ -889,6 +955,8 @@ if(BUILD_TESTING)
     dans::figure_pair_markdown_connector
     dans::image_latex_connector
     dans::image_markdown_connector
+    dans::paragraph_latex_connector
+    dans::paragraph_markdown_connector
     dans::reference_markdown_connector
     typesetter_warnings
   )
@@ -912,6 +980,7 @@ if(BUILD_TESTING)
     dans::inline_code_markdown_connector
     dans::item_list_markdown_connector
     dans::math_markdown_connector
+    dans::paragraph_markdown_connector
     dans::reference_markdown_connector
     dans::table_markdown_connector
     typesetter_warnings
@@ -926,7 +995,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(native_jupyter_test PRIVATE
     dans::code_listing_markdown_connector
-    dans::core_paragraph_markdown_connector
+    dans::paragraph_markdown_connector
     dans::document_shell_markdown_connector
     dans::figure_pair_markdown_connector
     dans::inline_code_markdown_connector

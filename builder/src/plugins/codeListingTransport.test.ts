@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createParagraphText, MemoryDocumentPort } from "../model/document";
+import { createText, MemoryDocumentPort } from "../model/document";
 import {
   canonicalDocumentFormat,
   canonicalDocumentSchemaVersion,
@@ -37,7 +37,7 @@ describe("code-listing canonical transport", () => {
         caption === null
           ? null
           : [
-              createParagraphText(
+              createText(
                 caption,
                 `listing-${language}-caption`,
                 "bold_italic",

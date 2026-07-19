@@ -47,7 +47,7 @@ auto longest_fence_run(const std::string_view code) noexcept -> usize
 }  // namespace
 
 CodeListingMarkdownAdapter::CodeListingMarkdownAdapter(
-    std::shared_ptr<const CoreParagraphInlineMarkdownRenderer> inline_renderer
+    std::shared_ptr<const InlineMarkdownRenderer> inline_renderer
 )
     : inline_renderer_{std::move(inline_renderer)}
 {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  createParagraphText,
+  createText,
   paragraphTypeId,
   type BuilderBlock,
   type ParagraphBlock,
@@ -22,8 +22,8 @@ import { opaqueBlockAdapter } from "../plugins/opaque";
 import { createParagraphPlugin } from "../plugins/paragraph";
 import {
   opaqueInlineAdapter,
-  paragraphTextInlinePlugin,
-} from "../plugins/paragraphInline";
+  textInlinePlugin,
+} from "../plugins/text";
 
 const blocks = [
   { id: "figure-a", typeId: "figure" },
@@ -83,7 +83,7 @@ describe("writer-derived block numbering", () => {
 describe("writer-derived inline numbering", () => {
   it("numbers nested occurrences across independent paragraph-like block plugins", () => {
     const inlineRegistry = new BuilderInlinePluginRegistry(
-      [paragraphTextInlinePlugin, colorSpanInlinePlugin, footnoteInlinePlugin],
+      [textInlinePlugin, colorSpanInlinePlugin, footnoteInlinePlugin],
       opaqueInlineAdapter,
     );
     const registry = new BuilderPluginRegistry(
@@ -91,18 +91,18 @@ describe("writer-derived inline numbering", () => {
       opaqueBlockAdapter,
     );
     const first = createFootnoteInline(
-      [createParagraphText("First note", "first-note-text")],
+      [createText("First note", "first-note-text")],
       "first-note",
     );
     const second = createFootnoteInline(
-      [createParagraphText("Second note", "second-note-text")],
+      [createText("Second note", "second-note-text")],
       "second-note",
     );
     const paragraph: ParagraphBlock = {
       id: "paragraph-with-note",
       typeId: paragraphTypeId,
       inlines: [
-        createParagraphText("Nested", "paragraph-text"),
+        createText("Nested", "paragraph-text"),
         createColorSpanInline(undefined, [first], "colour-wrapper"),
       ],
     };

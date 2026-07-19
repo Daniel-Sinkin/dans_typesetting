@@ -24,10 +24,8 @@ import {
   displayMathTransportCodec,
   inlineMathTransportCodec,
 } from "../plugins/mathTransport";
-import {
-  paragraphBlockTransportCodec,
-  paragraphTextInlineTransportCodec,
-} from "../plugins/paragraphTransport";
+import { paragraphBlockTransportCodec } from "../plugins/paragraphTransport";
+import { textInlineTransportCodec } from "../plugins/textTransport";
 import {
   CanonicalDocumentTransport,
   DocumentTransportRegistry,
@@ -50,7 +48,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     bibliographyBlockTransportCodec,
   ],
   [
-    paragraphTextInlineTransportCodec,
+    textInlineTransportCodec,
     colorSpanInlineTransportCodec,
     inlineMathTransportCodec,
     hyperlinkInlineTransportCodec,

@@ -1,4 +1,4 @@
-// Register semantic cross-references with Core Paragraph's inline contract.
+// Register semantic cross-references with the shared Inline Sequence contract.
 import { createElement } from "react";
 
 import type { BuilderInlinePlugin } from "../builder/inlinePlugin";

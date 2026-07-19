@@ -2,7 +2,8 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_CODE_LISTING_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_CODE_LISTING_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "document.hpp"
+#include "plugins/inline_sequence.hpp"
 #include "reference_id.hpp"
 
 #include <optional>

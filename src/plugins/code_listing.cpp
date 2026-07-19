@@ -1,6 +1,8 @@
 // src/plugins/code_listing.cpp — validate and implement semantic source-code listings.
 #include "plugins/code_listing.hpp"
 
+#include "plugins/text.hpp"
+
 #include <stdexcept>
 #include <utility>
 
@@ -24,7 +26,7 @@ CodeListing::CodeListing(
     {
         throw std::invalid_argument{"An explicit code-listing caption must not be empty"};
     }
-    caption_.add<CoreText>(caption);
+    caption_.add<Text>(caption);
 }
 
 CodeListing::CodeListing(

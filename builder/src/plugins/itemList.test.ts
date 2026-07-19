@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createParagraphText, MemoryDocumentPort } from "../model/document";
+import { createText, MemoryDocumentPort } from "../model/document";
 import {
   canonicalDocumentFormat,
   canonicalDocumentSchemaVersion,
@@ -19,8 +19,8 @@ function listBlock(): ItemListBlock {
     typeId: itemListTypeId,
     presentation: "enumerated",
     items: Object.freeze([
-      createBuilderListItem("item-a", [createParagraphText("First", "text-a", "bold")]),
-      createBuilderListItem("item-b", [createParagraphText("Second", "text-b")]),
+      createBuilderListItem("item-a", [createText("First", "text-a", "bold")]),
+      createBuilderListItem("item-b", [createText("Second", "text-b")]),
     ]),
   });
 }

@@ -1,4 +1,4 @@
-// Register inline footnotes with Core Paragraph's extensible contract.
+// Register inline footnotes with the shared Inline Sequence contract.
 import { createElement } from "react";
 
 import type { BuilderInlinePlugin } from "../builder/inlinePlugin";

@@ -1,7 +1,8 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_COLOR_SPAN_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_COLOR_SPAN_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "common.hpp"
+#include "plugins/inline_sequence.hpp"
 
 #include <string_view>
 

@@ -11,7 +11,7 @@ A pair owns exactly two horizontal panels. Each panel owns:
 
 - a stable authoring ID;
 - an image source;
-- a non-empty Core Paragraph inline caption;
+- a non-empty Inline Sequence caption;
 - an optional semantic reference ID;
 - a preferred positive integer pixel extent.
 

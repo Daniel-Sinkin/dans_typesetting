@@ -7,7 +7,7 @@ import type {
 } from "../builder/inlinePlugin";
 import type { BuilderBlockEditorProps } from "../builder/plugin";
 import { editableReferenceIdError } from "../builder/referenceEditing";
-import { createParagraphText } from "../model/document";
+import { createText } from "../model/document";
 import { insertSpacesAtSelection } from "./codeListingEditing";
 import {
   createCodeListingBlock,
@@ -247,7 +247,7 @@ export function CodeListingEditor({
           className="add-caption-action"
           type="button"
           onClick={() => {
-            setCaptionInlines([createParagraphText("A new listing caption.")]);
+            setCaptionInlines([createText("A new listing caption.")]);
           }}
         >
           Add rich caption

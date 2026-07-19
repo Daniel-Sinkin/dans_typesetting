@@ -9,7 +9,7 @@ import { editableReferenceIdError } from "../builder/referenceEditing";
 import type { BuilderBlockEditorProps } from "../builder/plugin";
 import {
   createBlockId,
-  createParagraphText,
+  createText,
   type BuilderInlineNode,
 } from "../model/document";
 import {
@@ -123,7 +123,7 @@ function replaceCell(
 }
 
 function makeTextCell(text = "New cell"): BuilderTableCell {
-  return createBuilderTableCell(createBlockId(), [createParagraphText(text)]);
+  return createBuilderTableCell(createBlockId(), [createText(text)]);
 }
 
 function downloadCsv(source: string, fileName: string): void {

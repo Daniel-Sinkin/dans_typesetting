@@ -2,7 +2,7 @@
 import type { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import type { BuilderBlockPlugin } from "../builder/plugin";
 import {
-  createParagraphText,
+  createText,
   isParagraphBlock,
   paragraphTypeId,
   type BuilderBlock,
@@ -34,7 +34,7 @@ export function createParagraphPlugin(
         id: blockId,
         typeId: paragraphTypeId,
         inlines: Object.freeze([
-          createParagraphText("A new paragraph. Open its editor to compose inline segments."),
+          createText("A new paragraph. Open its editor to compose inline segments."),
         ]),
       });
     },

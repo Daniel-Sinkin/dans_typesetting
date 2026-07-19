@@ -1,4 +1,4 @@
-// Render and edit Core Paragraph's extensible ordered inline sequence.
+// Render and edit a paragraph through the shared ordered Inline Sequence contract.
 import {
   Fragment,
   useCallback,

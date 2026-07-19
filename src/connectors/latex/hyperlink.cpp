@@ -8,8 +8,7 @@
 namespace
 {
 auto write_target(
-    dans::document::connectors::latex::CoreParagraphLatexOutput& output,
-    const std::string_view target
+    dans::document::connectors::latex::InlineLatexOutput& output, const std::string_view target
 ) -> void
 {
     // These characters are valid URI data but active LaTeX syntax. hyperref
@@ -46,7 +45,7 @@ auto HyperlinkLatexAdapter::inline_type_id() const noexcept -> std::string_view
 }
 
 auto HyperlinkLatexAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphLatexOutput& output
+    const plugins::InlineNode& node, InlineLatexOutput& output
 ) const -> void
 {
     const auto* link = dynamic_cast<const plugins::Hyperlink*>(&node);

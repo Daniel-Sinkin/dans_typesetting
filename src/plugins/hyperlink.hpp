@@ -2,14 +2,14 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_HYPERLINK_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_HYPERLINK_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "plugins/inline_sequence.hpp"
 
 #include <string>
 #include <string_view>
 
 namespace dans::document::plugins
 {
-// Hyperlink is an inline extension rather than a property of CoreText. Its
+// Hyperlink is an inline extension rather than a property of Text. Its
 // label uses the paragraph inline contract, allowing styled and coloured text
 // while keeping the target independent of any writer's URL syntax.
 class Hyperlink final : public InlineNode

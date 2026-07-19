@@ -1,6 +1,6 @@
 // Optional plain-text CSV capability for the semantic rich-table plugin.
 import type { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
-import { paragraphTextInlineTypeId } from "../model/document";
+import { textInlineTypeId } from "../model/document";
 import { requireRichTableBlock, type RichTableBlock } from "./tableModel";
 
 export interface TableCsvCapability {
@@ -139,7 +139,7 @@ export const tableCsvCapability: TableCsvCapability = {
         row.cells.map((cell) => {
           if (
             cell.inlines.some(
-              (inline) => inline.typeId !== paragraphTextInlineTypeId,
+              (inline) => inline.typeId !== textInlineTypeId,
             )
           ) {
             throw new Error(

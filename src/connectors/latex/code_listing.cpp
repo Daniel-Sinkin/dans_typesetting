@@ -27,7 +27,7 @@ auto latex_language(const dans::document::plugins::CodeLanguage language) -> std
 namespace dans::document::connectors::latex
 {
 CodeListingLatexAdapter::CodeListingLatexAdapter(
-    std::shared_ptr<const CoreParagraphInlineLatexRenderer> inline_renderer
+    std::shared_ptr<const InlineLatexRenderer> inline_renderer
 )
     : inline_renderer_{std::move(inline_renderer)}
 {

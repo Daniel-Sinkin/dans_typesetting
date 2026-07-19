@@ -1,14 +1,14 @@
 // Verify the opinionated two-panel figure contract in both text writers.
-#include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/figure_pair.hpp"
 #include "connectors/latex/image.hpp"
-#include "connectors/markdown/core_paragraph.hpp"
+#include "connectors/latex/paragraph.hpp"
 #include "connectors/markdown/figure_pair.hpp"
 #include "connectors/markdown/image.hpp"
+#include "connectors/markdown/paragraph.hpp"
 #include "connectors/markdown/reference.hpp"
 #include "document.hpp"
-#include "plugins/core_paragraph.hpp"
 #include "plugins/figure_pair.hpp"
+#include "plugins/paragraph.hpp"
 #include "plugins/reference.hpp"
 #include "reference_id.hpp"
 #include "writers/latex_writer.hpp"
@@ -67,7 +67,7 @@ auto add_pair(
         ReferenceId{std::string{prefix} + ":left"},
         PixelExtent{1280, 720},
     };
-    first.caption().add<CoreText>(" with emphasis", TextStyle::italic);
+    first.caption().add<Text>(" with emphasis", TextStyle::italic);
     auto second_reference =
         reference_second_panel
             ? std::optional<ReferenceId>{ReferenceId{std::string{prefix} + ":right"}}
@@ -90,8 +90,8 @@ auto add_pair(
 
 auto render_latex(const Document& document) -> std::string
 {
-    auto inline_renderer = std::make_shared<latex::CoreParagraphInlineLatexRenderer>();
-    inline_renderer->register_inline_adapter(std::make_unique<latex::CoreTextLatexAdapter>());
+    auto inline_renderer = std::make_shared<latex::InlineLatexRenderer>();
+    inline_renderer->register_inline_adapter(std::make_unique<latex::TextLatexAdapter>());
     writers::LatexWriter writer{};
     writer.register_block_adapter(std::make_unique<latex::FigureLatexAdapter>(inline_renderer));
     writer.register_block_adapter(std::make_unique<latex::FigurePairLatexAdapter>(inline_renderer));
@@ -102,8 +102,8 @@ auto render_latex(const Document& document) -> std::string
 
 auto render_markdown(const Document& document) -> std::string
 {
-    auto inline_renderer = std::make_shared<markdown::CoreParagraphInlineMarkdownRenderer>();
-    inline_renderer->register_inline_adapter(std::make_unique<markdown::CoreTextMarkdownAdapter>());
+    auto inline_renderer = std::make_shared<markdown::InlineMarkdownRenderer>();
+    inline_renderer->register_inline_adapter(std::make_unique<markdown::TextMarkdownAdapter>());
     inline_renderer->register_inline_adapter(
         std::make_unique<markdown::ReferenceMarkdownAdapter>()
     );
@@ -115,7 +115,7 @@ auto render_markdown(const Document& document) -> std::string
         std::make_unique<markdown::FigurePairMarkdownAdapter>(inline_renderer)
     );
     writer.register_block_adapter(
-        std::make_unique<markdown::CoreParagraphMarkdownAdapter>(inline_renderer)
+        std::make_unique<markdown::ParagraphMarkdownAdapter>(inline_renderer)
     );
     std::ostringstream output{};
     writer.serialize(document, output);
@@ -175,7 +175,7 @@ auto run_test() -> void
         "An unreferenced ordinary figure did not remain a numbered captioned figure"
     );
 
-    auto& references = document.blocks().add<CoreParagraph>("Compare ");
+    auto& references = document.blocks().add<Paragraph>("Compare ");
     references.inlines().add<Reference>(ReferenceId{"fig:first:pair"});
     references.append_text(", ");
     references.inlines().add<Reference>(ReferenceId{"fig:first:left"});

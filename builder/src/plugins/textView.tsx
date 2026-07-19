@@ -1,10 +1,10 @@
-// React views for editable and opaque Core Paragraph inline nodes.
+// React views for editable ordinary text and opaque inline nodes.
 import type { BuilderInlineEditorProps } from "../builder/inlinePlugin";
 import type { BuilderInlineNode } from "../model/document";
-import { requireParagraphText } from "./paragraphInlineSupport";
+import { requireText } from "./textSupport";
 
-export function ParagraphTextPreview({ inline }: Readonly<{ inline: BuilderInlineNode }>) {
-  const text = requireParagraphText(inline);
+export function TextPreview({ inline }: Readonly<{ inline: BuilderInlineNode }>) {
+  const text = requireText(inline);
   switch (text.style) {
     case "normal":
       return <span>{text.text}</span>;
@@ -21,8 +21,8 @@ export function ParagraphTextPreview({ inline }: Readonly<{ inline: BuilderInlin
   }
 }
 
-export function ParagraphTextEditor({ inline, onChange }: BuilderInlineEditorProps) {
-  const text = requireParagraphText(inline);
+export function TextEditor({ inline, onChange }: BuilderInlineEditorProps) {
+  const text = requireText(inline);
   return (
     <div className="inline-text-editor">
       <label>

@@ -17,9 +17,9 @@ auto TableCell::inlines() const noexcept -> const InlineSequence&
     return inlines_;
 }
 
-auto TableCell::append_text(const std::string_view text, const TextStyle style) -> CoreText&
+auto TableCell::append_text(const std::string_view text, const TextStyle style) -> Text&
 {
-    return inlines_.add<CoreText>(text, style);
+    return inlines_.add<Text>(text, style);
 }
 
 TableRow::TableRow(const usize column_count)
@@ -58,7 +58,7 @@ Table::Table(
     {
         throw std::invalid_argument{"A semantic table requires at least one column"};
     }
-    caption_.add<CoreText>(caption);
+    caption_.add<Text>(caption);
 }
 
 auto Table::type_id() const noexcept -> std::string_view

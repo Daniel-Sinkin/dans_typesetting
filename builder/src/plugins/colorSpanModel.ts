@@ -1,6 +1,6 @@
 // Semantic data helpers for the paragraph colour-span extension.
 import {
-  createParagraphText,
+  createText,
   type BuilderInlineNode,
 } from "../model/document";
 
@@ -73,7 +73,7 @@ export function colorFromHex(value: string): BuilderRgbColor {
 
 export function createColorSpanInline(
   color: BuilderRgbColor = Object.freeze({ red: 38, green: 96, blue: 168 }),
-  inlines: readonly BuilderInlineNode[] = [createParagraphText("coloured text")],
+  inlines: readonly BuilderInlineNode[] = [createText("coloured text")],
   id: string = globalThis.crypto.randomUUID(),
 ): ColorSpanInline {
   return Object.freeze({

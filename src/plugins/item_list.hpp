@@ -1,8 +1,10 @@
-// Semantic ordered/unordered list data extending the Core Paragraph inline contract.
+// Semantic ordered/unordered list data consuming the shared Inline Sequence contract.
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_ITEM_LIST_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_ITEM_LIST_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "document.hpp"
+#include "plugins/inline_sequence.hpp"
+#include "plugins/text.hpp"
 
 #include <memory>
 #include <span>
@@ -18,13 +20,13 @@ enum class ListPresentation : u8
 };
 
 // A list item is an inline-sequence host, not a paragraph block. This keeps
-// list structure in the plugin while reusing every Core Paragraph extension.
+// list structure in the plugin while reusing every Inline Sequence extension.
 class ListItem final
 {
   public:
     [[nodiscard]] auto inlines() noexcept -> InlineSequence&;
     [[nodiscard]] auto inlines() const noexcept -> const InlineSequence&;
-    auto append_text(std::string_view text, TextStyle style = TextStyle::normal) -> CoreText&;
+    auto append_text(std::string_view text, TextStyle style = TextStyle::normal) -> Text&;
 
   private:
     InlineSequence inlines_{};

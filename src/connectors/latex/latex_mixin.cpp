@@ -22,13 +22,13 @@ auto LatexBlockAdapter::serialize(const DocumentBlock& block, writers::LatexOutp
     output.write_raw("\n\n");
 }
 
-auto InlineLatexAdapter::inline_type_id() const noexcept -> std::string_view
+auto RawInlineLatexAdapter::inline_type_id() const noexcept -> std::string_view
 {
     return plugins::InlineLatex::k_type_id;
 }
 
-auto InlineLatexAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphLatexOutput& output
+auto RawInlineLatexAdapter::serialize(
+    const plugins::InlineNode& node, InlineLatexOutput& output
 ) const -> void
 {
     const auto* latex = dynamic_cast<const plugins::InlineLatex*>(&node);

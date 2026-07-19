@@ -1,6 +1,6 @@
 # Semantic inline code
 
-`dans.code.inline` is a Core Paragraph inline extension for one source-code
+`dans.code.inline` is an Inline Sequence extension for one source-code
 fragment. Its payload is deliberately small:
 
 ```json

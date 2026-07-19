@@ -219,12 +219,10 @@ auto table_to_csv(const Table& table) -> std::string
             std::string text{};
             for (const auto& inline_node : cell->inlines().nodes())
             {
-                const auto* core_text = dynamic_cast<const CoreText*>(inline_node.get());
+                const auto* core_text = dynamic_cast<const Text*>(inline_node.get());
                 if (core_text == nullptr)
                 {
-                    throw std::invalid_argument{
-                        "CSV export supports only plain CoreText table cells"
-                    };
+                    throw std::invalid_argument{"CSV export supports only plain Text table cells"};
                 }
                 text.append(core_text->text());
             }

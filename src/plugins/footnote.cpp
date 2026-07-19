@@ -23,8 +23,8 @@ auto Footnote::inlines() const noexcept -> const InlineSequence&
     return inlines_;
 }
 
-auto Footnote::append_text(const std::string_view text, const TextStyle style) -> CoreText&
+auto Footnote::append_text(const std::string_view text, const TextStyle style) -> Text&
 {
-    return inlines_.add<CoreText>(text, style);
+    return inlines_.add<Text>(text, style);
 }
 }  // namespace dans::document::plugins

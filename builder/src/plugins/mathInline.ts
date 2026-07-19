@@ -1,4 +1,4 @@
-// Register structured inline mathematics with the Core Paragraph graphical contract.
+// Register structured inline mathematics with the shared Inline Sequence contract.
 import { createElement } from "react";
 
 import type { BuilderInlinePlugin } from "../builder/inlinePlugin";

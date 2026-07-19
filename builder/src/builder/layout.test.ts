@@ -15,11 +15,11 @@ import {
 } from "../plugins/documentShell";
 import {
   opaqueInlineAdapter,
-  paragraphTextInlinePlugin,
-} from "../plugins/paragraphInline";
+  textInlinePlugin,
+} from "../plugins/text";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
-  [paragraphTextInlinePlugin],
+  [textInlinePlugin],
   opaqueInlineAdapter,
 );
 const paragraphPlugin = createParagraphPlugin(inlineRegistry);

@@ -1,6 +1,8 @@
 // src/plugins/hyperlink.cpp — validate hyperlink targets and own their inline labels.
 #include "plugins/hyperlink.hpp"
 
+#include "plugins/text.hpp"
+
 #include <stdexcept>
 
 namespace
@@ -37,7 +39,7 @@ Hyperlink::Hyperlink(const std::string_view target) : target_{target}
 Hyperlink::Hyperlink(const std::string_view target, const std::string_view label)
     : Hyperlink{target}
 {
-    label_.add<CoreText>(label);
+    label_.add<Text>(label);
 }
 
 auto Hyperlink::type_id() const noexcept -> std::string_view

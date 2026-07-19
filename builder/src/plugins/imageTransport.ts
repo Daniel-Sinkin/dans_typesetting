@@ -1,5 +1,5 @@
 // Canonical transport codec owned by the semantic figure plugin.
-import { createParagraphText, type BuilderBlock } from "../model/document";
+import { createText, type BuilderBlock } from "../model/document";
 import { decodeOptionalReferenceId } from "../model/referenceId";
 import {
   requireTransportArray,
@@ -40,7 +40,7 @@ function decodeCaption(
   if (caption.trim().length === 0) {
     throw new Error("Legacy figure payload.caption must not be empty");
   }
-  return [createParagraphText(caption, `${blockId}:caption:legacy-text`)];
+  return [createText(caption, `${blockId}:caption:legacy-text`)];
 }
 
 export const imageBlockTransportCodec: BlockTransportCodec = {

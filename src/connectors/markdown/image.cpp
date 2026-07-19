@@ -12,7 +12,7 @@ auto InlineImageMarkdownAdapter::inline_type_id() const noexcept -> std::string_
 }
 
 auto InlineImageMarkdownAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphMarkdownOutput& output
+    const plugins::InlineNode& node, InlineMarkdownOutput& output
 ) const -> void
 {
     const auto* image = dynamic_cast<const plugins::InlineImage*>(&node);
@@ -26,7 +26,7 @@ auto InlineImageMarkdownAdapter::serialize(
 }
 
 FigureMarkdownAdapter::FigureMarkdownAdapter(
-    std::shared_ptr<const CoreParagraphInlineMarkdownRenderer> inline_renderer
+    std::shared_ptr<const InlineMarkdownRenderer> inline_renderer
 )
     : inline_renderer_{std::move(inline_renderer)}
 {

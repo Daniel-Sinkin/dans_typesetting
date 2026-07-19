@@ -2,7 +2,7 @@
 #ifndef DANS_TYPESETTING_SRC_CONNECTORS_MARKDOWN_FIGURE_PAIR_HPP
 #define DANS_TYPESETTING_SRC_CONNECTORS_MARKDOWN_FIGURE_PAIR_HPP
 
-#include "connectors/markdown/core_paragraph.hpp"
+#include "connectors/markdown/inline_sequence.hpp"
 #include "plugins/figure_pair.hpp"
 
 #include <memory>
@@ -13,7 +13,7 @@ class FigurePairMarkdownAdapter final : public writers::MarkdownBlockAdapter
 {
   public:
     explicit FigurePairMarkdownAdapter(
-        std::shared_ptr<const CoreParagraphInlineMarkdownRenderer> inline_renderer
+        std::shared_ptr<const InlineMarkdownRenderer> inline_renderer
     );
 
     [[nodiscard]] auto block_type_id() const noexcept -> std::string_view override;
@@ -23,7 +23,7 @@ class FigurePairMarkdownAdapter final : public writers::MarkdownBlockAdapter
         -> void override;
 
   private:
-    std::shared_ptr<const CoreParagraphInlineMarkdownRenderer> inline_renderer_{};
+    std::shared_ptr<const InlineMarkdownRenderer> inline_renderer_{};
 };
 }  // namespace dans::document::connectors::markdown
 

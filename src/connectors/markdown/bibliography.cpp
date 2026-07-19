@@ -77,7 +77,7 @@ auto CitationMarkdownAdapter::inline_type_id() const noexcept -> std::string_vie
 }
 
 auto CitationMarkdownAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphMarkdownOutput& output
+    const plugins::InlineNode& node, InlineMarkdownOutput& output
 ) const -> void
 {
     const auto* citation = dynamic_cast<const plugins::Citation*>(&node);

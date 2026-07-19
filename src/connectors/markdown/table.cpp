@@ -9,7 +9,7 @@ namespace dans::document::connectors::markdown
 {
 namespace
 {
-auto make_table_cell(std::string rendered) -> std::string
+auto make_table_cell(const std::string& rendered) -> std::string
 {
     std::string cell{};
     cell.reserve(rendered.size());
@@ -58,7 +58,7 @@ auto alignment_marker(const plugins::TableColumnAlignment alignment) -> std::str
 }  // namespace
 
 TableMarkdownAdapter::TableMarkdownAdapter(
-    std::shared_ptr<const CoreParagraphInlineMarkdownRenderer> inline_renderer
+    std::shared_ptr<const InlineMarkdownRenderer> inline_renderer
 )
     : inline_renderer_{std::move(inline_renderer)}
 {

@@ -2,7 +2,7 @@
 #ifndef DANS_TYPESETTING_SRC_PLUGINS_REFERENCE_HPP
 #define DANS_TYPESETTING_SRC_PLUGINS_REFERENCE_HPP
 
-#include "plugins/core_paragraph.hpp"
+#include "plugins/inline_sequence.hpp"
 #include "reference_id.hpp"
 
 #include <string_view>

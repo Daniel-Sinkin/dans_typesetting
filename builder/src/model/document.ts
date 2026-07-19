@@ -3,7 +3,7 @@ import { validateMathExpression, type MathExpression } from "./math";
 import { requireReferenceId, validateOptionalReferenceId } from "./referenceId";
 
 export const paragraphTypeId = "dans.core.paragraph";
-export const paragraphTextInlineTypeId = "dans.core.text";
+export const textInlineTypeId = "dans.core.text";
 export const mathDisplayTypeId = "dans.math.display";
 export const mathInlineTypeId = "dans.math.inline";
 export const hyperlinkInlineTypeId = "dans.inline.hyperlink";
@@ -13,7 +13,7 @@ export const titlePageTypeId = "dans.document.title_page";
 export const tableOfContentsTypeId = "dans.document.table_of_contents";
 export const pageBreakTypeId = "dans.document.page_break";
 
-export type ParagraphTextStyle = "normal" | "bold" | "italic" | "bold_italic";
+export type TextStyle = "normal" | "bold" | "italic" | "bold_italic";
 
 export interface DocumentModelVersion {
   readonly major: number;
@@ -48,10 +48,14 @@ export interface BuilderInlineNode extends BuilderInlineEnvelope {
   readonly opaquePayload?: unknown;
 }
 
-export interface ParagraphTextInline extends BuilderInlineNode {
-  readonly typeId: typeof paragraphTextInlineTypeId;
+// The shared semantic consumption point used by paragraphs, captions, list
+// items, table cells, links, footnotes, and future inline hosts.
+export type InlineSequence = readonly BuilderInlineNode[];
+
+export interface TextInline extends BuilderInlineNode {
+  readonly typeId: typeof textInlineTypeId;
   readonly text: string;
-  readonly style: ParagraphTextStyle;
+  readonly style: TextStyle;
 }
 
 export interface MathInline extends BuilderInlineNode {
@@ -62,7 +66,7 @@ export interface MathInline extends BuilderInlineNode {
 export interface HyperlinkInline extends BuilderInlineNode {
   readonly typeId: typeof hyperlinkInlineTypeId;
   readonly target: string;
-  readonly labelInlines: readonly BuilderInlineNode[];
+  readonly labelInlines: InlineSequence;
 }
 
 export interface ReferenceInline extends BuilderInlineNode {
@@ -72,7 +76,7 @@ export interface ReferenceInline extends BuilderInlineNode {
 
 export interface ParagraphBlock extends BuilderBlock {
   readonly typeId: typeof paragraphTypeId;
-  readonly inlines: readonly BuilderInlineNode[];
+  readonly inlines: InlineSequence;
 }
 
 export type MathDisplayAlignment = "automatic" | "disabled";
@@ -158,12 +162,12 @@ export function createBlockId(): string {
   return globalThis.crypto.randomUUID();
 }
 
-export function createParagraphText(
+export function createText(
   text: string,
   id: string = createBlockId(),
-  style: ParagraphTextStyle = "normal",
-): ParagraphTextInline {
-  return Object.freeze({ id, typeId: paragraphTextInlineTypeId, text, style });
+  style: TextStyle = "normal",
+): TextInline {
+  return Object.freeze({ id, typeId: textInlineTypeId, text, style });
 }
 
 export function createMathInline(
@@ -217,15 +221,15 @@ export function createReferenceInline(
   });
 }
 
-export function isParagraphTextInline(
+export function isTextInline(
   inline: BuilderInlineNode,
-): inline is ParagraphTextInline {
+): inline is TextInline {
   return (
-    inline.typeId === paragraphTextInlineTypeId &&
+    inline.typeId === textInlineTypeId &&
     "text" in inline &&
     typeof inline.text === "string" &&
     "style" in inline &&
-    isParagraphTextStyle(inline.style)
+    isTextStyle(inline.style)
   );
 }
 
@@ -363,12 +367,12 @@ export function findBuilderBlock(
 export function paragraphDisplayText(paragraph: ParagraphBlock): string {
   return paragraph.inlines
     .map((inline) =>
-      isParagraphTextInline(inline) ? inline.text : inline.label ?? `[${inline.typeId}]`,
+      isTextInline(inline) ? inline.text : inline.label ?? `[${inline.typeId}]`,
     )
     .join("");
 }
 
-function isParagraphTextStyle(value: unknown): value is ParagraphTextStyle {
+function isTextStyle(value: unknown): value is TextStyle {
   return (
     value === "normal" ||
     value === "bold" ||
@@ -401,19 +405,19 @@ function validateInlineSequence(
   allowHyperlinks = true,
 ): void {
   if (requireContent && inlines.length === 0) {
-    throw new Error("A paragraph requires at least one inline node");
+    throw new Error("An inline sequence requires at least one node");
   }
   const inlineIds = new Set<string>();
   for (const inline of inlines) {
     if (inline.id.length === 0 || inline.typeId.length === 0) {
-      throw new Error("Paragraph inline nodes require stable IDs and type IDs");
+      throw new Error("Inline nodes require stable IDs and type IDs");
     }
     if (inlineIds.has(inline.id)) {
-      throw new Error(`Duplicate paragraph inline ID: ${inline.id}`);
+      throw new Error(`Duplicate inline ID: ${inline.id}`);
     }
     inlineIds.add(inline.id);
-    if (inline.typeId === paragraphTextInlineTypeId && !isParagraphTextInline(inline)) {
-      throw new Error("A paragraph text inline has an invalid transport shape");
+    if (inline.typeId === textInlineTypeId && !isTextInline(inline)) {
+      throw new Error("A text inline has an invalid transport shape");
     }
     if (inline.typeId === mathInlineTypeId) {
       if (!isMathInline(inline)) {

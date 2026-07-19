@@ -13,7 +13,7 @@ auto InlineCodeLatexAdapter::inline_type_id() const noexcept -> std::string_view
 }
 
 auto InlineCodeLatexAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphLatexOutput& output
+    const plugins::InlineNode& node, InlineLatexOutput& output
 ) const -> void
 {
     const auto* inline_code = dynamic_cast<const plugins::InlineCode*>(&node);

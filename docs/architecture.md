@@ -13,8 +13,9 @@ The project has four distinct jobs:
 The native LaTeX and Markdown paths currently follow this split. `Document`
 knows neither backend nor the concrete paragraph/image/math plugins. Each
 writer walks core sections and delegates concrete blocks to registered
-adapters. Core Paragraph has a writer-specific inline consumption endpoint,
-and paragraph-like hosts share that writer's inline adapter registry.
+adapters. The standalone Inline Sequence foundation has a writer-specific
+consumption endpoint, and paragraphs, captions, cells, and other inline hosts
+share that writer's inline adapter registry.
 
 The browser builder follows the same shape with `DocumentPort`,
 `BuilderPluginRegistry`, and `BuilderInlinePluginRegistry`. Excalidraw is a
@@ -25,8 +26,10 @@ model and does not own block data.
 
 - A document is an ordered sequence of semantic blocks.
 - A section is a structural block containing another ordered block sequence.
-- A paragraph is a plugin block containing an ordered inline sequence.
-- An inline extension is data implementing the Core Paragraph inline contract.
+- `InlineSequence` is a standalone ordered-inline foundation.
+- Ordinary text is an inline plugin and a paragraph is a semantic block plugin
+  containing one `InlineSequence`.
+- An inline extension is data implementing the shared `InlineNode` contract.
 - Page dimensions and measured width/height belong to a layout/writer layer,
   not semantic blocks.
 - A reference ID names a semantic target. A graphical authoring ID identifies
@@ -117,10 +120,13 @@ for their encapsulated runtime data structures.
 See [canonical-transport.md](canonical-transport.md) for the normative shape and
 current compatibility policy.
 
+See [inline-sequences.md](inline-sequences.md) for the module boundary and the
+planned optional authoring-markup producer protocol.
+
 ## Rich caption hosts
 
-Captions are plugin-owned Core Paragraph inline sequences rather than strings
-or fields on document core. Ordinary figures, paired figures, tables, and code
+Captions are plugin-owned Inline Sequences rather than strings or fields on
+document core. Ordinary figures, paired figures, tables, and code
 listings expose their caption roots to graphical and publication writers. The
 host defines whether a caption is required, but it does not know whether a node
 is text, math, colour, code, a link, or a future extension.
@@ -179,7 +185,7 @@ document is still application state and is not copied into drawing blocks.
 ## Semantic list boundary
 
 `dans.list` is one semantic plugin with an explicit itemized/enumerated
-presentation choice. Each stable list item owns an ordered Core Paragraph
+presentation choice. Each stable list item owns an ordered Inline Sequence
 inline sequence. Consequently text styles, colour, links, and mathematics work
 inside lists through existing inline adapters; the list plugin and its writers
 do not acquire knowledge of those concrete extensions.
@@ -194,7 +200,7 @@ repeated nested data: the document core still sees one opaque block.
 
 `dans.table` owns a rectangular sequence of stable rows and cells, a leading
 header-row count, per-column semantic alignment, an inline-rich caption, and an
-optional reference ID. Every cell and the caption own Core Paragraph inline
+optional reference ID. Every cell and the caption own Inline Sequences
 sequences. The table plugin can therefore host text styles, mathematics,
 references, and footnote occurrences without depending on those concrete
 extensions. It stores neither a visible table number nor physical column
@@ -308,9 +314,9 @@ presentation, not semantic state. See
 
 ## Inline hosts and occurrence numbering
 
-Core Paragraph defines the ordered inline-node contract, while paragraph-like
-plugins explicitly expose the inline roots they host. Inline plugins may in
-turn expose nested inline roots. The graphical writer traverses those roots
+The standalone Inline Sequence foundation defines the ordered inline-node
+contract, while host plugins explicitly expose the inline roots they own.
+Inline plugins may in turn expose nested inline roots. The graphical writer traverses those roots
 without learning concrete payload shapes and derives independent ordinal
 series from current document order. Reordering a block, list item, wrapper, or
 inline node therefore updates visible markers without mutating semantic data.
@@ -339,7 +345,7 @@ pairs. Consumers receive the completed index through their render/editor
 context; generic builder code never interprets the resource value.
 
 Bibliography entries currently publish `dans.bibliography.entry` resources and
-citations consume them. This keeps citation lookup out of Core Paragraph and
+citations consume them. This keeps citation lookup out of Inline Sequence and
 keeps bibliography numbering out of the semantic record. The contract is also
 usable for future glossaries, symbol indices, or datasets without adding a
 central ever-growing callback interface. See

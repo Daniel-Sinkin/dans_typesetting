@@ -2,7 +2,6 @@
 #include "connectors/markdown/bibliography.hpp"
 #include "connectors/markdown/code_listing.hpp"
 #include "connectors/markdown/color_span.hpp"
-#include "connectors/markdown/core_paragraph.hpp"
 #include "connectors/markdown/document_shell.hpp"
 #include "connectors/markdown/figure_pair.hpp"
 #include "connectors/markdown/footnote.hpp"
@@ -11,13 +10,13 @@
 #include "connectors/markdown/inline_code.hpp"
 #include "connectors/markdown/item_list.hpp"
 #include "connectors/markdown/math.hpp"
+#include "connectors/markdown/paragraph.hpp"
 #include "connectors/markdown/reference.hpp"
 #include "connectors/markdown/table.hpp"
 #include "document.hpp"
 #include "plugins/bibliography.hpp"
 #include "plugins/code_listing.hpp"
 #include "plugins/color_span.hpp"
-#include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
 #include "plugins/figure_pair.hpp"
 #include "plugins/footnote.hpp"
@@ -26,6 +25,7 @@
 #include "plugins/inline_code.hpp"
 #include "plugins/item_list.hpp"
 #include "plugins/math.hpp"
+#include "plugins/paragraph.hpp"
 #include "plugins/reference.hpp"
 #include "plugins/table.hpp"
 #include "reference_id.hpp"
@@ -57,10 +57,10 @@ auto expect_contains(
     }
 }
 
-auto make_inline_renderer() -> std::shared_ptr<markdown::CoreParagraphInlineMarkdownRenderer>
+auto make_inline_renderer() -> std::shared_ptr<markdown::InlineMarkdownRenderer>
 {
-    auto renderer = std::make_shared<markdown::CoreParagraphInlineMarkdownRenderer>();
-    renderer->register_inline_adapter(std::make_unique<markdown::CoreTextMarkdownAdapter>());
+    auto renderer = std::make_shared<markdown::InlineMarkdownRenderer>();
+    renderer->register_inline_adapter(std::make_unique<markdown::TextMarkdownAdapter>());
     renderer->register_inline_adapter(std::make_unique<markdown::HyperlinkMarkdownAdapter>());
     renderer->register_inline_adapter(std::make_unique<markdown::InlineCodeMarkdownAdapter>());
     renderer->register_inline_adapter(std::make_unique<markdown::ColorSpanMarkdownAdapter>());
@@ -72,14 +72,11 @@ auto make_inline_renderer() -> std::shared_ptr<markdown::CoreParagraphInlineMark
     return renderer;
 }
 
-auto make_writer(
-    const std::shared_ptr<const markdown::CoreParagraphInlineMarkdownRenderer>& renderer
-) -> dans::document::writers::MarkdownWriter
+auto make_writer(const std::shared_ptr<const markdown::InlineMarkdownRenderer>& renderer)
+    -> dans::document::writers::MarkdownWriter
 {
     dans::document::writers::MarkdownWriter writer{};
-    writer.register_block_adapter(
-        std::make_unique<markdown::CoreParagraphMarkdownAdapter>(renderer)
-    );
+    writer.register_block_adapter(std::make_unique<markdown::ParagraphMarkdownAdapter>(renderer));
     writer.register_block_adapter(std::make_unique<markdown::TitlePageMarkdownAdapter>());
     writer.register_block_adapter(std::make_unique<markdown::TableOfContentsMarkdownAdapter>());
     writer.register_block_adapter(std::make_unique<markdown::PageBreakMarkdownAdapter>());
@@ -113,7 +110,7 @@ auto render_representative_document() -> std::string
     document.blocks().add<TableOfContents>();
     document.blocks().add<PageBreak>();
     auto& overview = document.blocks().add<Section>("Overview & goals", section_id);
-    auto& prose = overview.blocks().add<CoreParagraph>();
+    auto& prose = overview.blocks().add<Paragraph>();
     prose.append_text("A # literal, 1. not a list, $cash$, &copy;, and ~~plain~~; ");
     prose.append_text(" bold ", TextStyle::bold);
     prose.append_text(" link ");
@@ -138,7 +135,7 @@ auto render_representative_document() -> std::string
     prose.inlines().add<InlineImage>(ImageSource{"assets/tiny icon.png"});
     prose.append_text(" color ");
     auto& colored = prose.inlines().add<ColorSpan>(RgbColor{.red = 12, .green = 160, .blue = 255});
-    colored.inlines().add<CoreText>("blue & bold", TextStyle::bold);
+    colored.inlines().add<Text>("blue & bold", TextStyle::bold);
     prose.append_text(" note");
     auto& footnote = prose.inlines().add<Footnote>();
     footnote.append_text("See ");
@@ -197,7 +194,7 @@ auto render_representative_document() -> std::string
         .add_unnumbered(M::equal(M::id_c, M::id_1))
         .add_equation(M::equal(M::id_p, M::sequence(M::id_m, M::id_v)), second_equation_id);
 
-    auto& references = details.blocks().add<CoreParagraph>("See ");
+    auto& references = details.blocks().add<Paragraph>("See ");
     references.inlines().add<Reference>(section_id);
     references.append_text(", ");
     references.inlines().add<Reference>(figure_id);
@@ -253,7 +250,7 @@ auto expect_strict_failures() -> void
     auto writer = make_writer(renderer);
 
     Document unresolved{};
-    auto& unresolved_paragraph = unresolved.blocks().add<CoreParagraph>();
+    auto& unresolved_paragraph = unresolved.blocks().add<Paragraph>();
     unresolved_paragraph.inlines().add<Reference>(ReferenceId{"fig:missing"});
     auto rejected_unresolved = false;
     try
@@ -291,14 +288,12 @@ auto expect_strict_failures() -> void
     }
 
     Document unsupported{};
-    unsupported.blocks().add<CoreParagraph>().inlines().add<InlineCode>("missing adapter");
-    auto text_only_renderer = std::make_shared<markdown::CoreParagraphInlineMarkdownRenderer>();
-    text_only_renderer->register_inline_adapter(
-        std::make_unique<markdown::CoreTextMarkdownAdapter>()
-    );
+    unsupported.blocks().add<Paragraph>().inlines().add<InlineCode>("missing adapter");
+    auto text_only_renderer = std::make_shared<markdown::InlineMarkdownRenderer>();
+    text_only_renderer->register_inline_adapter(std::make_unique<markdown::TextMarkdownAdapter>());
     dans::document::writers::MarkdownWriter incomplete_writer{};
     incomplete_writer.register_block_adapter(
-        std::make_unique<markdown::CoreParagraphMarkdownAdapter>(text_only_renderer)
+        std::make_unique<markdown::ParagraphMarkdownAdapter>(text_only_renderer)
     );
     auto rejected_missing_adapter = false;
     try

@@ -97,7 +97,7 @@ auto InlineMathLatexAdapter::inline_type_id() const noexcept -> std::string_view
 }
 
 auto InlineMathLatexAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphLatexOutput& output
+    const plugins::InlineNode& node, InlineLatexOutput& output
 ) const -> void
 {
     const auto* math = dynamic_cast<const plugins::Math::Inline*>(&node);

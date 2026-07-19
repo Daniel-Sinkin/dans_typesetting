@@ -4,7 +4,7 @@ import { copyBuilderInlineForInsert } from "../builder/copyInline";
 import type { BuilderBlockPlugin } from "../builder/plugin";
 import {
   createBlockId,
-  createParagraphText,
+  createText,
   type BuilderBlock,
 } from "../model/document";
 import {
@@ -42,14 +42,14 @@ export function createFigurePairPlugin(
         createFigurePanel(
           createBlockId(),
           "/sample-domain-decomposition.svg",
-          [createParagraphText("Left panel.")],
+          [createText("Left panel.")],
         ),
         createFigurePanel(
           createBlockId(),
           "/sample-domain-decomposition.svg",
-          [createParagraphText("Right panel.")],
+          [createText("Right panel.")],
         ),
-        [createParagraphText("A new paired figure caption.")],
+        [createText("A new paired figure caption.")],
       );
     },
     referenceTargets(block) {

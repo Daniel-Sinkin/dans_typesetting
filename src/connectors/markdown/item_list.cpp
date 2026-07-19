@@ -8,7 +8,7 @@
 namespace dans::document::connectors::markdown
 {
 ItemListMarkdownAdapter::ItemListMarkdownAdapter(
-    std::shared_ptr<const CoreParagraphInlineMarkdownRenderer> inline_renderer
+    std::shared_ptr<const InlineMarkdownRenderer> inline_renderer
 )
     : inline_renderer_{std::move(inline_renderer)}
 {

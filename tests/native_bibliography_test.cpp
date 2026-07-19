@@ -1,11 +1,11 @@
 // Verify normalized bibliography data and its LaTeX composition boundary.
 #include "connectors/latex/bibliography.hpp"
-#include "connectors/latex/core_paragraph.hpp"
+#include "connectors/latex/paragraph.hpp"
 #include "document.hpp"
 #include "plugins/bibliography.hpp"
 #include "plugins/bibliography_bibtex.hpp"
 #include "plugins/bibliography_json.hpp"
-#include "plugins/core_paragraph.hpp"
+#include "plugins/paragraph.hpp"
 #include "writers/latex_writer.hpp"
 
 #include <exception>
@@ -90,7 +90,7 @@ auto test_latex() -> void
     using namespace dans::document::plugins;
 
     Document document;
-    auto& paragraph = document.blocks().add<CoreParagraph>();
+    auto& paragraph = document.blocks().add<Paragraph>();
     paragraph.append_text("Tensor networks are reviewed in ");
     paragraph.inlines().add<Citation>(
         std::initializer_list<CitationKey>{CitationKey{"verstraete2008"}, CitationKey{"orus2014"}}
@@ -118,16 +118,16 @@ auto test_latex() -> void
         .set_year(2014)
         .set_url("https://example.com/tensor_networks?format=pdf&lang=en");
 
-    auto inline_renderer = std::make_shared<connectors::latex::CoreParagraphInlineLatexRenderer>();
+    auto inline_renderer = std::make_shared<connectors::latex::InlineLatexRenderer>();
     inline_renderer->register_inline_adapter(
-        std::make_unique<connectors::latex::CoreTextLatexAdapter>()
+        std::make_unique<connectors::latex::TextLatexAdapter>()
     );
     inline_renderer->register_inline_adapter(
         std::make_unique<connectors::latex::CitationLatexAdapter>()
     );
     writers::LatexWriter writer;
     writer.register_block_adapter(
-        std::make_unique<connectors::latex::CoreParagraphLatexAdapter>(inline_renderer)
+        std::make_unique<connectors::latex::ParagraphLatexAdapter>(inline_renderer)
     );
     writer.register_block_adapter(std::make_unique<connectors::latex::BibliographyLatexAdapter>());
 

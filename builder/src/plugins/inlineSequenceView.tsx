@@ -1,4 +1,4 @@
-// Render and edit the Core Paragraph plugin's ordered inline-sequence contract.
+// Render and edit the shared ordered Inline Sequence contract.
 import { Fragment } from "react";
 
 import type {
@@ -57,7 +57,7 @@ export function InlineSequenceEditor({
       <header>
         <div>
           <strong>{label}</strong>
-          <small>Ordered Core Paragraph inline sequence</small>
+          <small>Ordered semantic inline sequence</small>
         </div>
         <div className="inline-sequence-editor__composed">
           <InlineSequencePreview

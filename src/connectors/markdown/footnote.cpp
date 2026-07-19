@@ -11,7 +11,7 @@ auto FootnoteMarkdownAdapter::inline_type_id() const noexcept -> std::string_vie
 }
 
 auto FootnoteMarkdownAdapter::serialize(
-    const plugins::InlineNode& node, CoreParagraphMarkdownOutput& output
+    const plugins::InlineNode& node, InlineMarkdownOutput& output
 ) const -> void
 {
     const auto* footnote = dynamic_cast<const plugins::Footnote*>(&node);

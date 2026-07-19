@@ -1,5 +1,5 @@
 // Canonical transport codec owned by the code-listing plugin.
-import { createParagraphText, type BuilderBlock } from "../model/document";
+import { createText, type BuilderBlock } from "../model/document";
 import { decodeOptionalReferenceId } from "../model/referenceId";
 import {
   requireTransportArray,
@@ -68,7 +68,7 @@ function decodeCaption(
   if (caption.trim().length === 0) {
     throw new Error("Legacy code-listing payload.caption must not be empty");
   }
-  return [createParagraphText(caption, `${blockId}:caption:legacy-text`)];
+  return [createText(caption, `${blockId}:caption:legacy-text`)];
 }
 
 export const codeListingBlockTransportCodec: BlockTransportCodec = {

@@ -1,4 +1,4 @@
-// Validate plugin-owned captions that consume the Core Paragraph inline contract.
+// Validate plugin-owned captions that consume the shared Inline Sequence contract.
 import type { BuilderInlineNode } from "../model/document";
 
 export function freezeRichCaption(
