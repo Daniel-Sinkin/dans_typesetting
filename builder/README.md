@@ -56,6 +56,11 @@ input-parser capability lowers grouping, arithmetic, comma sequences, signed num
 distinct from a stacked fraction. Selection locks retain the bounds of the containing scope, making
 nested expressions addressable without flattening their structure.
 
+Numeric leaves preserve their decimal spelling as strings, including leading
+zeroes and leading/trailing decimal points. A minus sign is a recursive negation
+node rather than part of a number leaf, so clipboard and canonical round trips
+do not depend on JavaScript floating-point conversion.
+
 The two-panel figure extension owns two horizontal image panels, three rich inline captions, one
 group target, and optional `a`/`b` panel targets. Its editor selects each image independently and
 updates the shared panel width immediately. It is intentionally separate from an ordinary figure;

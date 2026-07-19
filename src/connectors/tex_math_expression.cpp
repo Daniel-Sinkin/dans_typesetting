@@ -340,6 +340,36 @@ auto write_close_delimiter(Output& output, const Math::Delimiter delimiter) -> v
     throw std::logic_error{"Unknown structured-math delimiter"};
 }
 
+auto starts_with_negation(const Math& expression) -> bool
+{
+    switch (expression.kind())
+    {
+        case Math::Kind::negated:
+            return true;
+        case Math::Kind::binary:
+            return starts_with_negation(expression.binary_expression().left);
+        case Math::Kind::comma_separated:
+            return !expression.items().empty() && starts_with_negation(expression.items().front());
+        case Math::Kind::integer:
+        case Math::Kind::decimal:
+        case Math::Kind::identifier:
+        case Math::Kind::text:
+        case Math::Kind::symbol:
+        case Math::Kind::script:
+        case Math::Kind::fraction:
+        case Math::Kind::radical:
+        case Math::Kind::sequence:
+        case Math::Kind::function:
+        case Math::Kind::delimited:
+        case Math::Kind::inner_product:
+        case Math::Kind::summation:
+        case Math::Kind::underbrace:
+        case Math::Kind::grid:
+            return false;
+    }
+    throw std::logic_error{"Unknown structured-math expression kind"};
+}
+
 template <typename Output>
 auto write_expression(
     const Math& expression,
@@ -353,7 +383,10 @@ auto write_expression(
     switch (expression.kind())
     {
         case Kind::integer:
-            output.write_raw(std::to_string(expression.integer_value()));
+            output.write_raw(expression.integer_literal());
+            return;
+        case Kind::decimal:
+            output.write_raw(expression.decimal_literal());
             return;
         case Kind::identifier:
             write_identifier(output, expression.identifier_name(), expression.identifier_style());
@@ -366,6 +399,24 @@ auto write_expression(
             write_symbol(output, expression.symbol_value());
             output.write_raw("}");
             return;
+        case Kind::negated:
+            {
+                constexpr int k_negation_precedence = 40;
+                output.write_raw("-");
+                const auto& body = expression.negated_body();
+                const bool wrap_body =
+                    body.kind() == Kind::binary || body.kind() == Kind::comma_separated;
+                if (wrap_body)
+                {
+                    output.write_raw("\\left(");
+                }
+                write_expression(body, output, wrap_body ? 0 : k_negation_precedence);
+                if (wrap_body)
+                {
+                    output.write_raw("\\right)");
+                }
+                return;
+            }
         case Kind::binary:
             {
                 const auto& binary = expression.binary_expression();
@@ -442,7 +493,18 @@ auto write_expression(
                     operation == BinaryOperator::subtract || operation == BinaryOperator::divide
                         ? precedence + 1
                         : precedence;
-                write_expression(binary.right, output, right_precedence);
+                const bool wrap_negated_right =
+                    (operation == BinaryOperator::add || operation == BinaryOperator::subtract)
+                    && starts_with_negation(binary.right);
+                if (wrap_negated_right)
+                {
+                    output.write_raw("\\left(");
+                }
+                write_expression(binary.right, output, wrap_negated_right ? 0 : right_precedence);
+                if (wrap_negated_right)
+                {
+                    output.write_raw("\\right)");
+                }
 
                 if (needs_parentheses)
                 {

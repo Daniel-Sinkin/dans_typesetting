@@ -28,6 +28,21 @@ auto expect(const bool condition, const std::string_view message) -> void
     }
 }
 
+template <typename Operation>
+auto expect_invalid_argument(Operation&& operation, const std::string_view message) -> void
+{
+    auto rejected = false;
+    try
+    {
+        operation();
+    }
+    catch (const std::invalid_argument&)
+    {
+        rejected = true;
+    }
+    expect(rejected, message);
+}
+
 auto make_expression() -> Math
 {
     using M = Math;
@@ -53,7 +68,9 @@ auto test_model() -> void
 
     auto cube_root = M::nth_root(M::id_3, M::id_x);
     expect(cube_root.radical_degree() != nullptr, "An indexed root lost its degree");
-    expect(cube_root.radical_degree()->integer_value() == 3, "An indexed root changed its degree");
+    expect(
+        cube_root.radical_degree()->integer_literal() == "3", "An indexed root changed its degree"
+    );
 
     auto scripted = M::id_A.subscript(M::id_i).superscript(M::id_2);
     expect(scripted.kind() == M::Kind::script, "A combined script lost its expression kind");
@@ -77,7 +94,7 @@ auto test_model() -> void
     );
     auto annotation = M::underbrace(M::id_2, M::text("FMA & SIMD"));
     expect(annotation.kind() == M::Kind::underbrace, "An underbrace lost its expression kind");
-    expect(annotation.underbrace_body().integer_value() == 2, "An underbrace lost its body");
+    expect(annotation.underbrace_body().integer_literal() == "2", "An underbrace lost its body");
     expect(
         annotation.underbrace_annotation().text_value() == "FMA & SIMD",
         "An underbrace lost its annotation"
@@ -117,6 +134,79 @@ auto test_latex() -> void
     expect(
         rendered.contains(R"({\sqrt[3]{z}}^{2})"),
         "An indexed root or its superscript was not lowered to LaTeX"
+    );
+}
+
+auto test_numeric_literals_and_negation() -> void
+{
+    using M = Math;
+    namespace tex = dans::document::connectors::tex;
+
+    auto padded_integer = M::integer("00042");
+    expect(
+        padded_integer.integer_literal() == "00042", "An integer literal lost its source spelling"
+    );
+    auto large_integer = M::integer("1844674407370955161600");
+    expect(
+        large_integer.integer_literal() == "1844674407370955161600",
+        "An integer literal was constrained to a machine integer"
+    );
+    auto decimal = M::decimal("003.20");
+    expect(decimal.kind() == M::Kind::decimal, "A decimal lost its expression kind");
+    expect(decimal.decimal_literal() == "003.20", "A decimal literal lost its source spelling");
+    expect(M::decimal(".25").decimal_literal() == ".25", "A leading-dot decimal was changed");
+    expect(M::decimal("3.").decimal_literal() == "3.", "A trailing-dot decimal was changed");
+
+    auto negative = M::negate(M::decimal("056.321"));
+    expect(negative.kind() == M::Kind::negated, "Unary negation lost its expression kind");
+    expect(
+        negative.negated_body().decimal_literal() == "056.321", "Unary negation changed its operand"
+    );
+    negative.validate();
+
+    expect_invalid_argument(
+        [] { static_cast<void>(M::integer("")); }, "An empty integer literal was accepted"
+    );
+    expect_invalid_argument(
+        [] { static_cast<void>(M::integer("-3")); }, "An integer literal embedded a unary sign"
+    );
+    expect_invalid_argument(
+        [] { static_cast<void>(M::integer(-3)); }, "A signed integer bypassed structural negation"
+    );
+    expect_invalid_argument(
+        [] { static_cast<void>(M::decimal(".")); }, "A decimal without digits was accepted"
+    );
+    expect_invalid_argument(
+        [] { static_cast<void>(M::decimal("-3.2")); }, "A decimal literal embedded a unary sign"
+    );
+    expect_invalid_argument(
+        [] { static_cast<void>(M::decimal("1e3")); }, "Exponent notation was accepted as a decimal"
+    );
+    expect_invalid_argument(
+        [] { static_cast<void>(M::decimal("3.2.1")); },
+        "A decimal with multiple separators was accepted"
+    );
+
+    expect(
+        tex::render_expression(M::negate(M::decimal("056.321"))) == "-056.321",
+        "A negative decimal was not lowered losslessly"
+    );
+    expect(
+        tex::render_expression(M::negate(M::add(M::id_a, M::id_b))) == R"(-\left(a + b\right))",
+        "Negating a binary expression lost its grouping"
+    );
+    expect(
+        tex::render_expression(M::add(M::id_a, M::negate(M::id_b))) == R"(a + \left(-b\right))",
+        "A negative right-hand additive term became ambiguous"
+    );
+    expect(
+        tex::render_expression(M::add(M::id_x, M::add(M::negate(M::id_a), M::id_b)))
+            == R"(x + \left(-a + b\right))",
+        "An additive subtree beginning with negation became ambiguous"
+    );
+    expect(
+        tex::render_expression(M::negate(M::csv(M::id_a, M::id_b))) == R"(-\left(a, b\right))",
+        "Negating a comma-separated expression lost its grouping"
     );
 }
 
@@ -236,6 +326,7 @@ auto run_test() -> void
 {
     test_model();
     test_latex();
+    test_numeric_literals_and_negation();
     test_thesis_vocabulary();
 }
 }  // namespace

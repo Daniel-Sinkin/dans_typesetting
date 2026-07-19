@@ -89,3 +89,5 @@ they own additional children or presentation state. Decorated identifiers and
 ordinary/named function application are documented in
 [math-identifiers-and-functions.md](math-identifiers-and-functions.md); they
 are likewise not smuggled through the binary enum or symbol names.
+Exact integer/decimal spellings and recursive signs are documented in
+[math-numeric-literals.md](math-numeric-literals.md).

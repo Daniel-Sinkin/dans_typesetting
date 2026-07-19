@@ -22,6 +22,27 @@ auto is_ascii_digit(const char character) noexcept -> bool
     return character >= '0' && character <= '9';
 }
 
+auto is_valid_integer_literal(const std::string_view literal) noexcept -> bool
+{
+    return !literal.empty() && std::ranges::all_of(literal, is_ascii_digit);
+}
+
+auto is_valid_decimal_literal(const std::string_view literal) noexcept -> bool
+{
+    const auto separator = literal.find('.');
+    if (separator == std::string_view::npos
+        || literal.find('.', separator + dans::usize{1}) != std::string_view::npos)
+    {
+        return false;
+    }
+
+    const auto whole = literal.substr(0, separator);
+    const auto fractional = literal.substr(separator + dans::usize{1});
+    const auto has_digit = !whole.empty() || !fractional.empty();
+    return has_digit && std::ranges::all_of(whole, is_ascii_digit)
+           && std::ranges::all_of(fractional, is_ascii_digit);
+}
+
 auto is_valid_name(const std::string_view name) noexcept -> bool
 {
     if (name.empty() || !is_ascii_letter(name.front()))
@@ -207,7 +228,12 @@ struct Math::Node
 {
     struct Integer
     {
-        i64 value{};
+        std::string literal{};
+    };
+
+    struct Decimal
+    {
+        std::string literal{};
     };
 
     struct Identifier
@@ -224,6 +250,11 @@ struct Math::Node
     struct Symbol
     {
         Math::Symbol value{};
+    };
+
+    struct Negated
+    {
+        Math body;
     };
 
     struct Script
@@ -296,9 +327,11 @@ struct Math::Node
 
     using Value = std::variant<
         Integer,
+        Decimal,
         Identifier,
         Text,
         Symbol,
+        Negated,
         BinaryExpression,
         Script,
         Fraction,
@@ -356,9 +389,36 @@ auto Math::node() const -> const Node&
     return *value;
 }
 
+auto Math::integer(const std::string_view literal) -> Math
+{
+    if (!is_valid_integer_literal(literal))
+    {
+        throw std::invalid_argument{"A math integer literal must contain only ASCII digits"};
+    }
+    return Math{std::make_unique<Node>(Node::Integer{.literal = std::string{literal}})};
+}
+
 auto Math::integer(const i64 value) -> Math
 {
-    return Math{std::make_unique<Node>(Node::Integer{.value = value})};
+    if (value < i64{0})
+    {
+        throw std::invalid_argument{
+            "A signed math value must use negate(integer(...)) so the sign remains structural"
+        };
+    }
+    return integer(std::to_string(value));
+}
+
+auto Math::decimal(const std::string_view literal) -> Math
+{
+    if (!is_valid_decimal_literal(literal))
+    {
+        throw std::invalid_argument{
+            "A math decimal literal must be unsigned, contain one decimal point, and contain at "
+            "least one ASCII digit"
+        };
+    }
+    return Math{std::make_unique<Node>(Node::Decimal{.literal = std::string{literal}})};
 }
 
 auto Math::identifier(const std::string_view name) -> Math
@@ -424,6 +484,11 @@ auto Math::text(const std::string_view value) -> Math
 auto Math::symbol(const Math::Symbol symbol) -> Math
 {
     return Math{std::make_unique<Node>(Node::Symbol{.value = symbol})};
+}
+
+auto Math::negate(Math body) -> Math
+{
+    return Math{std::make_unique<Node>(Node::Negated{.body = std::move(body)})};
 }
 
 auto Math::binary(Math left, const BinaryOperator operation, Math right) -> Math
@@ -844,6 +909,10 @@ auto Math::kind() const -> Kind
             {
                 return Kind::integer;
             }
+            else if constexpr (std::is_same_v<Value, Node::Decimal>)
+            {
+                return Kind::decimal;
+            }
             else if constexpr (std::is_same_v<Value, Node::Identifier>)
             {
                 return Kind::identifier;
@@ -855,6 +924,10 @@ auto Math::kind() const -> Kind
             else if constexpr (std::is_same_v<Value, Node::Symbol>)
             {
                 return Kind::symbol;
+            }
+            else if constexpr (std::is_same_v<Value, Node::Negated>)
+            {
+                return Kind::negated;
             }
             else if constexpr (std::is_same_v<Value, BinaryExpression>)
             {
@@ -910,9 +983,14 @@ auto Math::kind() const -> Kind
     );
 }
 
-auto Math::integer_value() const -> i64
+auto Math::integer_literal() const -> std::string_view
 {
-    return std::get<Node::Integer>(node().value).value;
+    return std::get<Node::Integer>(node().value).literal;
+}
+
+auto Math::decimal_literal() const -> std::string_view
+{
+    return std::get<Node::Decimal>(node().value).literal;
 }
 
 auto Math::identifier_name() const -> std::string_view
@@ -933,6 +1011,11 @@ auto Math::text_value() const -> std::string_view
 auto Math::symbol_value() const -> Math::Symbol
 {
     return std::get<Node::Symbol>(node().value).value;
+}
+
+auto Math::negated_body() const -> const Math&
+{
+    return std::get<Node::Negated>(node().value).body;
 }
 
 auto Math::binary_expression() const -> const BinaryExpression&
@@ -1080,10 +1163,13 @@ auto Math::explicit_alignment_points() const -> usize
     switch (kind())
     {
         case Kind::integer:
+        case Kind::decimal:
         case Kind::identifier:
         case Kind::text:
         case Kind::symbol:
             return 0;
+        case Kind::negated:
+            return negated_body().explicit_alignment_points();
         case Kind::binary:
             return (binary_expression().align_at_operator ? usize{1} : usize{0})
                    + binary_expression().left.explicit_alignment_points()
@@ -1164,6 +1250,17 @@ auto Math::validate() const -> void
     switch (kind())
     {
         case Kind::integer:
+            if (!is_valid_integer_literal(integer_literal()))
+            {
+                throw std::logic_error{"A math integer literal contains invalid characters"};
+            }
+            return;
+        case Kind::decimal:
+            if (!is_valid_decimal_literal(decimal_literal()))
+            {
+                throw std::logic_error{"A math decimal literal has an invalid spelling"};
+            }
+            return;
         case Kind::identifier:
         case Kind::symbol:
             return;
@@ -1174,6 +1271,9 @@ auto Math::validate() const -> void
                     "Math text must be non-empty and contain no control characters"
                 };
             }
+            return;
+        case Kind::negated:
+            negated_body().validate();
             return;
         case Kind::binary:
             binary_expression().left.validate();

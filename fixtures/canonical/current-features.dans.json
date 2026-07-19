@@ -304,8 +304,11 @@
                     "value": "1"
                   },
                   {
-                    "kind": "decimal",
-                    "value": "3.2"
+                    "kind": "negated",
+                    "body": {
+                      "kind": "decimal",
+                      "value": "003.20"
+                    }
                   },
                   {
                     "kind": "identifier",

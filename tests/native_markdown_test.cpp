@@ -132,6 +132,8 @@ auto render_representative_document() -> std::string
     prose.inlines().add<Math::Inline>(
         M::underbrace(M::center_dot(M::upright("cores"), M::id_2), M::text("FMA & SIMD"))
     );
+    prose.append_text(" negative decimal ");
+    prose.inlines().add<Math::Inline>(M::negate(M::decimal("0.125")));
     prose.append_text(" emoji ");
     prose.inlines().add<InlineImage>(ImageSource{"assets/tiny icon.png"});
     prose.append_text(" color ");
@@ -348,6 +350,7 @@ auto main() noexcept -> int
             R"($\underbrace{\mathrm{cores} \cdot 2}_{\text{FMA \& SIMD}}$)",
             "upright identifier and annotated underbrace"
         );
+        expect_contains(rendered, "$-0.125$", "lossless negative decimal");
         expect_contains(rendered, "![](<assets/tiny icon.png>)", "inline image");
         expect_contains(
             rendered, R"(<span style="color: #0CA0FF">**blue \& bold**</span>)", "colour span"

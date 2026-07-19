@@ -98,6 +98,13 @@ recursive `body` and `annotation` expressions. They extend the same version-1
 math vocabulary and never store the TeX commands used by a publication writer.
 See [math-annotations.md](math-annotations.md).
 
+Integer and decimal payloads store their numeric spelling as a JSON string, not
+a JSON number. Integer values contain only digits. Decimal values contain one
+decimal point and at least one digit, preserving forms such as `003.20`, `.25`,
+and `3.` exactly. A sign is a separate `negated` payload with one recursive
+`body`; it is never embedded in either literal. See
+[math-numeric-literals.md](math-numeric-literals.md).
+
 Inline source code uses `dans.code.inline` with one string-valued `code` field.
 CR and LF are rejected because multiline source belongs to the listing plugin;
 all other code punctuation is stored semantically rather than writer-escaped.

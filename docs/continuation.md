@@ -66,18 +66,23 @@ function applications across native and graphical writers.
 Commit `de37e9d` adds upright math identifiers, semantic math text, and
 recursive underbraces across native and graphical writers.
 
+Commit `1ec7b51` decouples ordinary and paired figure numbering from optional
+reference-target publication across native and graphical writers.
+
 ## Current implementation slice
 
-The optional figure-target slice adds:
+The lossless numeric-literal and unary-negation slice adds:
 
-- nullable semantic targets for ordinary figures and two-panel figure groups;
-- figure numbering and captions that remain independent from target publication;
-- panel-only references that retain the enclosing pair ordinal and suffix;
-- conditional LaTeX/Markdown anchors without synthetic hidden IDs;
-- graphical creation, copying, editing, canonical transport, and fixture parity;
-- focused native/browser tests covering mixed labelled and unlabelled figures.
+- string-backed native integer and decimal leaves that preserve exact spelling
+  and arbitrary integer size;
+- recursive unary negation, with negative convenience integers rejected so the
+  model has one structural representation;
+- unambiguous grouping shared by native LaTeX, Markdown, and Jupyter math;
+- native malformed-input and publication tests, browser parser/clipboard
+  parity, and a negated-decimal canonical fixture;
+- representative native sample content compiled into the PDF.
 
-See `composite-figures.md` for the exact numbered-occurrence contract.
+See `math-numeric-literals.md` for the exact grammar and deliberate omissions.
 
 ## Preceding verified slice
 
@@ -354,8 +359,8 @@ isolation and lazy loading are the intended remedies.
 ## Next work
 
 Continue with one complete thesis-parity slice. The focused follow-up audit now
-prioritizes optional figure targets, lossless native decimal/negation parity,
-multiline display groups, recursive math colour, and caption-optional tables.
+prioritizes multiline display groups, recursive math colour, caption-optional
+tables, round matrices/bare arrays, and constrained header spans.
 External source-file listing inclusion is not pressure from the current corpus.
 See `thesis-next-slices.md` for representative source locations and the full
 ranked list. Kernel-specific Jupyter cells and notebook attachments remain
@@ -436,3 +441,6 @@ Current deliberate compromises to reassess later:
 - math text is deliberately a single-line leaf rather than a nested Core
   Paragraph, and the graphical underbrace is a scalable SVG approximation of
   publication typography.
+- numeric leaves deliberately omit signs, exponent notation, locale separators,
+  and floating-point interpretation; unary negation supplies the sign while
+  preserving source spelling.

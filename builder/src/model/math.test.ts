@@ -120,6 +120,8 @@ describe("structured math", () => {
   });
 
   it("accepts unsigned decimals and ASCII identifiers as direct leaf input", () => {
+    expect(createMathInteger("00042").value).toBe("00042");
+    expect(createMathDecimal("003.20").value).toBe("003.20");
     expect(createMathLeafFromInput("12").kind).toBe("integer");
     expect(createMathLeafFromInput(".25").kind).toBe("decimal");
     expect(createMathLeafFromInput("CUDA").kind).toBe("identifier");
@@ -149,12 +151,12 @@ describe("structured math", () => {
       "braces",
       createMathCommaSequence([
         createMathBinary("divide", createMathIdentifier("A"), createMathInteger(4)),
-        createMathNegated(createMathDecimal("56.321")),
+        createMathNegated(createMathDecimal("003.20")),
       ]),
     );
     const restored = mathExpressionFromString(mathExpressionToString(grouped));
 
-    expect(mathExpressionToText(restored)).toBe("{A / 4, −56.321}");
+    expect(mathExpressionToText(restored)).toBe("{A / 4, −003.20}");
   });
 
   it("round-trips semantic relations and atomic physics symbols", () => {

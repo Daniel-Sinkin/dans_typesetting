@@ -59,9 +59,10 @@ writer. Blackboard/calligraphic identifiers plus ordinary and named function
 application now share native and graphical contracts as well. Upright atomic
 names, constrained math text, and recursive underbraces cover the audited
 `\mathrm`, `\text`, and `\underbrace` pressure without admitting raw LaTeX.
-Every child
-retains recursive editing and canonical transport. The audited corpus still
-needs parentheses matrices, block separators, arrays, labeled arrows, large
+Integer and decimal leaves now preserve exact source spelling in both models,
+and unary negation is recursive rather than encoded in a machine number. Every
+child retains recursive editing and canonical transport. The audited corpus
+still needs parentheses matrices, block separators, arrays, labeled arrows, large
 operators, and several specialized environments before mathematical parity is
 close.
 

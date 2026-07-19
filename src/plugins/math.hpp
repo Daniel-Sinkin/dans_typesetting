@@ -174,9 +174,11 @@ class Math final
     enum class Kind : u8
     {
         integer,
+        decimal,
         identifier,
         text,
         symbol,
+        negated,
         binary,
         script,
         fraction,
@@ -198,7 +200,9 @@ class Math final
     Math(const Math&) = delete;
     auto operator=(const Math&) -> Math& = delete;
 
+    [[nodiscard]] static auto integer(std::string_view literal) -> Math;
     [[nodiscard]] static auto integer(i64 value) -> Math;
+    [[nodiscard]] static auto decimal(std::string_view literal) -> Math;
     [[nodiscard]] static auto identifier(std::string_view name) -> Math;
     [[nodiscard]] static auto ident(std::string_view name) -> Math;
     [[nodiscard]] static auto styled_identifier(std::string_view name, IdentifierStyle style)
@@ -208,6 +212,7 @@ class Math final
     [[nodiscard]] static auto upright(std::string_view name) -> Math;
     [[nodiscard]] static auto text(std::string_view value) -> Math;
     [[nodiscard]] static auto symbol(Symbol symbol) -> Math;
+    [[nodiscard]] static auto negate(Math body) -> Math;
     [[nodiscard]] static auto binary(Math left, BinaryOperator operation, Math right) -> Math;
     [[nodiscard]] static auto add(Math left, Math right) -> Math;
     [[nodiscard]] static auto subtract(Math left, Math right) -> Math;
@@ -278,11 +283,13 @@ class Math final
     auto align_at_operator() && -> Math&&;
 
     [[nodiscard]] auto kind() const -> Kind;
-    [[nodiscard]] auto integer_value() const -> i64;
+    [[nodiscard]] auto integer_literal() const -> std::string_view;
+    [[nodiscard]] auto decimal_literal() const -> std::string_view;
     [[nodiscard]] auto identifier_name() const -> std::string_view;
     [[nodiscard]] auto identifier_style() const -> IdentifierStyle;
     [[nodiscard]] auto text_value() const -> std::string_view;
     [[nodiscard]] auto symbol_value() const -> Symbol;
+    [[nodiscard]] auto negated_body() const -> const Math&;
     [[nodiscard]] auto binary_expression() const -> const BinaryExpression&;
     [[nodiscard]] auto script_base() const -> const Math&;
     [[nodiscard]] auto script_subscript() const -> const Math*;

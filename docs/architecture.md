@@ -266,6 +266,13 @@ underbraces therefore remain backend-neutral while the TeX connector owns
 `\mathrm`, `\text`, escaping, and `\underbrace` syntax. See
 [math-annotations.md](math-annotations.md).
 
+Numeric math leaves are source-spelling values rather than machine numbers.
+Unsigned integer and decimal strings preserve leading or trailing zeroes and
+arbitrary integer size; unary negation is a recursive node rather than a sign
+embedded in either literal. Writers may group the node to avoid ambiguous
+`a + -b` presentation, but they do not normalize or evaluate it. See
+[math-numeric-literals.md](math-numeric-literals.md).
+
 ## Semantic target index
 
 Referenceable block plugins expose a small descriptor containing an optional

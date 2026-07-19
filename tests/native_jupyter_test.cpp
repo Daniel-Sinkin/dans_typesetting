@@ -94,6 +94,8 @@ auto make_document() -> dans::document::Document
     paragraph.inlines().add<Math::Inline>(Math::blackboard("R"));
     paragraph.append_text(" with ");
     paragraph.inlines().add<Math::Inline>(Math::underbrace(Math::id_2, Math::text("FMA & SIMD")));
+    paragraph.append_text(" and offset ");
+    paragraph.inlines().add<Math::Inline>(Math::negate(Math::decimal("0.125")));
     paragraph.append_text(" before reading timing data.");
     section.blocks().add<CodeListing>(
         CodeLanguage::cpp, "int main() { return 0; }\n", "C++ presentation source."
@@ -158,6 +160,7 @@ auto verify_notebook() -> void
         || !expected_markdown.str().contains(R"(${\partial} \leq {\infty}$)")
         || !expected_markdown.str().contains(R"($\mathbb{R}$)")
         || !expected_markdown.str().contains(R"($\underbrace{2}_{\text{FMA \& SIMD}}$)")
+        || !expected_markdown.str().contains("$-0.125$")
         || !expected_markdown.str().contains("*Figure 1: Paired notebook figure\\.*")
         || serialized.str().contains("kernelspec"))
     {
