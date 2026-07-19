@@ -59,6 +59,8 @@ struct MarkdownTargetDescriptor
     const ReferenceId* reference_id{};
     std::string_view label{};
     std::string_view numbering_series{};
+    bool advances_numbering{true};
+    std::string_view number_suffix{};
 };
 
 struct MarkdownResourceDescriptor

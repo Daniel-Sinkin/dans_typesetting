@@ -51,6 +51,7 @@ citations consume the completed index through the Markdown output context.
 | Footnote | numbered reference plus a document-end rich definition |
 | Inline image | native Markdown image |
 | Figure | native image, writer-derived number, caption, and anchor |
+| Two-panel figure | two-column image table, rich panel/group captions, and suffixed targets |
 | Item list | itemized or automatically numbered Markdown list |
 | Table | GFM pipe table with alignment, caption, number, and anchor |
 | Code listing | collision-safe fenced block, language, caption, and anchor |
@@ -72,6 +73,8 @@ therefore makes these choices explicit:
 
 - figure relative width, preferred pixel extent, and inline-image em height are
   ignored; source asset identity and captions are preserved;
+- a two-panel figure retains its side-by-side relation through a GFM table, but
+  Markdown viewers may ignore the requested per-panel width and pixel hints;
 - every line of a grouped display-math block is emitted as its own display, so
   independent anchors and equation numbers survive but cross-line automatic
   alignment does not;

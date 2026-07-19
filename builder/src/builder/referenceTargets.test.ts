@@ -69,4 +69,34 @@ describe("semantic reference target index", () => {
       ),
     ).toThrow(/Duplicate semantic reference ID 'shared:id'/u);
   });
+
+  it("derives multiple suffixed targets from one numbered block", () => {
+    const pairPlugin = {
+      ...imagePlugin,
+      typeId: "dans.test.figure_pair",
+      referenceTarget: undefined,
+      referenceTargets: () => [
+        { referenceId: "fig:pair", label: "Figure", title: null },
+        {
+          referenceId: "fig:pair:left",
+          label: "Figure",
+          title: "Left panel",
+          numberSuffix: "a",
+        },
+      ],
+      createDefault: (id: string) => ({ id, typeId: "dans.test.figure_pair" }),
+    };
+    const pairRegistry = new BuilderPluginRegistry(
+      [pairPlugin],
+      opaqueBlockAdapter,
+    );
+
+    const targets = deriveReferenceTargets(
+      [{ id: "pair", typeId: "dans.test.figure_pair" }],
+      pairRegistry,
+    );
+
+    expect(targets.get("fig:pair")?.displayText).toBe("Figure 1");
+    expect(targets.get("fig:pair:left")?.displayText).toBe("Figure 1a");
+  });
 });

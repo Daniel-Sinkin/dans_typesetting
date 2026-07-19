@@ -4,6 +4,7 @@
 #include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/document_shell.hpp"
 #include "connectors/latex/excalidraw_drawing.hpp"
+#include "connectors/latex/figure_pair.hpp"
 #include "connectors/latex/footnote.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/image.hpp"
@@ -20,6 +21,7 @@
 #include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
 #include "plugins/excalidraw_drawing.hpp"
+#include "plugins/figure_pair.hpp"
 #include "plugins/footnote.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
@@ -252,6 +254,29 @@ auto make_sample_document()
     figure.caption().add<Math::Inline>(M::id_A.subscript(M::csv(M::id_4, M::id_3)));
     figure.caption().add<CoreText>(".");
 
+    auto first_panel = FigurePanel{
+        ImageSource{"sample-image.pdf"},
+        "Single-coupling model ",
+        ReferenceId{"fig:model-comparison:left"},
+        PixelExtent{1280, 720}
+    };
+    first_panel.caption().add<Math::Inline>(M::id_J.subscript(M::id_1));
+    auto second_panel = FigurePanel{
+        ImageSource{"sample-image.pdf"},
+        "Frustrated model ",
+        ReferenceId{"fig:model-comparison:right"},
+        PixelExtent{1280, 720}
+    };
+    second_panel.caption().add<Math::Inline>(
+        M::subtract(M::id_J.subscript(M::id_1), M::id_J.subscript(M::id_2))
+    );
+    media.blocks().add<FigurePair>(
+        std::move(first_panel),
+        std::move(second_panel),
+        ReferenceId{"fig:model-comparison"},
+        "A side-by-side comparison with independently referenceable panels."
+    );
+
     media.blocks().add<ExcalidrawDrawing>(
         R"({"type":"excalidraw","version":2,"source":"dans.typesetting","elements":[],"appState":{"viewBackgroundColor":"#ffffff"},"files":{}})",
         ReferenceId{"fig:embedded-drawing"},
@@ -265,6 +290,13 @@ auto make_sample_document()
     figure_reference.append_text(
         " belongs to the exporter, while the document model retains only its stable ID."
     );
+    auto& panel_reference = media.blocks().add<CoreParagraph>("Composite targets resolve as ");
+    panel_reference.inlines().add<Reference>(ReferenceId{"fig:model-comparison"});
+    panel_reference.append_text(", ");
+    panel_reference.inlines().add<Reference>(ReferenceId{"fig:model-comparison:left"});
+    panel_reference.append_text(", and ");
+    panel_reference.inlines().add<Reference>(ReferenceId{"fig:model-comparison:right"});
+    panel_reference.append_text(".");
 
     auto& mathematics = document.blocks().add<Section>("Display mathematics");
     par_writer(
@@ -431,6 +463,11 @@ auto run(const int argc, char** argv) -> int
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::FigureLatexAdapter>(inline_renderer)
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::FigurePairLatexAdapter>(
+                inline_renderer
+            )
         );
         const auto drawing_asset_path = output_path.parent_path() / "sample-excalidraw.pdf";
         writer.register_block_adapter(

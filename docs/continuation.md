@@ -43,9 +43,37 @@ and graphical math composition.
 Commit `e9f8f34` adds semantic single-line inline code across native LaTeX,
 canonical transport, and graphical editing.
 
+Commit `1662a74` adds semantic citations, normalized bibliography records,
+BibTeX and bespoke-JSON adapters, and complete native/graphical authoring.
+
+Commit `ab1c3a6` adds the semantic Markdown presentation writer.
+
+Commit `a192545` adds the Jupyter notebook presentation writer by composing
+the configured Markdown target rather than duplicating plugin rendering.
+
 ## Current verified slice
 
-The citation and bibliography slice adds:
+The paired-figure slice adds:
+
+- `dans.image.figure_pair` as an exactly two-panel semantic figure rather than
+  a generic layout grid;
+- stable group and optional panel reference targets sharing one writer-owned
+  figure ordinal, with `a` and `b` suffixes for panel references;
+- rich Core Paragraph captions for the group and both panels, independent
+  image sources, optional pixel-size hints, and a shared relative-width hint;
+- native LaTeX lowering through `subcaption`, semantic Markdown lowering as a
+  two-column table, and automatic Jupyter composition through Markdown;
+- a live graphical editor with real image previews, independent file pickers,
+  dimension detection, rich caption editing, width feedback, and nested panel
+  anchors;
+- plugin-aware deep copies, strict canonical transport, malformed-input tests,
+  dual-compiler native tests, browser interaction coverage, and a visually
+  inspected compiled PDF.
+
+See `composite-figures.md` for the exact contract and the boundary between this
+opinionated pair and a possible future general panel-grid extension.
+
+The preceding citation and bibliography slice adds:
 
 - `dans.bibliography.citation` multi-key inline leaves and
   `dans.bibliography.references` normalized reference blocks;
@@ -245,13 +273,11 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Continue with one complete thesis-parity plugin slice: composite figures are
-the strongest next candidate because the audited document contains ten paired
-panels and the current figure model cannot represent them. Kernel-specific
-Jupyter cells and notebook attachments remain optional writer policies.
-Theorems/definitions/lemmas, external listing inclusion, and richer thesis
-mathematics remain independent plugin slices rather than additions to generic
-document core.
+Continue with one complete thesis-parity slice. External source-file inclusion
+for listings and richer thesis mathematics are the strongest remaining gaps in
+the audited corpus. Theorems/definitions/lemmas remain a useful independent
+plugin family but were not present in that corpus. Kernel-specific Jupyter
+cells and notebook attachments remain optional writer policies.
 
 Current deliberate compromises to reassess later:
 
@@ -296,3 +322,14 @@ Current deliberate compromises to reassess later:
   graphical header exposes that number while LaTeX keeps it visually hidden.
 - graphical listing captions are still plain strings even though native
   captions consume the Core Paragraph inline contract.
+- paired figures deliberately require exactly two equal-width panels; general
+  grids, unequal panel widths, and vertical panel composition belong to a
+  separate extension rather than weakening this small contract.
+- Markdown paired figures use a GFM table and therefore treat pixel and width
+  hints as advisory data that the writer may discard.
+- copying a paired figure gives the group a fresh target derived from the new
+  block identity and clears both optional panel targets to prevent duplicate
+  references.
+- the graphical paired-figure editor currently reuses the table inline editor
+  component; its contract is generic, but the component name and some CSS are
+  still table-oriented.

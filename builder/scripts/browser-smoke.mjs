@@ -25,7 +25,7 @@ const canonicalFixturePath = join(
 );
 const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
 const sampleBibtexPath = join(resultsDirectory, "sample-bibliography.bib");
-const initialBlockCount = 14;
+const initialBlockCount = 15;
 const initialParagraphSegmentCount = 20;
 
 function assert(condition, message) {
@@ -295,10 +295,14 @@ async function exerciseBuilder(client) {
       bibliographyEntries: document.querySelectorAll("[data-visual-block-id='sample-bibliography'] [data-bibliography-entry-key]").length,
       bibliographyDoi: document.querySelector("[data-visual-block-id='sample-bibliography'] a[href='https://doi.org/10.1080/14789940801912366']") !== null,
       figureNumber: document.querySelector("[data-visual-block-id='sample-figure'] figcaption")?.textContent.includes("Figure 1:") ?? false,
+      figurePairPanels: document.querySelectorAll("[data-visual-block-id='sample-figure-pair'] [data-figure-panel-id]").length,
+      figurePairNumber: document.querySelector("[data-visual-block-id='sample-figure-pair'] .figure-pair-content__caption")?.textContent.includes("Figure 2:") ?? false,
+      figurePairMath: document.querySelectorAll("[data-visual-block-id='sample-figure-pair'] .math-node").length,
+      figurePairPanelTargets: document.getElementById("dans-reference-fig%3Apaired-models%3Aleft") !== null && document.getElementById("dans-reference-fig%3Apaired-models%3Aright") !== null,
       equationNumber: document.querySelector("[data-visual-block-id='sample-display-math'] .math-equation-number")?.textContent === "(1)",
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
       drawingPreview: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] img")?.src.startsWith("blob:") ?? false,
-      drawingNumber: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] figcaption")?.textContent.includes("Figure 2:") ?? false,
+      drawingNumber: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] figcaption")?.textContent.includes("Figure 3:") ?? false,
       itemListPresentation: document.querySelector("[data-visual-block-id='sample-item-list'] ol")?.dataset.listPresentation ?? null,
       itemListCount: document.querySelectorAll("[data-visual-block-id='sample-item-list'] li").length,
       itemListMath: document.querySelector("[data-visual-block-id='sample-item-list'] .math-node") !== null,
@@ -326,6 +330,18 @@ async function exerciseBuilder(client) {
   assert(initial.bibliographyEntries === 2, "The bibliography lost normalized entries");
   assert(initial.bibliographyDoi, "A bibliography DOI was not rendered as a working link");
   assert(initial.figureNumber && initial.equationNumber && initial.listingNumber, "Live numbering is incorrect");
+  assert(
+    initial.figurePairPanels === 2 &&
+      initial.figurePairNumber &&
+      initial.figurePairMath >= 2 &&
+      initial.figurePairPanelTargets,
+    `The paired figure did not render rich, independently targetable panels: ${JSON.stringify({
+      panels: initial.figurePairPanels,
+      number: initial.figurePairNumber,
+      math: initial.figurePairMath,
+      targets: initial.figurePairPanelTargets,
+    })}`,
+  );
   assert(initial.drawingPreview, "The Excalidraw scene was not projected through SVG");
   assert(initial.drawingNumber, "The embedded drawing did not join figure numbering");
   assert(initial.itemListPresentation === "enumerated", "The semantic list presentation was not rendered");
@@ -349,6 +365,56 @@ async function exerciseBuilder(client) {
   );
 
   await screenshot(client, "document-builder.png");
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-figure-pair']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(100);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector(".figure-pair-editor");
+      return editor !== null &&
+        editor.querySelectorAll(".figure-pair-editor__panels > section").length === 2 &&
+        editor.querySelectorAll(".table-inline-editor").length === 3;
+    })()`),
+    "The paired-figure editor did not expose two panels and three rich captions",
+  );
+  await client.evaluate(`(() => {
+    const editor = document.querySelector(".figure-pair-editor");
+    const slider = editor.querySelector("input[type='range']");
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    inputSetter.call(slider, "40");
+    slider.dispatchEvent(new Event("input", { bubbles: true }));
+    const textarea = editor.querySelector("textarea[data-inline-id='sample-pair-left-text']");
+    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    textareaSetter.call(textarea, "Edited panel ");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(100);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector(".figure-pair-editor");
+      const firstPanel = editor.querySelector(".figure-pair-content__panels > figure");
+      return firstPanel?.style.width === "40%" &&
+        firstPanel.textContent.includes("Edited panel");
+    })()`),
+    "The paired-figure width and rich caption did not live-update",
+  );
+  await screenshot(client, "figure-pair-editor.png");
+  await client.evaluate(`(() => {
+    const editor = document.querySelector(".figure-pair-editor");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Save figure pair")).click();
+  })()`);
+  await delay(120);
+  assert(
+    await client.evaluate(`(() => {
+      const pair = document.querySelector("[data-visual-block-id='sample-figure-pair']");
+      return pair.textContent.includes("Edited panel") &&
+        pair.querySelector(".figure-pair-content__panels > figure")?.style.width === "40%";
+    })()`),
+    "The paired-figure editor did not commit its draft",
+  );
 
   await client.evaluate(`(() => {
     const block = document.querySelector("[data-block-id='sample-item-list']");

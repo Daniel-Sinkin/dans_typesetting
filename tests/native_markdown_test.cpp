@@ -4,6 +4,7 @@
 #include "connectors/markdown/color_span.hpp"
 #include "connectors/markdown/core_paragraph.hpp"
 #include "connectors/markdown/document_shell.hpp"
+#include "connectors/markdown/figure_pair.hpp"
 #include "connectors/markdown/footnote.hpp"
 #include "connectors/markdown/hyperlink.hpp"
 #include "connectors/markdown/image.hpp"
@@ -18,6 +19,7 @@
 #include "plugins/color_span.hpp"
 #include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
+#include "plugins/figure_pair.hpp"
 #include "plugins/footnote.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
@@ -37,6 +39,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace
 {
@@ -83,6 +86,7 @@ auto make_writer(
     writer.register_block_adapter(std::make_unique<markdown::ItemListMarkdownAdapter>(renderer));
     writer.register_block_adapter(std::make_unique<markdown::CodeListingMarkdownAdapter>(renderer));
     writer.register_block_adapter(std::make_unique<markdown::FigureMarkdownAdapter>(renderer));
+    writer.register_block_adapter(std::make_unique<markdown::FigurePairMarkdownAdapter>(renderer));
     writer.register_block_adapter(std::make_unique<markdown::TableMarkdownAdapter>(renderer));
     writer.register_block_adapter(std::make_unique<markdown::DisplayMathMarkdownAdapter>());
     writer.register_block_adapter(std::make_unique<markdown::BibliographyMarkdownAdapter>());
@@ -97,6 +101,8 @@ auto render_representative_document() -> std::string
 
     const ReferenceId section_id{"sec:overview"};
     const ReferenceId figure_id{"fig:plot"};
+    const ReferenceId figure_pair_id{"fig:pair"};
+    const ReferenceId figure_pair_left_id{"fig:pair:left"};
     const ReferenceId table_id{"tab:values"};
     const ReferenceId listing_id{"lst:kernel"};
     const ReferenceId equation_id{"eq:energy"};
@@ -145,6 +151,15 @@ auto render_representative_document() -> std::string
         RelativeWidth::from_percent(70.0),
         PixelExtent{1280, 720}
     );
+    auto left_panel =
+        FigurePanel{ImageSource{"figures/left panel.png"}, "Left ", figure_pair_left_id};
+    left_panel.caption().add<Math::Inline>(M::id_J.subscript(M::id_1));
+    details.blocks().add<FigurePair>(
+        std::move(left_panel),
+        FigurePanel{ImageSource{"figures/right panel.png"}, "Right panel"},
+        figure_pair_id,
+        "Paired result."
+    );
 
     auto& table = details.blocks().add<Table>(2, "Measured values.", table_id);
     table.set_column_alignment(1, TableColumnAlignment::right);
@@ -172,6 +187,10 @@ auto render_representative_document() -> std::string
     references.inlines().add<Reference>(section_id);
     references.append_text(", ");
     references.inlines().add<Reference>(figure_id);
+    references.append_text(", ");
+    references.inlines().add<Reference>(figure_pair_id);
+    references.append_text(", ");
+    references.inlines().add<Reference>(figure_pair_left_id);
     references.append_text(", ");
     references.inlines().add<Reference>(table_id);
     references.append_text(", ");
@@ -320,6 +339,13 @@ auto main() noexcept -> int
         expect_contains(rendered, "1. First item\n1. Second with `x | y`", "enumerated list");
         expect_contains(rendered, "![](<figures/sample plot.png>)", "figure image");
         expect_contains(rendered, "*Figure 1: Runtime \\*plot\\*\\.*", "figure caption");
+        expect_contains(
+            rendered,
+            "| ![](<figures/left panel.png>) | ![](<figures/right panel.png>) |",
+            "paired figure images"
+        );
+        expect_contains(rendered, "| *(a) Left ${J}_{1}$* | *(b) Right panel* |", "panel captions");
+        expect_contains(rendered, "*Figure 2: Paired result\\.*", "paired figure caption");
         expect_contains(rendered, "| Name | Value |", "table header");
         expect_contains(rendered, "| A \\| B | ${2}^{3}$ |", "rich table row");
         expect_contains(rendered, "*Table 1: Measured values\\.*", "table caption");
@@ -332,6 +358,7 @@ auto main() noexcept -> int
         expect_contains(
             rendered,
             "[Section 1](#sec:overview), [Figure 1](#fig:plot), "
+            "[Figure 2](#fig:pair), [Figure 2a](#fig:pair:left), "
             "[Table 1](#tab:values), [Listing 1](#lst:kernel), and "
             "[Equation 1](#eq:energy) and [Equation 2](#eq:momentum)",
             "resolved semantic references"

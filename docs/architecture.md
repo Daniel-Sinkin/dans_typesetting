@@ -50,6 +50,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Semantic reference | `dans.inline.reference` |
 | Footnote | `dans.inline.footnote` |
 | Figure | `dans.image.figure` |
+| Two-panel figure | `dans.image.figure_pair` |
 | Listing | `dans.code.listing` |
 | Section | `dans.core.section` |
 | Title page | `dans.document.title_page` |
@@ -240,6 +241,12 @@ payload field, including recursively copied section children, so a copy cannot
 silently create an ambiguous reference. Unknown and unresolved references stay
 visible rather than being discarded. LaTeX retains its independent `\label`
 and `\autoref` lowering over the same semantic IDs.
+
+A composite block may instead expose several target descriptors while still
+consuming one block ordinal. The two-panel figure uses that contract for its
+group plus `a`/`b` subordinate targets. Suffixes are writer-derived
+presentation, not semantic state. See
+[composite-figures.md](composite-figures.md).
 
 ## Inline hosts and occurrence numbering
 

@@ -235,6 +235,16 @@ target_link_libraries(image_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(figure_pair_plugin STATIC
+  src/plugins/figure_pair.cpp
+  src/plugins/figure_pair.hpp
+)
+add_library(dans::figure_pair_plugin ALIAS figure_pair_plugin)
+target_link_libraries(figure_pair_plugin
+  PUBLIC dans::image_plugin
+  PRIVATE typesetter_warnings
+)
+
 add_library(excalidraw_drawing_plugin STATIC
   src/plugins/excalidraw_drawing.cpp
   src/plugins/excalidraw_drawing.hpp
@@ -461,6 +471,18 @@ target_link_libraries(image_latex_connector
     typesetter_warnings
 )
 
+add_library(figure_pair_latex_connector STATIC
+  src/connectors/latex/figure_pair.cpp
+  src/connectors/latex/figure_pair.hpp
+)
+add_library(dans::figure_pair_latex_connector ALIAS figure_pair_latex_connector)
+target_link_libraries(figure_pair_latex_connector
+  PUBLIC
+    dans::figure_pair_plugin
+    dans::core_paragraph_latex_connector
+  PRIVATE typesetter_warnings
+)
+
 add_library(excalidraw_drawing_latex_connector STATIC
   src/connectors/latex/excalidraw_drawing.cpp
   src/connectors/latex/excalidraw_drawing.hpp
@@ -636,6 +658,18 @@ target_link_libraries(image_markdown_connector
   PRIVATE typesetter_warnings
 )
 
+add_library(figure_pair_markdown_connector STATIC
+  src/connectors/markdown/figure_pair.cpp
+  src/connectors/markdown/figure_pair.hpp
+)
+add_library(dans::figure_pair_markdown_connector ALIAS figure_pair_markdown_connector)
+target_link_libraries(figure_pair_markdown_connector
+  PUBLIC
+    dans::figure_pair_plugin
+    dans::core_paragraph_markdown_connector
+  PRIVATE typesetter_warnings
+)
+
 add_library(item_list_markdown_connector STATIC
   src/connectors/markdown/item_list.cpp
   src/connectors/markdown/item_list.hpp
@@ -724,6 +758,7 @@ target_link_libraries(document_example PRIVATE
   dans::core_paragraph_latex_connector
   dans::document_shell_latex_connector
   dans::excalidraw_drawing_latex_connector
+  dans::figure_pair_latex_connector
   dans::footnote_latex_connector
   dans::image_latex_connector
   dans::inline_code_latex_connector
@@ -846,6 +881,17 @@ if(BUILD_TESTING)
   )
   add_test(NAME native_bibliography_test COMMAND native_bibliography_test)
 
+  add_executable(native_figure_pair_test
+    tests/native_figure_pair_test.cpp
+  )
+  target_link_libraries(native_figure_pair_test PRIVATE
+    dans::figure_pair_latex_connector
+    dans::figure_pair_markdown_connector
+    dans::reference_markdown_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_figure_pair_test COMMAND native_figure_pair_test)
+
   add_executable(native_markdown_test
     tests/native_markdown_test.cpp
   )
@@ -857,6 +903,7 @@ if(BUILD_TESTING)
     dans::code_listing_markdown_connector
     dans::color_span_markdown_connector
     dans::document_shell_markdown_connector
+    dans::figure_pair_markdown_connector
     dans::footnote_markdown_connector
     dans::hyperlink_markdown_connector
     dans::image_markdown_connector
@@ -879,6 +926,7 @@ if(BUILD_TESTING)
     dans::code_listing_markdown_connector
     dans::core_paragraph_markdown_connector
     dans::document_shell_markdown_connector
+    dans::figure_pair_markdown_connector
     dans::inline_code_markdown_connector
     dans::jupyter_writer
     typesetter_warnings

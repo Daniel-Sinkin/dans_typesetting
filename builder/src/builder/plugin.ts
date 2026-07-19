@@ -44,6 +44,9 @@ export interface BuilderBlockAdapter {
   readonly referenceTarget?:
     | ((block: BuilderBlock) => BuilderReferenceTargetDescriptor | null)
     | undefined;
+  readonly referenceTargets?:
+    | ((block: BuilderBlock) => readonly BuilderReferenceTargetDescriptor[])
+    | undefined;
   readonly copyForInsert?:
     | ((block: BuilderBlock, copiedBlockId: string) => BuilderBlock)
     | undefined;
@@ -91,6 +94,9 @@ export interface BuilderFallbackAdapter {
   readonly paginationPolicy?: BuilderPaginationPolicy | undefined;
   readonly referenceTarget?:
     | ((block: BuilderBlock) => BuilderReferenceTargetDescriptor | null)
+    | undefined;
+  readonly referenceTargets?:
+    | ((block: BuilderBlock) => readonly BuilderReferenceTargetDescriptor[])
     | undefined;
   readonly copyForInsert?:
     | ((block: BuilderBlock, copiedBlockId: string) => BuilderBlock)

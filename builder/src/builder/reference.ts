@@ -14,6 +14,7 @@ export interface BuilderReferenceTargetDescriptor {
   readonly referenceId: string | null;
   readonly label: string;
   readonly title?: string | null | undefined;
+  readonly numberSuffix?: string | undefined;
 }
 
 export function referenceAnchorId(referenceId: string): string {

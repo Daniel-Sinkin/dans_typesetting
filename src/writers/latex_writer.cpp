@@ -222,6 +222,7 @@ auto LatexWriter::emit_document(const Document& document, LatexOutput& output) c
     output.write_raw("\\usepackage{fontspec}\n");
     output.write_raw("\\usepackage{amsmath}\n");
     output.write_raw("\\usepackage{graphicx}\n");
+    output.write_raw("\\usepackage{subcaption}\n");
     output.write_raw("\\usepackage{microtype}\n");
     output.write_raw("\\usepackage{xcolor}\n");
     output.write_raw("\\usepackage{booktabs}\n");

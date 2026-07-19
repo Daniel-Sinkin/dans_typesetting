@@ -10,6 +10,7 @@ import { hyperlinkInlineTransportCodec } from "../plugins/hyperlinkTransport";
 import { referenceInlineTransportCodec } from "../plugins/referenceTransport";
 import { footnoteInlineTransportCodec } from "../plugins/footnoteTransport";
 import { imageBlockTransportCodec } from "../plugins/imageTransport";
+import { figurePairTransportCodec } from "../plugins/figurePairTransport";
 import { excalidrawDrawingTransportCodec } from "../plugins/drawingTransport";
 import { itemListTransportCodec } from "../plugins/itemListTransport";
 import { tableTransportCodec } from "../plugins/tableTransport";
@@ -36,6 +37,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
   [
     paragraphBlockTransportCodec,
     imageBlockTransportCodec,
+    figurePairTransportCodec,
     displayMathTransportCodec,
     codeListingBlockTransportCodec,
     sectionBlockTransportCodec,

@@ -28,6 +28,11 @@ import {
   createMathSummation,
 } from "../model/math";
 import { imagePlugin } from "../plugins/image";
+import { createFigurePairPlugin } from "../plugins/figurePair";
+import {
+  createFigurePairBlock,
+  createFigurePanel,
+} from "../plugins/figurePairModel";
 import { codeListingPlugin } from "../plugins/codeListing";
 import { createMathPlugin } from "../plugins/mathPlugin";
 import { createInlineMathPlugin } from "../plugins/mathInline";
@@ -232,6 +237,56 @@ const initialBlocks = [
     preferredPixelWidth: 1280,
     preferredPixelHeight: 720,
   }),
+  createFigurePairBlock(
+    "sample-figure-pair",
+    createFigurePanel(
+      "sample-figure-pair-left",
+      "/sample-domain-decomposition.svg",
+      [
+        createParagraphText("Single-coupling model ", "sample-pair-left-text"),
+        createMathInline(
+          createMathScript(
+            createMathIdentifier("J"),
+            createMathInteger(1),
+            null,
+          ),
+          "sample-pair-left-math",
+        ),
+      ],
+      "fig:paired-models:left",
+    ),
+    createFigurePanel(
+      "sample-figure-pair-right",
+      "/sample-domain-decomposition.svg",
+      [
+        createParagraphText("Frustrated model ", "sample-pair-right-text"),
+        createMathInline(
+          createMathBinary(
+            "minus",
+            createMathScript(
+              createMathIdentifier("J"),
+              createMathInteger(1),
+              null,
+            ),
+            createMathScript(
+              createMathIdentifier("J"),
+              createMathInteger(2),
+              null,
+            ),
+          ),
+          "sample-pair-right-math",
+        ),
+      ],
+      "fig:paired-models:right",
+    ),
+    [
+      createParagraphText(
+        "Side-by-side model comparison with independently referenceable panels.",
+        "sample-pair-caption",
+      ),
+    ],
+    "fig:paired-models",
+  ),
   Object.freeze({
     id: "sample-excalidraw-drawing",
     typeId: excalidrawDrawingTypeId,
@@ -446,6 +501,7 @@ const pluginRegistry = new BuilderPluginRegistry(
   [
     createParagraphPlugin(inlinePluginRegistry),
     imagePlugin,
+    createFigurePairPlugin(inlinePluginRegistry),
     createMathPlugin(basicMathInputParser, [mathMatVecEditorExtension]),
     codeListingPlugin,
     titlePagePlugin,

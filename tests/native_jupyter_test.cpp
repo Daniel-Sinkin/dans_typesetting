@@ -2,11 +2,13 @@
 #include "connectors/markdown/code_listing.hpp"
 #include "connectors/markdown/core_paragraph.hpp"
 #include "connectors/markdown/document_shell.hpp"
+#include "connectors/markdown/figure_pair.hpp"
 #include "connectors/markdown/inline_code.hpp"
 #include "document.hpp"
 #include "plugins/code_listing.hpp"
 #include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
+#include "plugins/figure_pair.hpp"
 #include "plugins/inline_code.hpp"
 #include "transport/json.hpp"
 #include "writers/jupyter_writer.hpp"
@@ -65,6 +67,9 @@ auto make_markdown_writer() -> std::shared_ptr<dans::document::writers::Markdown
     writer->register_block_adapter(
         std::make_unique<markdown::CodeListingMarkdownAdapter>(inline_renderer)
     );
+    writer->register_block_adapter(
+        std::make_unique<markdown::FigurePairMarkdownAdapter>(inline_renderer)
+    );
     return writer;
 }
 
@@ -84,6 +89,12 @@ auto make_document() -> dans::document::Document
     );
     section.blocks().add<CodeListing>(
         CodeLanguage::julia, "energy(x) = sum(abs2, x)\n", "Julia presentation source."
+    );
+    section.blocks().add<FigurePair>(
+        FigurePanel{ImageSource{"left.png"}, "Left panel", ReferenceId{"fig:notebook:left"}},
+        FigurePanel{ImageSource{"right.png"}, "Right panel", ReferenceId{"fig:notebook:right"}},
+        ReferenceId{"fig:notebook"},
+        "Paired notebook figure."
     );
     return document;
 }
@@ -133,6 +144,7 @@ auto verify_notebook() -> void
         throw std::runtime_error{"Notebook source did not preserve the Markdown export exactly"};
     }
     if (!expected_markdown.str().contains("```cpp") || !expected_markdown.str().contains("```julia")
+        || !expected_markdown.str().contains("*Figure 1: Paired notebook figure\\.*")
         || serialized.str().contains("kernelspec"))
     {
         throw std::runtime_error{

@@ -112,6 +112,7 @@ auto TableMarkdownAdapter::serialize(
     if (table->reference_id().has_value())
     {
         output.write_anchor(*table->reference_id());
+        output.write_raw("\n");
     }
 
     const auto write_row = [&](const plugins::TableRow& row)

@@ -24,7 +24,7 @@ import {
   type TableColumnAlignment,
 } from "./tableModel";
 
-function InlineSequencePreview({
+export function InlineSequencePreview({
   inlines,
   registry,
   context,
@@ -98,7 +98,7 @@ export function TablePreview({
   );
 }
 
-interface TableInlineSequenceEditorProps {
+export interface TableInlineSequenceEditorProps {
   readonly label: string;
   readonly inlines: readonly BuilderInlineNode[];
   readonly registry: BuilderInlinePluginRegistry;
@@ -119,7 +119,7 @@ function moveEntry<T>(entries: readonly T[], from: number, to: number): readonly
   return Object.freeze(moved);
 }
 
-function TableInlineSequenceEditor({
+export function TableInlineSequenceEditor({
   label,
   inlines,
   registry,

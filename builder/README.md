@@ -2,8 +2,8 @@
 
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
 be projected either as one vertically growing continuous view or as whole-block pages. Paragraph,
-image, embedded-drawing, semantic-list, rich-table, bibliography, code-listing, structured-math, title-page,
-table-of-contents, page-break, and section plugins
+image, two-panel figure, embedded-drawing, semantic-list, rich-table, bibliography, code-listing,
+structured-math, title-page, table-of-contents, page-break, and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
 optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
 previews, animated reflow, copying, transactional detach/delete behaviour, and page projection.
@@ -54,13 +54,18 @@ input-parser capability lowers grouping, arithmetic, comma sequences, signed num
 distinct from a stacked fraction. Selection locks retain the bounds of the containing scope, making
 nested expressions addressable without flattening their structure.
 
+The two-panel figure extension owns two horizontal image panels, three rich inline captions, one
+group target, and optional `a`/`b` panel targets. Its editor selects each image independently and
+updates the shared panel width immediately. It is intentionally separate from an ordinary figure;
+general grids and unequal panel layouts remain a future composite-layout contract.
+
 The optional MatVec editor extension contributes square and rectangular matrix plus row/column
 vector templates. They lower to the base math model's rectangular grid and delimiter primitives,
 so every cell accepts the same typed input and recursive drag/drop operations as any other math
 subtree. Existing matrices still render and serialize if the optional palette contribution is not
 registered.
 
-Sections, images, drawings, display equations, and listings may publish stable
+Sections, images, paired-figure groups/panels, drawings, display equations, and listings may publish stable
 semantic target IDs. The graphical writer derives their visible numbers from
 current document order; reference segments therefore update immediately after
 reordering. Duplicate IDs are rejected, unresolved references are shown in red,

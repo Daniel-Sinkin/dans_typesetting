@@ -460,7 +460,17 @@ auto MarkdownWriter::prepare_context(const Document& document) const -> Markdown
                     };
                 }
                 auto& series_count = series_counts[std::string{descriptor.numbering_series}];
-                ++series_count;
+                if (descriptor.advances_numbering)
+                {
+                    ++series_count;
+                }
+                else if (series_count == usize{0})
+                {
+                    throw std::logic_error{
+                        "A subordinate Markdown target requires an earlier target in its "
+                        "numbering series"
+                    };
+                }
                 std::string reference_id{};
                 if (descriptor.reference_id != nullptr)
                 {
@@ -472,7 +482,8 @@ auto MarkdownWriter::prepare_context(const Document& document) const -> Markdown
                         .block = block.get(),
                         .reference_id = reference_id,
                         .label = std::string{descriptor.label},
-                        .number = std::to_string(series_count),
+                        .number =
+                            std::to_string(series_count) + std::string{descriptor.number_suffix},
                         .anchor = reference_id,
                     }
                 );

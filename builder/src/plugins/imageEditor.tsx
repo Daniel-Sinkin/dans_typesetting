@@ -8,42 +8,13 @@ import {
   type ImageBlock,
 } from "../model/document";
 import { editableReferenceIdError } from "../builder/referenceEditing";
+import { readFileAsDataUrl, readImageDimensions } from "./imageFile";
 
 function requireImage(block: BuilderBlock): ImageBlock {
   if (!isImageBlock(block)) {
     throw new Error(`Image editor cannot consume ${block.typeId}`);
   }
   return block;
-}
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-      reject(new Error("The selected image could not be encoded"));
-    });
-    reader.addEventListener("error", () => {
-      reject(reader.error ?? new Error("The selected image could not be read"));
-    });
-    reader.readAsDataURL(file);
-  });
-}
-
-function readImageDimensions(source: string): Promise<Readonly<{ width: number; height: number }>> {
-  return new Promise((resolve, reject) => {
-    const image = new globalThis.Image();
-    image.addEventListener("load", () => {
-      resolve({ width: image.naturalWidth, height: image.naturalHeight });
-    });
-    image.addEventListener("error", () => {
-      reject(new Error("The selected file is not a browser-renderable image"));
-    });
-    image.src = source;
-  });
 }
 
 export function ImageEditor({

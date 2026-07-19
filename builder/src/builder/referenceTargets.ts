@@ -19,6 +19,23 @@ function hasReferenceId(
   return descriptor?.referenceId !== null && descriptor?.referenceId !== undefined;
 }
 
+function descriptorsForBlock(
+  block: BuilderBlock,
+  registry: BuilderPluginRegistry,
+): readonly BuilderReferenceTargetDescriptor[] {
+  const adapter = registry.pluginForBlock(block);
+  if (adapter.referenceTarget !== undefined && adapter.referenceTargets !== undefined) {
+    throw new Error(
+      `Builder plugin ${block.typeId} cannot expose both singular and plural reference target contracts`,
+    );
+  }
+  if (adapter.referenceTargets !== undefined) {
+    return adapter.referenceTargets(block);
+  }
+  const descriptor = adapter.referenceTarget?.(block) ?? null;
+  return descriptor === null ? [] : [descriptor];
+}
+
 function deriveSectionNumbers(
   blocks: readonly BuilderBlock[],
 ): ReadonlyMap<string, string> {
@@ -52,37 +69,38 @@ export function deriveReferenceTargets(
   const result = new Map<string, BuilderReferenceTarget>();
 
   for (const block of flattened) {
-    const adapter = registry.pluginForBlock(block);
-    const descriptor = adapter.referenceTarget?.(block) ?? null;
-    if (!hasReferenceId(descriptor)) {
-      continue;
-    }
-    const referenceId = requireReferenceId(
-      descriptor.referenceId,
-      `${descriptor.label} reference ID`,
-    );
-    const previous = result.get(referenceId);
-    if (previous !== undefined) {
-      throw new Error(
-        `Duplicate semantic reference ID '${referenceId}' on blocks ${previous.blockId} and ${block.id}`,
+    for (const descriptor of descriptorsForBlock(block, registry)) {
+      if (!hasReferenceId(descriptor)) {
+        continue;
+      }
+      const referenceId = requireReferenceId(
+        descriptor.referenceId,
+        `${descriptor.label} reference ID`,
       );
+      const previous = result.get(referenceId);
+      if (previous !== undefined) {
+        throw new Error(
+          `Duplicate semantic reference ID '${referenceId}' on blocks ${previous.blockId} and ${block.id}`,
+        );
+      }
+      const ordinal = ordinals.get(block.id)?.ordinal ?? null;
+      const baseNumber = isSectionBlock(block)
+        ? sectionNumbers.get(block.id) ?? "?"
+        : ordinal === null
+          ? "?"
+          : String(ordinal);
+      const number = `${baseNumber}${descriptor.numberSuffix ?? ""}`;
+      result.set(referenceId, {
+        referenceId,
+        blockId: block.id,
+        typeId: block.typeId,
+        label: descriptor.label,
+        number,
+        title: descriptor.title ?? null,
+        displayText: `${descriptor.label} ${number}`,
+        anchorId: referenceAnchorId(referenceId),
+      });
     }
-    const ordinal = ordinals.get(block.id)?.ordinal ?? null;
-    const number = isSectionBlock(block)
-      ? sectionNumbers.get(block.id) ?? "?"
-      : ordinal === null
-        ? "?"
-        : String(ordinal);
-    result.set(referenceId, {
-      referenceId,
-      blockId: block.id,
-      typeId: block.typeId,
-      label: descriptor.label,
-      number,
-      title: descriptor.title ?? null,
-      displayText: `${descriptor.label} ${number}`,
-      anchorId: referenceAnchorId(referenceId),
-    });
   }
 
   return result;
