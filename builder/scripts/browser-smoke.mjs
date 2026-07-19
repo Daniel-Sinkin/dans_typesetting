@@ -270,7 +270,9 @@ async function exerciseBuilder(client) {
       summation: document.querySelector("[data-visual-block-id='sample-display-math'] .math-summation-symbol")?.textContent === "∑",
       codeListing: document.querySelector("[data-visual-block-id='sample-code-listing'] code")?.textContent.includes("std::println") ?? false,
       opaqueFallback: document.body.textContent.includes("dans.future.table"),
-      inlineFallback: document.body.textContent.includes("dans.math.inline"),
+      inlineMath: document.querySelector("[data-inline-math-id='sample-introduction-inline-math'] .math-node") !== null,
+      hyperlink: document.querySelector("a[href='https://example.com/typesetting']")?.textContent.includes("clickable links") ?? false,
+      styledText: document.querySelector("[data-visual-block-id='sample-introduction'] strong em")?.textContent === "Styled text",
       figureNumber: document.querySelector("[data-visual-block-id='sample-figure'] figcaption")?.textContent.includes("Figure 1:") ?? false,
       equationNumber: document.querySelector("[data-visual-block-id='sample-display-math'] .math-equation-number")?.textContent === "(1)",
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
@@ -283,7 +285,9 @@ async function exerciseBuilder(client) {
   assert(initial.summation, "Structured summation was not rendered");
   assert(initial.codeListing, "The C++ code-listing plugin was not rendered");
   assert(initial.opaqueFallback, "The opaque block fallback was not rendered");
-  assert(initial.inlineFallback, "The opaque inline placeholder was not rendered");
+  assert(initial.inlineMath, "Structured inline mathematics was not rendered");
+  assert(initial.hyperlink, "The semantic hyperlink was not rendered as a clickable link");
+  assert(initial.styledText, "Styled Core Text was not rendered");
   assert(initial.figureNumber && initial.equationNumber && initial.listingNumber, "Live numbering is incorrect");
   assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3"]), "Canvas layering is incorrect");
 
@@ -329,6 +333,16 @@ async function exerciseBuilder(client) {
     const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
     inputSetter.call(color, "#c92a2a");
     color.dispatchEvent(new Event("input", { bubbles: true }));
+    const style = document.querySelector("select[data-inline-style-id='sample-introduction-styled-text']");
+    const selectSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set;
+    selectSetter.call(style, "italic");
+    style.dispatchEvent(new Event("change", { bubbles: true }));
+    const hyperlink = document.querySelector("input[data-hyperlink-id='sample-introduction-link']");
+    inputSetter.call(hyperlink, "www.google.com");
+    hyperlink.dispatchEvent(new Event("input", { bubbles: true }));
+    const hyperlinkLabel = document.querySelector("textarea[data-inline-id='sample-introduction-link-label']");
+    textareaSetter.call(hyperlinkLabel, "updated link");
+    hyperlinkLabel.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(80);
   const paragraphLive = await client.evaluate(`(() => {
@@ -338,11 +352,17 @@ async function exerciseBuilder(client) {
       text: preview.textContent.includes("Edited by the browser smoke test"),
       colour: getComputedStyle(colour).color,
       segments: document.querySelectorAll("[data-inline-editor-id]").length,
+      inlineMathEditor: document.querySelector(".inline-math-editor .math-editor-canvas") !== null,
+      hyperlink: preview.querySelector("a[href='https://www.google.com']")?.textContent === "updated link",
+      styled: preview.querySelector("em")?.textContent === "Styled text",
     };
   })()`);
   assert(paragraphLive.text, "Paragraph live preview did not update before save");
   assert(paragraphLive.colour === "rgb(201, 42, 42)", "Colour-span preview did not update");
-  assert(paragraphLive.segments === 4, "The paragraph did not expose all inline segments");
+  assert(paragraphLive.segments === 8, "The paragraph did not expose all inline segments");
+  assert(paragraphLive.inlineMathEditor, "Inline structured math did not expose its graphical editor");
+  assert(paragraphLive.hyperlink, "Hyperlink target and label did not live-update");
+  assert(paragraphLive.styled, "Core Text style did not live-update");
 
   const addSegmentPoints = await client.evaluate(`(() => {
     const center = (element) => {
@@ -351,14 +371,14 @@ async function exerciseBuilder(client) {
     };
     const sequence = document.querySelector(".inline-editor-sequence").getBoundingClientRect();
     return {
-      start: center(document.querySelector("[data-inline-palette='dans.core-paragraph.text']")),
+      start: center(document.querySelector("[data-inline-palette='dans.core.text']")),
       end: { x: sequence.x + sequence.width / 2, y: sequence.bottom - 3 },
     };
   })()`);
   await pointerDrag(client, addSegmentPoints.start, addSegmentPoints.end);
   const addedInlineId = await client.evaluate(`(() => {
     const items = [...document.querySelectorAll("[data-inline-editor-id]")];
-    return items.length === 5 ? items.at(-1).dataset.inlineEditorId : null;
+    return items.length === 9 ? items.at(-1).dataset.inlineEditorId : null;
   })()`);
   assert(addedInlineId !== null, "Dragging from the inline palette did not add a segment");
 
@@ -503,6 +523,15 @@ async function exerciseBuilder(client) {
     await client.evaluate(`document.querySelector("textarea[data-testid='code-listing-source']").value.startsWith("function    answer")`),
     "Tab in the code-listing source editor did not insert four spaces",
   );
+  assert(
+    await client.evaluate(`(() => {
+      const surface = document.querySelector(".code-editor-surface");
+      return surface.querySelector("pre").textContent.startsWith("function    answer") &&
+        surface.querySelector(".syntax-token--keyword")?.textContent === "function";
+    })()`),
+    "The directly editable listing did not update its syntax-coloured surface",
+  );
+  await screenshot(client, "code-listing-editor.png");
   await client.evaluate(`[
     ...document.querySelector("[data-testid='block-editor-dialog']").querySelectorAll("button")
   ].find((button) => button.textContent.includes("Save listing")).click()`);

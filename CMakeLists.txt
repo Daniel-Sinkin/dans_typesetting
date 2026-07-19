@@ -13,6 +13,8 @@ endif()
 
 project(dans_typesetting VERSION 0.1.0 LANGUAGES C CXX)
 
+include(CTest)
+
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
 endif()
@@ -137,6 +139,16 @@ target_link_libraries(reference_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(hyperlink_plugin STATIC
+  src/plugins/hyperlink.cpp
+  src/plugins/hyperlink.hpp
+)
+add_library(dans::hyperlink_plugin ALIAS hyperlink_plugin)
+target_link_libraries(hyperlink_plugin
+  PUBLIC dans::core_paragraph
+  PRIVATE typesetter_warnings
+)
+
 add_library(image_plugin STATIC
   src/plugins/image.cpp
   src/plugins/image.hpp
@@ -233,6 +245,19 @@ target_link_libraries(reference_latex_connector
     typesetter_warnings
 )
 
+add_library(hyperlink_latex_connector STATIC
+  src/connectors/latex/hyperlink.cpp
+  src/connectors/latex/hyperlink.hpp
+)
+add_library(dans::hyperlink_latex_connector ALIAS hyperlink_latex_connector)
+target_link_libraries(hyperlink_latex_connector
+  PUBLIC
+    dans::hyperlink_plugin
+    dans::core_paragraph_latex_connector
+  PRIVATE
+    typesetter_warnings
+)
+
 add_library(image_latex_connector STATIC
   src/connectors/latex/image.cpp
   src/connectors/latex/image.hpp
@@ -267,11 +292,24 @@ target_link_libraries(document_example PRIVATE
   dans::color_span_latex_connector
   dans::core_paragraph_latex_connector
   dans::image_latex_connector
+  dans::hyperlink_latex_connector
   dans::latex_mixin_latex_connector
   dans::math_latex_connector
   dans::reference_latex_connector
   typesetter_warnings
 )
+
+if(BUILD_TESTING)
+  add_executable(native_inline_test
+    tests/native_inline_test.cpp
+  )
+  target_link_libraries(native_inline_test PRIVATE
+    dans::core_paragraph_latex_connector
+    dans::hyperlink_latex_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_inline_test COMMAND native_inline_test)
+endif()
 
 # Build the example object model into LaTeX, then compile the generated source
 # with LuaLaTeX.

@@ -663,9 +663,22 @@ interface MathEditorProps extends BuilderBlockEditorProps {
   readonly inputParser?: MathInputParserPlugin | undefined;
 }
 
-export function MathEditor({ block, onCommit, onCancel, inputParser }: MathEditorProps) {
-  const displayMath = requireDisplayMath(block);
-  const [draft, setDraft] = useState(displayMath.expression);
+interface MathExpressionEditorProps {
+  readonly expression: MathExpression;
+  readonly inputParser?: MathInputParserPlugin | undefined;
+  readonly saveLabel?: string | undefined;
+  readonly onCommit: (expression: MathExpression) => void;
+  readonly onCancel: () => void;
+}
+
+export function MathExpressionEditor({
+  expression,
+  inputParser,
+  saveLabel = "Save equation",
+  onCommit,
+  onCancel,
+}: MathExpressionEditorProps) {
+  const [draft, setDraft] = useState(expression);
   const [drag, setDrag] = useState<MathDrag | null>(null);
   const [pendingDrag, setPendingDrag] = useState<PendingMathDrag | null>(null);
   const [selectedPath, setSelectedPath] = useState<MathPath>([]);
@@ -1462,7 +1475,14 @@ export function MathEditor({ block, onCommit, onCancel, inputParser }: MathEdito
         </section>
 
         <div className="editor-actions">
-          <button type="button" disabled={isTrackingPointer} onClick={onCancel}>
+          <button
+            type="button"
+            disabled={isTrackingPointer}
+            onClick={() => {
+              setDraft(expression);
+              onCancel();
+            }}
+          >
             Cancel
           </button>
           <button
@@ -1470,10 +1490,10 @@ export function MathEditor({ block, onCommit, onCancel, inputParser }: MathEdito
             type="button"
             disabled={isTrackingPointer}
             onClick={() => {
-              onCommit(Object.freeze({ ...displayMath, expression: draft }));
+              onCommit(draft);
             }}
           >
-            Save equation
+            {saveLabel}
           </button>
         </div>
       </section>
@@ -1521,5 +1541,19 @@ export function MathEditor({ block, onCommit, onCancel, inputParser }: MathEdito
         </div>
       )}
     </div>
+  );
+}
+
+export function MathEditor({ block, onCommit, onCancel, inputParser }: MathEditorProps) {
+  const displayMath = requireDisplayMath(block);
+  return (
+    <MathExpressionEditor
+      expression={displayMath.expression}
+      inputParser={inputParser}
+      onCancel={onCancel}
+      onCommit={(expression) => {
+        onCommit(Object.freeze({ ...displayMath, expression }));
+      }}
+    />
   );
 }

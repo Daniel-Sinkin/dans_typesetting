@@ -1,5 +1,5 @@
 // React views used by the graphical code-listing connector.
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type {
   BuilderBlockEditorProps,
@@ -14,6 +14,22 @@ import {
   requireCodeListing,
 } from "./codeListingSupport";
 import { insertSpacesAtSelection } from "./codeListingEditing";
+import { highlightCode } from "./codeHighlighting";
+
+function HighlightedCode({
+  language,
+  code,
+}: Readonly<{ language: CodeListingLanguage; code: string }>) {
+  return (
+    <>
+      {highlightCode(language, code).map((token, index) => (
+        <span className={`syntax-token syntax-token--${token.kind}`} key={index}>
+          {token.text}
+        </span>
+      ))}
+    </>
+  );
+}
 
 export function CodeListingPreview({
   listing,
@@ -28,7 +44,9 @@ export function CodeListingPreview({
         {codeListingLanguageLabel(listing.language)}
       </div>
       <pre>
-        <code data-code-language={listing.language}>{listing.code}</code>
+        <code data-code-language={listing.language}>
+          <HighlightedCode language={listing.language} code={listing.code} />
+        </code>
       </pre>
       <figcaption>
         <strong>
@@ -45,6 +63,7 @@ export function CodeListingEditor({ block, onCommit, onCancel }: BuilderBlockEdi
   const [language, setLanguage] = useState<CodeListingLanguage>(listing.language);
   const [code, setCode] = useState(listing.code);
   const [caption, setCaption] = useState(listing.caption);
+  const highlightRef = useRef<HTMLPreElement>(null);
   const draftListing: CodeListingBlock = Object.freeze({
     ...listing,
     language,
@@ -77,32 +96,47 @@ export function CodeListingEditor({ block, onCommit, onCancel }: BuilderBlockEdi
       </label>
       <label className="editor-field">
         <span>Source code</span>
-        <textarea
-          className="code-listing-editor__source"
-          data-testid="code-listing-source"
-          rows={14}
-          spellCheck={false}
-          value={code}
-          onChange={(event) => {
-            setCode(event.target.value);
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== "Tab") {
-              return;
-            }
-            event.preventDefault();
-            const textarea = event.currentTarget;
-            const insertion = insertSpacesAtSelection(
-              textarea.value,
-              textarea.selectionStart,
-              textarea.selectionEnd,
-            );
-            setCode(insertion.value);
-            globalThis.requestAnimationFrame(() => {
-              textarea.setSelectionRange(insertion.selectionStart, insertion.selectionEnd);
-            });
-          }}
-        />
+        <div className="code-editor-surface">
+          <pre ref={highlightRef} aria-hidden="true">
+            <code>
+              <HighlightedCode language={language} code={`${code}\n`} />
+            </code>
+          </pre>
+          <textarea
+            className="code-listing-editor__source"
+            data-testid="code-listing-source"
+            aria-label="Source code"
+            rows={14}
+            spellCheck={false}
+            value={code}
+            onScroll={(event) => {
+              const highlight = highlightRef.current;
+              if (highlight !== null) {
+                highlight.scrollTop = event.currentTarget.scrollTop;
+                highlight.scrollLeft = event.currentTarget.scrollLeft;
+              }
+            }}
+            onChange={(event) => {
+              setCode(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Tab") {
+                return;
+              }
+              event.preventDefault();
+              const textarea = event.currentTarget;
+              const insertion = insertSpacesAtSelection(
+                textarea.value,
+                textarea.selectionStart,
+                textarea.selectionEnd,
+              );
+              setCode(insertion.value);
+              globalThis.requestAnimationFrame(() => {
+                textarea.setSelectionRange(insertion.selectionStart, insertion.selectionEnd);
+              });
+            }}
+          />
+        </div>
       </label>
       <label className="editor-field">
         <span>Caption</span>

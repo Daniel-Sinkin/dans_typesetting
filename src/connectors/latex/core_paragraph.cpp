@@ -145,6 +145,27 @@ auto CoreTextLatexAdapter::serialize(const InlineNode& node, CoreParagraphLatexO
         throw std::invalid_argument{"The text adapter received a different inline type"};
     }
 
-    output.write_text(text->text());
+    switch (text->style())
+    {
+        case plugins::TextStyle::normal:
+            output.write_text(text->text());
+            return;
+        case plugins::TextStyle::bold:
+            output.write_raw("\\textbf{");
+            output.write_text(text->text());
+            output.write_raw("}");
+            return;
+        case plugins::TextStyle::italic:
+            output.write_raw("\\textit{");
+            output.write_text(text->text());
+            output.write_raw("}");
+            return;
+        case plugins::TextStyle::bold_italic:
+            output.write_raw("\\textbf{\\textit{");
+            output.write_text(text->text());
+            output.write_raw("}}");
+            return;
+    }
+    throw std::logic_error{"Unknown Core Text style"};
 }
 }  // namespace dans::document::connectors::latex

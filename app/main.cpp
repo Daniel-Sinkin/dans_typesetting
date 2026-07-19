@@ -1,6 +1,7 @@
 #include "connectors/latex/code_listing.hpp"
 #include "connectors/latex/color_span.hpp"
 #include "connectors/latex/core_paragraph.hpp"
+#include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/image.hpp"
 #include "connectors/latex/latex_mixin.hpp"
 #include "connectors/latex/math.hpp"
@@ -9,6 +10,7 @@
 #include "plugins/code_listing.hpp"
 #include "plugins/color_span.hpp"
 #include "plugins/core_paragraph.hpp"
+#include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
 #include "plugins/latex_mixin.hpp"
 #include "plugins/math.hpp"
@@ -113,6 +115,21 @@ auto make_sample_document()
     inline_paragraph.append_text(", and even a deliberate raw LaTeX escape hatch such as ");
     inline_paragraph.inlines().add<InlineLatex>(R"(\LaTeX{})");
     inline_paragraph.append_text(" in one ordered inline sequence.");
+
+    auto& styled_paragraph = inline_extensions.blocks().add<CoreParagraph>();
+    styled_paragraph.append_text("Text leaves can be ");
+    styled_paragraph.append_text("bold", TextStyle::bold);
+    styled_paragraph.append_text(", ");
+    styled_paragraph.append_text("italic", TextStyle::italic);
+    styled_paragraph.append_text(", or ");
+    styled_paragraph.append_text("both", TextStyle::bold_italic);
+    styled_paragraph.append_text(". Links can show their target as ");
+    styled_paragraph.inlines().add<Hyperlink>("https://example.com/typesetting");
+    styled_paragraph.append_text(" or use a nested label such as ");
+    auto& labelled_link =
+        styled_paragraph.inlines().add<Hyperlink>("https://example.com/thesis?part=1#results");
+    labelled_link.label().add<CoreText>("the results", TextStyle::bold);
+    styled_paragraph.append_text(".");
 
     auto& escaping = architecture.blocks().add<Section>("Backend-owned escaping");
     escaping.blocks().add<CoreParagraph>(
@@ -226,6 +243,9 @@ auto main(const int argc, char* argv[]) -> int
         );
         inline_renderer->register_inline_adapter(
             std::make_unique<dans::document::connectors::latex::ReferenceLatexAdapter>()
+        );
+        inline_renderer->register_inline_adapter(
+            std::make_unique<dans::document::connectors::latex::HyperlinkLatexAdapter>()
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(

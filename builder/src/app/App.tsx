@@ -4,6 +4,8 @@ import { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import { BuilderPluginRegistry } from "../builder/plugin";
 import {
   createParagraphText,
+  createMathInline,
+  createHyperlinkInline,
   codeListingTypeId,
   imageTypeId,
   MemoryDocumentPort,
@@ -20,6 +22,8 @@ import {
 import { imagePlugin } from "../plugins/image";
 import { codeListingPlugin } from "../plugins/codeListing";
 import { createMathPlugin } from "../plugins/mathPlugin";
+import { createInlineMathPlugin } from "../plugins/mathInline";
+import { hyperlinkInlinePlugin } from "../plugins/hyperlink";
 import { basicMathInputParser } from "../plugins/basicMathInputParser";
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import { createParagraphPlugin } from "../plugins/paragraph";
@@ -33,7 +37,12 @@ import {
 } from "../plugins/colorSpan";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
-  [paragraphTextInlinePlugin, colorSpanInlinePlugin],
+  [
+    paragraphTextInlinePlugin,
+    colorSpanInlinePlugin,
+    createInlineMathPlugin(basicMathInputParser),
+    hyperlinkInlinePlugin,
+  ],
   opaqueInlineAdapter,
 );
 
@@ -43,17 +52,41 @@ const initialBlocks = [
     typeId: paragraphTypeId,
     inlines: Object.freeze([
       createParagraphText(
-        "This development rendering preserves an ordered inline sequence. Its ordinary text is editable, while ",
+        "This development rendering preserves an ordered inline sequence. ",
         "sample-introduction-text-a",
       ),
-      Object.freeze({
-        id: "sample-introduction-inline-math",
-        typeId: "dans.math.inline",
-        label: "Inline math",
-        opaquePayload: { source: "E = mc^2" },
-      }),
       createParagraphText(
-        " remains visible as a read-only inline extension. ",
+        "Styled text",
+        "sample-introduction-styled-text",
+        "bold_italic",
+      ),
+      createParagraphText(" and ", "sample-introduction-text-link-join"),
+      createHyperlinkInline(
+        "https://example.com/typesetting",
+        [
+          createParagraphText(
+            "clickable links",
+            "sample-introduction-link-label",
+            "bold",
+          ),
+        ],
+        "sample-introduction-link",
+      ),
+      createParagraphText(" can sit beside ", "sample-introduction-text-math-join"),
+      createMathInline(
+        createMathBinary(
+          "equals",
+          createMathIdentifier("E"),
+          createMathBinary(
+            "times",
+            createMathIdentifier("m"),
+            createMathIdentifier("c"),
+          ),
+        ),
+        "sample-introduction-inline-math",
+      ),
+      createParagraphText(
+        " remains editable as structured inline mathematics. ",
         "sample-introduction-text-b",
       ),
       createColorSpanInline(

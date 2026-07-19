@@ -30,22 +30,27 @@ while dragging to copy it. Dropping a moved block outside the document keeps it 
 confirmation dialogue either restores or deletes it.
 
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
-live composed preview. Text runs and semantic RGB colour spans are editable while unsupported
-inline nodes remain visible as named read-only chips. Image editing uses the native file picker and
-stores a preview together with the requested width and detected pixel dimensions. Code listings are
-limited to C++ and Julia; their source editor captures Tab as four spaces. Display-math editing
-opens a nested expression editor: drag literals, operators, or a structured summation into empty
-slots; replace, parenthesize, park, copy, or detach a subtree. An independently registered basic
-input-parser capability can lower typed grouping, arithmetic, comma sequences, signed numbers, and
-identifiers into the same structured tree. Selection locks retain the bounds of the containing
-scope, making nested expressions addressable without flattening their structure.
+live composed preview. Normal/bold/italic/bold-italic text, semantic RGB colour spans, hyperlinks,
+and structured inline math are editable while unsupported inline nodes remain visible as named
+read-only chips. Image editing uses the native file picker and stores a preview together with the
+requested width and detected pixel dimensions. Code listings are limited to C++ and Julia; a
+transparent textarea aligned over the syntax-coloured preview makes the rendered surface directly
+editable, and Tab inserts four spaces. Display and inline math share the nested expression editor:
+drag literals, operators, or a structured summation into empty slots; replace, parenthesize, park,
+copy, or detach a subtree. An independently registered basic input-parser capability can lower typed
+grouping, arithmetic, comma sequences, signed numbers, and identifiers into the same structured
+tree. Selection locks retain the bounds of the containing scope, making nested expressions
+addressable without flattening their structure.
 
 Unknown document blocks remain in the flow as opaque labelled previews. Their Edit action logs a
 stable handle to the browser console, demonstrating that preview and editing support are independent.
 Ordinary Excalidraw tools remain available for panning, zooming, sketching, and free-form notes.
 
 This slice intentionally uses one growing page and has no pagination. Multiple movable document
-surfaces and cross-page reflow remain later experiments.
+surfaces and cross-page reflow remain later experiments. Native and browser paragraph IDs are now
+aligned, but whole-document canonical persistence remains the next architectural gate. See
+`../docs/continuation.md` and `../docs/canvas-migration.md` for recovery state and the bespoke-canvas
+plan.
 
 ## Verify
 

@@ -13,6 +13,16 @@
 
 namespace dans::document::plugins
 {
+// Text emphasis belongs to the ordinary text leaf. This deliberately prevents
+// applying prose emphasis to unrelated inline plugins such as mathematics.
+enum class TextStyle : u8
+{
+    normal,
+    bold,
+    italic,
+    bold_italic,
+};
+
 // The Core Paragraph module's extension contract. It is intentionally not part
 // of the document core: only paragraph-like hosts and their connectors consume
 // inline nodes.
@@ -56,13 +66,15 @@ class CoreText final : public InlineNode
   public:
     static constexpr std::string_view k_type_id = "dans.core.text";
 
-    explicit CoreText(std::string_view text);
+    explicit CoreText(std::string_view text, TextStyle style = TextStyle::normal);
 
     [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
     [[nodiscard]] auto text() const noexcept -> std::string_view;
+    [[nodiscard]] auto style() const noexcept -> TextStyle;
 
   private:
     std::string text_{};
+    TextStyle style_{};
 };
 
 class CoreParagraph final : public DocumentBlock
@@ -76,7 +88,7 @@ class CoreParagraph final : public DocumentBlock
     [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
     [[nodiscard]] auto inlines() noexcept -> InlineSequence&;
     [[nodiscard]] auto inlines() const noexcept -> const InlineSequence&;
-    auto append_text(std::string_view text) -> CoreText&;
+    auto append_text(std::string_view text, TextStyle style = TextStyle::normal) -> CoreText&;
 
   private:
     InlineSequence inlines_{};

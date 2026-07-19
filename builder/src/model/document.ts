@@ -1,13 +1,16 @@
 // builder/src/model/document.ts — define the builder transport snapshot and command boundary.
 import { validateMathExpression, type MathExpression } from "./math";
 
-export const paragraphTypeId = "dans.core-paragraph";
-export const paragraphTextInlineTypeId = "dans.core-paragraph.text";
+export const paragraphTypeId = "dans.core.paragraph";
+export const paragraphTextInlineTypeId = "dans.core.text";
 export const imageTypeId = "dans.image.figure";
 export const mathDisplayTypeId = "dans.math.display";
+export const mathInlineTypeId = "dans.math.inline";
+export const hyperlinkInlineTypeId = "dans.inline.hyperlink";
 export const codeListingTypeId = "dans.code.listing";
 
 export type CodeListingLanguage = "cpp" | "julia";
+export type ParagraphTextStyle = "normal" | "bold" | "italic" | "bold_italic";
 
 export interface BuilderBlockEnvelope {
   readonly id: string;
@@ -31,6 +34,18 @@ export interface BuilderInlineNode extends BuilderInlineEnvelope {
 export interface ParagraphTextInline extends BuilderInlineNode {
   readonly typeId: typeof paragraphTextInlineTypeId;
   readonly text: string;
+  readonly style: ParagraphTextStyle;
+}
+
+export interface MathInline extends BuilderInlineNode {
+  readonly typeId: typeof mathInlineTypeId;
+  readonly expression: MathExpression;
+}
+
+export interface HyperlinkInline extends BuilderInlineNode {
+  readonly typeId: typeof hyperlinkInlineTypeId;
+  readonly target: string;
+  readonly labelInlines: readonly BuilderInlineNode[];
 }
 
 export interface ParagraphBlock extends BuilderBlock {
@@ -100,8 +115,30 @@ export function createBlockId(): string {
 export function createParagraphText(
   text: string,
   id: string = createBlockId(),
+  style: ParagraphTextStyle = "normal",
 ): ParagraphTextInline {
-  return Object.freeze({ id, typeId: paragraphTextInlineTypeId, text });
+  return Object.freeze({ id, typeId: paragraphTextInlineTypeId, text, style });
+}
+
+export function createMathInline(
+  expression: MathExpression,
+  id: string = createBlockId(),
+): MathInline {
+  validateMathExpression(expression);
+  return Object.freeze({ id, typeId: mathInlineTypeId, expression });
+}
+
+export function createHyperlinkInline(
+  target: string,
+  labelInlines: readonly BuilderInlineNode[] = [],
+  id: string = createBlockId(),
+): HyperlinkInline {
+  return Object.freeze({
+    id,
+    typeId: hyperlinkInlineTypeId,
+    target,
+    labelInlines: Object.freeze([...labelInlines]),
+  });
 }
 
 export function cloneBuilderBlock(block: BuilderBlock, id: string): BuilderBlock {
@@ -117,7 +154,23 @@ export function isParagraphTextInline(
   return (
     inline.typeId === paragraphTextInlineTypeId &&
     "text" in inline &&
-    typeof inline.text === "string"
+    typeof inline.text === "string" &&
+    "style" in inline &&
+    isParagraphTextStyle(inline.style)
+  );
+}
+
+export function isMathInline(inline: BuilderInlineNode): inline is MathInline {
+  return inline.typeId === mathInlineTypeId && "expression" in inline;
+}
+
+export function isHyperlinkInline(inline: BuilderInlineNode): inline is HyperlinkInline {
+  return (
+    inline.typeId === hyperlinkInlineTypeId &&
+    "target" in inline &&
+    typeof inline.target === "string" &&
+    "labelInlines" in inline &&
+    Array.isArray(inline.labelInlines)
   );
 }
 
@@ -169,8 +222,39 @@ export function paragraphDisplayText(paragraph: ParagraphBlock): string {
     .join("");
 }
 
-function validateInlineSequence(inlines: readonly BuilderInlineNode[]): void {
-  if (inlines.length === 0) {
+function isParagraphTextStyle(value: unknown): value is ParagraphTextStyle {
+  return (
+    value === "normal" ||
+    value === "bold" ||
+    value === "italic" ||
+    value === "bold_italic"
+  );
+}
+
+function validateHyperlinkTarget(target: string): void {
+  let invalid = target.length === 0;
+  for (const character of target) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    invalid ||=
+      codePoint < 0x21 ||
+      codePoint === 0x7f ||
+      character === "{" ||
+      character === "}" ||
+      character === "\\";
+  }
+  if (invalid) {
+    throw new Error(
+      "A hyperlink target must not be empty or contain whitespace, braces, backslashes, or control characters",
+    );
+  }
+}
+
+function validateInlineSequence(
+  inlines: readonly BuilderInlineNode[],
+  requireContent = true,
+  allowHyperlinks = true,
+): void {
+  if (requireContent && inlines.length === 0) {
     throw new Error("A paragraph requires at least one inline node");
   }
   const inlineIds = new Set<string>();
@@ -184,6 +268,22 @@ function validateInlineSequence(inlines: readonly BuilderInlineNode[]): void {
     inlineIds.add(inline.id);
     if (inline.typeId === paragraphTextInlineTypeId && !isParagraphTextInline(inline)) {
       throw new Error("A paragraph text inline has an invalid transport shape");
+    }
+    if (inline.typeId === mathInlineTypeId) {
+      if (!isMathInline(inline)) {
+        throw new Error("An inline-math node has an invalid transport shape");
+      }
+      validateMathExpression(inline.expression);
+    }
+    if (inline.typeId === hyperlinkInlineTypeId) {
+      if (!allowHyperlinks) {
+        throw new Error("A hyperlink label cannot contain another hyperlink");
+      }
+      if (!isHyperlinkInline(inline)) {
+        throw new Error("A hyperlink inline has an invalid transport shape");
+      }
+      validateHyperlinkTarget(inline.target);
+      validateInlineSequence(inline.labelInlines, false, false);
     }
   }
 }

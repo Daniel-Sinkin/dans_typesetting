@@ -5,7 +5,10 @@ import type {
   BuilderInlineAdapter,
   BuilderInlinePlugin,
 } from "../builder/inlinePlugin";
-import { createParagraphText } from "../model/document";
+import {
+  createParagraphText,
+  paragraphTextInlineTypeId,
+} from "../model/document";
 import {
   OpaqueInlinePreview,
   ParagraphTextEditor,
@@ -14,7 +17,7 @@ import {
 import { requireParagraphText } from "./paragraphInlineSupport";
 
 export const paragraphTextInlinePlugin: BuilderInlinePlugin = {
-  typeId: "dans.core-paragraph.text",
+  typeId: paragraphTextInlineTypeId,
   palette: {
     label: "Text",
     description: "An ordinary editable text run",
