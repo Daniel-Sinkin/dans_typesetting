@@ -17,6 +17,22 @@ The native and graphical implementations deliberately retain the canonical type
 IDs `dans.core.text` and `dans.core.paragraph`. Refactoring module ownership does
 not rewrite persisted documents.
 
+## Inline images
+
+`dans.image.inline` is an emoji-sized Inline Sequence extension, distinct from
+the numbered/captioned figure block. Its semantic payload contains only an
+image source and a positive text-relative height in `em`; it owns no caption,
+reference target, pixel extent, or block-width policy. The object-replacement
+character is its plain-text projection.
+
+The graphical adapter renders the image on the surrounding text baseline and
+supports live source, file, and height editing through every Inline Sequence
+host. Canonical transport preserves path/URL/data-URL sources exactly. The
+LaTeX adapter lowers filesystem assets to an `\includegraphics` with the same
+`em` height. Resolving browser-embedded data URLs into publication assets
+remains the responsibility of the future project-bundle resolver, not of the
+inline-image node.
+
 ## Optional authoring markup
 
 A near-WYSIWYG text notation is useful, but it is a producer of semantic data—not

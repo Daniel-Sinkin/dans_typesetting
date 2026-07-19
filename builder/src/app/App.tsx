@@ -59,6 +59,7 @@ import {
 } from "../plugins/bibliography";
 import { bibliographySourceCapability } from "../plugins/bibliographySources";
 import { createFootnoteInline } from "../plugins/footnoteModel";
+import { createInlineImage, inlineImagePlugin } from "../plugins/inlineImage";
 import { tableCsvCapability } from "../plugins/tableCsv";
 import {
   createBuilderTableCell,
@@ -92,6 +93,7 @@ const inlinePluginRegistry = new BuilderInlinePluginRegistry(
     referenceInlinePlugin,
     footnoteInlinePlugin,
     inlineCodePlugin,
+    inlineImagePlugin,
     citationInlinePlugin,
   ],
   opaqueInlineAdapter,
@@ -165,6 +167,12 @@ const initialBlocks = [
           ),
         ],
         "sample-introduction-colour",
+      ),
+      createText(" and an inline image ", "sample-introduction-inline-image-join"),
+      createInlineImage(
+        "/sample-domain-decomposition.svg",
+        1.15,
+        "sample-introduction-inline-image",
       ),
       createText(" See ", "sample-introduction-reference-join"),
       createReferenceInline(

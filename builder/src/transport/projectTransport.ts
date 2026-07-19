@@ -2,6 +2,7 @@
 import { codeListingBlockTransportCodec } from "../plugins/codeListingTransport";
 import { colorSpanInlineTransportCodec } from "../plugins/colorSpanTransport";
 import { inlineCodeTransportCodec } from "../plugins/inlineCodeTransport";
+import { inlineImageTransportCodec } from "../plugins/inlineImageTransport";
 import {
   bibliographyBlockTransportCodec,
   citationInlineTransportCodec,
@@ -69,6 +70,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     referenceInlineTransportCodec,
     footnoteInlineTransportCodec,
     inlineCodeTransportCodec,
+    inlineImageTransportCodec,
     citationInlineTransportCodec,
   ],
 );

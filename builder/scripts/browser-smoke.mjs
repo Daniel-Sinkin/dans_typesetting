@@ -26,7 +26,7 @@ const canonicalFixturePath = join(
 const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
 const sampleBibtexPath = join(resultsDirectory, "sample-bibliography.bib");
 const initialBlockCount = 23;
-const initialParagraphSegmentCount = 20;
+const initialParagraphSegmentCount = 22;
 
 function assert(condition, message) {
   if (!condition) {
@@ -312,6 +312,10 @@ async function exerciseBuilder(client) {
       hyperlink: document.querySelector("a[href='https://example.com/typesetting']")?.textContent.includes("clickable links") ?? false,
       styledText: document.querySelector("[data-visual-block-id='sample-introduction'] strong em")?.textContent === "Styled text",
       inlineCode: document.querySelector("[data-visual-block-id='sample-introduction'] .inline-code-content")?.textContent === "cudaDeviceSynchronize()",
+      inlineImage: (() => {
+        const inlineImage = document.querySelector("[data-visual-block-id='sample-introduction'] [data-inline-image-id='sample-introduction-inline-image']");
+        return inlineImage instanceof HTMLImageElement && inlineImage.complete && inlineImage.naturalWidth === 1280 && inlineImage.style.height === "1.15em";
+      })(),
       citation: document.querySelector("[data-visual-block-id='sample-introduction'] .inline-citation")?.textContent === "[1, 2]",
       bibliographyEntries: document.querySelectorAll("[data-visual-block-id='sample-bibliography'] [data-bibliography-entry-key]").length,
       bibliographyDoi: document.querySelector("[data-visual-block-id='sample-bibliography'] a[href='https://doi.org/10.1080/14789940801912366']") !== null,
@@ -355,6 +359,7 @@ async function exerciseBuilder(client) {
   assert(initial.hyperlink, "The semantic hyperlink was not rendered as a clickable link");
   assert(initial.styledText, "Styled Core Text was not rendered");
   assert(initial.inlineCode, "Semantic inline code was not rendered");
+  assert(initial.inlineImage, "The semantic inline image was not rendered at its em height");
   assert(initial.citation, "Semantic multi-citation numbering was not resolved");
   assert(initial.bibliographyEntries === 2, "The bibliography lost normalized entries");
   assert(initial.bibliographyDoi, "A bibliography DOI was not rendered as a working link");
@@ -991,6 +996,9 @@ async function exerciseBuilder(client) {
     const inlineMath = document.querySelector("textarea[data-latex-math-inline-source='sample-introduction-inline-math']");
     textareaSetter.call(inlineMath, "\\\\alpha + \\\\beta");
     inlineMath.dispatchEvent(new Event("input", { bubbles: true }));
+    const inlineImageHeight = document.querySelector("input[data-inline-image-height='sample-introduction-inline-image']");
+    inputSetter.call(inlineImageHeight, "1.6");
+    inlineImageHeight.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(80);
   const paragraphLive = await client.evaluate(`(() => {
@@ -1008,6 +1016,7 @@ async function exerciseBuilder(client) {
       footnote: preview.querySelector(".footnote-preview > sup > button")?.textContent.trim() === "1"
         && preview.querySelector(".footnote-preview__popover")?.textContent.includes("Updated footnote"),
       inlineCode: preview.querySelector(".inline-code-content")?.textContent === "cudaGetLastError()",
+      inlineImage: preview.querySelector("[data-inline-image-id='sample-introduction-inline-image']")?.style.height === "1.6em",
       citation: preview.querySelector(".inline-citation")?.textContent === "[2]",
     };
   })()`);
@@ -1026,6 +1035,7 @@ async function exerciseBuilder(client) {
   assert(paragraphLive.reference, "Semantic reference numbering did not resolve live");
   assert(paragraphLive.footnote, "Footnote numbering or nested editing did not update live");
   assert(paragraphLive.inlineCode, "Inline-code editing did not update the live preview");
+  assert(paragraphLive.inlineImage, "Inline-image height editing did not update the live preview");
   assert(paragraphLive.citation, "Citation editing did not update the live resource lookup");
 
   await client.evaluate(`(() => {
@@ -1111,6 +1121,7 @@ async function exerciseBuilder(client) {
     const paragraph = document.querySelector("[data-visual-block-id='sample-introduction']");
     return paragraph.textContent.includes("Edited by the browser smoke test") &&
       paragraph.querySelector(".inline-code-content")?.textContent === "cudaGetLastError()" &&
+      paragraph.querySelector("[data-inline-image-id='sample-introduction-inline-image']")?.style.height === "1.6em" &&
       paragraph.querySelector(".inline-citation")?.textContent === "[2]";
   })()`);
   assert(paragraphEdited, "Paragraph sequence-text editing did not commit");

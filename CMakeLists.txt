@@ -1042,6 +1042,7 @@ if(BUILD_TESTING)
     dans::paragraph_latex_connector
     dans::footnote_latex_connector
     dans::hyperlink_latex_connector
+    dans::image_latex_connector
     dans::inline_code_latex_connector
     typesetter_warnings
   )

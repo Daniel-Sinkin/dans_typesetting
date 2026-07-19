@@ -1,11 +1,13 @@
 // tests/native_inline_test.cpp — exercise semantic prose through the LaTeX connector boundary.
 #include "connectors/latex/footnote.hpp"
 #include "connectors/latex/hyperlink.hpp"
+#include "connectors/latex/image.hpp"
 #include "connectors/latex/inline_code.hpp"
 #include "connectors/latex/paragraph.hpp"
 #include "document.hpp"
 #include "plugins/footnote.hpp"
 #include "plugins/hyperlink.hpp"
+#include "plugins/image.hpp"
 #include "plugins/inline_code.hpp"
 #include "plugins/paragraph.hpp"
 #include "writers/latex_writer.hpp"
@@ -56,6 +58,10 @@ auto render_sample() -> std::string
     footnote_link.label().add<Text>("source", TextStyle::italic);
     paragraph.append_text("; code ");
     paragraph.inlines().add<InlineCode>(R"(block_size<&>{}_50%$#~^\)");
+    paragraph.append_text("; inline image ");
+    paragraph.inlines().add<InlineImage>(
+        ImageSource{"assets/emoji.png"}, InlineImageHeight{1.25}
+    );
 
     auto inline_renderer =
         std::make_shared<dans::document::connectors::latex::InlineLatexRenderer>();
@@ -70,6 +76,9 @@ auto render_sample() -> std::string
     );
     inline_renderer->register_inline_adapter(
         std::make_unique<dans::document::connectors::latex::InlineCodeLatexAdapter>()
+    );
+    inline_renderer->register_inline_adapter(
+        std::make_unique<dans::document::connectors::latex::InlineImageLatexAdapter>()
     );
 
     dans::document::writers::LatexWriter writer;
@@ -208,6 +217,11 @@ auto main() noexcept -> int
             rendered,
             R"(\texttt{block\_size<\&>\{\}\_50\%\$\#\textasciitilde{}\textasciicircum{}\textbackslash{}})",
             "escaped semantic inline code"
+        );
+        expect_contains(
+            rendered,
+            R"(\raisebox{-0.15em}{\includegraphics[height=1.25em]{assets/emoji.png}})",
+            "text-relative inline image"
         );
         expect_invalid_hyperlink_targets();
         expect_invalid_footnote_content();

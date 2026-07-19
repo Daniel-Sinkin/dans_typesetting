@@ -103,6 +103,9 @@ and tests at the boundaries it implements.
   numbering series.
 - Inline code is a semantic single-line source leaf, not a Core Text style.
   Multiline source remains a listing, and each writer owns its code syntax.
+- Inline images store only source identity and text-relative height. They are
+  Inline Sequence leaves, not miniature figures, and therefore own no caption,
+  target, ordinal, or block-width intent.
 - Citation keys and normalized bibliography records are semantic data. Visible
   ordinals, BibTeX syntax, and `thebibliography` syntax belong to writers or
   optional source adapters.

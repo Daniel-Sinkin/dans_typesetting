@@ -79,7 +79,9 @@ graphical writer. Captionless listings retain consistent writer-derived
 ordinals. Captions now consume the same rich inline sequence as paragraphs in
 both native and graphical paths. Semantic single-line code leaves inside prose
 are also complete in native LaTeX, canonical transport, and the graphical
-editor. External-file/range inclusion remains separate parity work.
+editor. Emoji-sized inline images likewise compose through the shared inline
+registry with text-relative sizing; managed publication assets remain separate
+integration work. External-file/range listing inclusion remains separate parity work.
 
 The citation/bibliography base is now implemented in native LaTeX, canonical
 transport, and the graphical writer. It covers multi-citations, live numeric

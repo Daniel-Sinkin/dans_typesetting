@@ -3,7 +3,21 @@
 This file records recovery information for a fresh development session. Update
 it at every milestone rather than relying on conversation history.
 
-## Current Grid milestone
+## Current inline-image milestone
+
+The slice after `df0dc42` completes the pre-existing `dans.image.inline`
+contract in the graphical writer. The builder now owns a validated source plus
+positive `em` height model, canonical codec, palette entry, baseline-aligned
+preview, live source/file/height editor, exact copy semantics, and real-browser
+paragraph coverage. Native LaTeX already had the matching semantic node and
+adapter; its focused prose test now verifies the text-relative graphics output.
+See `inline-sequences.md`.
+
+No Markdown or Jupyter implementation changed in this slice. Their feature
+expansion remains intentionally paused; active work targets only the bespoke
+builder and LaTeX publication path.
+
+## Grid milestone
 
 The current slice adds `dans.layout.grid` across native and browser paths.
 Grid is an equal-column layout composite with arbitrary block-bearing cells,

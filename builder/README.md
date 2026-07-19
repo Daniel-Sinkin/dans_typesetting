@@ -67,7 +67,8 @@ same graphical plugin adapters rather than maintaining a second presentation mod
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
 live composed preview. Normal/bold/italic/bold-italic text, semantic single-line code, semantic RGB
 colour spans, hyperlinks, live cross-references, live citations, numbered footnotes, and text-authored inline math are
-editable while unsupported inline nodes remain visible as named read-only chips. Footnotes render
+editable. Emoji-sized inline images expose live source/file selection and text-relative height
+without acquiring figure numbering or captions. Unsupported inline nodes remain visible as named read-only chips. Footnotes render
 as live superscript markers
 with hover/focus previews; their editor composes, adds, removes, and reorders a nested inline
 sequence. Markers are derived from current document traversal rather than stored in the payload,
