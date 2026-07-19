@@ -10,6 +10,7 @@ import type { BuilderPluginRegistry } from "../builder/plugin";
 import { deriveBlockOrdinals, deriveInlineOrdinals } from "../builder/numbering";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
 import { blockAnchorId } from "../builder/reference";
+import { deriveDocumentResources } from "../builder/documentResources";
 import type { BuilderBlock } from "../model/document";
 
 interface DocumentVisualPageProps {
@@ -41,6 +42,7 @@ export function DocumentVisualPage({
   );
   const referenceTargets = deriveReferenceTargets(layout.documentBlocks, registry);
   const inlineOrdinals = deriveInlineOrdinals(layout.documentBlocks, registry);
+  const documentResources = deriveDocumentResources(layout.documentBlocks, registry);
   const visibleBlocks = layout.blocks
     .map((blockLayout, documentIndex) => ({ blockLayout, documentIndex }))
     .filter(({ blockLayout }) => isPageVisible(layout, blockLayout.pageIndex));
@@ -98,6 +100,7 @@ export function DocumentVisualPage({
                   sectionDepth: depth,
                   referenceTargets,
                   inlineOrdinals,
+                  documentResources,
                 })
               )}
             </div>

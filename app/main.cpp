@@ -1,3 +1,4 @@
+#include "connectors/latex/bibliography.hpp"
 #include "connectors/latex/code_listing.hpp"
 #include "connectors/latex/color_span.hpp"
 #include "connectors/latex/core_paragraph.hpp"
@@ -13,6 +14,7 @@
 #include "connectors/latex/reference.hpp"
 #include "connectors/latex/table.hpp"
 #include "document.hpp"
+#include "plugins/bibliography.hpp"
 #include "plugins/code_listing.hpp"
 #include "plugins/color_span.hpp"
 #include "plugins/core_paragraph.hpp"
@@ -127,11 +129,15 @@ auto make_sample_document()
 
     auto& introduction =
         document.blocks().add<Section>("Introduction", ReferenceId{"sec:introduction"});
-    par_writer(
-        introduction.blocks(),
+    auto& introduction_text = introduction.blocks().add<CoreParagraph>();
+    introduction_text.append_text(
         "This document is represented as an owning C++ object model and exported through a "
-        "separate LaTeX writer."
+        "separate LaTeX writer. Tensor-network background is summarized in "
     );
+    introduction_text.inlines().add<Citation>(
+        std::initializer_list<CitationKey>{CitationKey{"Verstraete2008"}, CitationKey{"Orus2014"}}
+    );
+    introduction_text.append_text(".");
 
     auto& architecture = document.blocks().add<Section>("Document architecture");
     par_writer(
@@ -328,6 +334,30 @@ auto make_sample_document()
         R"(\begin{center}\textit{This block bypasses the semantic model.}\end{center})"
     );
 
+    auto& bibliography = document.blocks().add<Bibliography>();
+    bibliography
+        .add_entry(
+            CitationKey{"Verstraete2008"},
+            BibliographyEntryKind::article,
+            "Matrix product states, projected entangled pair states, and variational "
+            "renormalization group methods for quantum spin systems",
+            {"Frank Verstraete", "J. Ignacio Cirac", "Valentin Murg"}
+        )
+        .set_year(2008)
+        .set_venue("Advances in Physics")
+        .set_doi("10.1080/14789940801912366");
+    bibliography
+        .add_entry(
+            CitationKey{"Orus2014"},
+            BibliographyEntryKind::article,
+            "A practical introduction to tensor networks: Matrix product states and projected "
+            "entangled pair states",
+            {"Roman Orus"}
+        )
+        .set_year(2014)
+        .set_venue("Annals of Physics")
+        .set_doi("10.1016/j.aop.2014.06.013");
+
     return document;
 }
 }  // namespace
@@ -379,6 +409,9 @@ auto run(const int argc, char** argv) -> int
         inline_renderer->register_inline_adapter(
             std::make_unique<dans::document::connectors::latex::InlineCodeLatexAdapter>()
         );
+        inline_renderer->register_inline_adapter(
+            std::make_unique<dans::document::connectors::latex::CitationLatexAdapter>()
+        );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(
                 inline_renderer
@@ -421,6 +454,9 @@ auto run(const int argc, char** argv) -> int
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::LatexBlockAdapter>()
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::BibliographyLatexAdapter>()
         );
         writer.write_file(document, output_path);
         std::println("Wrote LaTeX document: {}", output_path.string());

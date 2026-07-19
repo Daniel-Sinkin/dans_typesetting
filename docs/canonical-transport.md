@@ -74,3 +74,11 @@ payload and are covered by exact fixture normalization.
 Inline source code uses `dans.code.inline` with one string-valued `code` field.
 CR and LF are rejected because multiline source belongs to the listing plugin;
 all other code punctuation is stored semantically rather than writer-escaped.
+
+Citation nodes use `dans.bibliography.citation` with a non-empty ordered `keys`
+array. A `dans.bibliography.references` block stores complete normalized entry
+records, including stable browser authoring IDs and nullable optional fields.
+The canonical document never stores visible citation numbers: writers derive
+those from current entry order. BibTeX is not embedded in this payload. The
+independent source adapters normalize BibTeX or the bespoke bibliography JSON
+format into the same records before canonical document serialization.

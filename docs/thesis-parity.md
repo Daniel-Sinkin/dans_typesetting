@@ -62,6 +62,16 @@ ordinals. Semantic single-line code leaves inside prose are also complete in
 native LaTeX, canonical transport, and the graphical editor. Rich inline
 captions and external-file/range inclusion remain separate parity work.
 
+The citation/bibliography base is now implemented in native LaTeX, canonical
+transport, and the graphical writer. It covers multi-citations, live numeric
+resolution, normalized records, DOI/URL links, a references block, and strict
+BibTeX plus bespoke-JSON source adapters. The audited thesis can therefore
+represent its existing 80 citation occurrences and 28 normalized entries.
+Remaining publication work includes citation styles beyond numeric order,
+author/year disambiguation policy, multiple reference lists, and richer BibTeX
+field/LaTeX normalization where the conservative adapter currently rejects
+input.
+
 ## Representative port slices
 
 Porting these slices exercises variety without copying hundreds of paragraphs:
@@ -93,6 +103,6 @@ Porting these slices exercises variety without copying hundreds of paragraphs:
 5. Continue structured math beyond the implemented rectangular matvec slice.
 6. Composite/subfigure support.
 7. CUDA/raw/optional-caption listings (implemented base contract).
-8. Citations and BibTeX/JSON bibliography.
+8. Citations and BibTeX/JSON bibliography (implemented base contract).
 9. Markdown and Jupyter writer conformance over the same fixtures.
 10. Final pagination and cross-page editing refinements.

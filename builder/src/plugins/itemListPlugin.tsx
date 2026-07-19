@@ -78,6 +78,7 @@ export function createItemListPlugin(
           context={{
             referenceTargets: context.referenceTargets,
             inlineOrdinals: context.inlineOrdinals,
+            documentResources: context.documentResources,
           }}
         />
       );

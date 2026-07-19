@@ -58,6 +58,14 @@ import { createItemListPlugin } from "../plugins/itemListPlugin";
 import { createBuilderListItem, itemListTypeId } from "../plugins/itemListModel";
 import { footnoteInlinePlugin } from "../plugins/footnote";
 import { createInlineCode, inlineCodePlugin } from "../plugins/inlineCode";
+import {
+  citationInlinePlugin,
+  createBibliographyBlock,
+  createBibliographyEntry,
+  createBibliographyPlugin,
+  createCitationInline,
+} from "../plugins/bibliography";
+import { bibliographySourceCapability } from "../plugins/bibliographySources";
 import { createFootnoteInline } from "../plugins/footnoteModel";
 import { tableCsvCapability } from "../plugins/tableCsv";
 import {
@@ -81,6 +89,7 @@ const inlinePluginRegistry = new BuilderInlinePluginRegistry(
     referenceInlinePlugin,
     footnoteInlinePlugin,
     inlineCodePlugin,
+    citationInlinePlugin,
   ],
   opaqueInlineAdapter,
 );
@@ -199,6 +208,18 @@ const initialBlocks = [
         "sample-introduction-inline-code",
       ),
       createParagraphText(".", "sample-introduction-code-period"),
+      createParagraphText(
+        " Prior tensor-network work ",
+        "sample-introduction-citation-join",
+      ),
+      createCitationInline(
+        ["verstraete2008", "orus2014"],
+        "sample-introduction-citation",
+      ),
+      createParagraphText(
+        " motivates this experiment.",
+        "sample-introduction-citation-tail",
+      ),
     ]),
   }),
   Object.freeze({
@@ -391,6 +412,33 @@ const initialBlocks = [
       createParagraphText(" for the current measurements.", "sample-conclusion-tail"),
     ]),
   }),
+  createBibliographyBlock(
+    [
+      createBibliographyEntry({
+        id: "sample-bibliography-verstraete",
+        key: "verstraete2008",
+        kind: "article",
+        title:
+          "Matrix product states, projected entangled pair states, and variational renormalization group methods for quantum spin systems",
+        authors: ["Frank Verstraete", "J. Ignacio Cirac", "Valentin Murg"],
+        year: 2008,
+        venue: "Advances in Physics",
+        doi: "10.1080/14789940801912366",
+      }),
+      createBibliographyEntry({
+        id: "sample-bibliography-orus",
+        key: "orus2014",
+        kind: "article",
+        title:
+          "A practical introduction to tensor networks: Matrix product states and projected entangled pair states",
+        authors: ["Roman Orús"],
+        year: 2014,
+        venue: "Annals of Physics",
+        doi: "10.1016/j.aop.2014.06.013",
+      }),
+    ],
+    "sample-bibliography",
+  ),
 ] satisfies readonly BuilderBlock[];
 
 const documentPort = new MemoryDocumentPort(initialBlocks);
@@ -407,6 +455,7 @@ const pluginRegistry = new BuilderPluginRegistry(
     excalidrawDrawingPlugin,
     createItemListPlugin(inlinePluginRegistry),
     createTablePlugin(inlinePluginRegistry, tableCsvCapability),
+    createBibliographyPlugin(bibliographySourceCapability),
   ],
   opaqueBlockAdapter,
 );

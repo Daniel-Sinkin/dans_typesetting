@@ -5,10 +5,12 @@ import type { BuilderInlineNode } from "../model/document";
 import type { PaletteDescriptor } from "./plugin";
 import type { BuilderReferenceTarget } from "./reference";
 import type { InlineOrdinal, NumberedInlineOccurrence } from "./numbered";
+import type { BuilderDocumentResourceIndex } from "./documentResources";
 
 export interface BuilderInlineRenderContext {
   readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
   readonly inlineOrdinals: ReadonlyMap<string, InlineOrdinal>;
+  readonly documentResources: BuilderDocumentResourceIndex;
 }
 
 export interface BuilderInlineEditorProps {

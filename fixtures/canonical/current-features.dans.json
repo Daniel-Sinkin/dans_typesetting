@@ -91,6 +91,16 @@
             }
           },
           {
+            "id": "fixture-citation",
+            "type": "dans.bibliography.citation",
+            "payload": {
+              "keys": [
+                "Verstraete2008",
+                "Orus2014"
+              ]
+            }
+          },
+          {
             "id": "fixture-link",
             "type": "dans.inline.hyperlink",
             "payload": {
@@ -426,6 +436,44 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "fixture-bibliography",
+      "type": "dans.bibliography.references",
+      "payload": {
+        "entries": [
+          {
+            "id": "fixture-bibliography-verstraete",
+            "key": "Verstraete2008",
+            "kind": "article",
+            "title": "Matrix product states and projected entangled pair states",
+            "authors": [
+              "Frank Verstraete",
+              "Valentin Murg",
+              "J. Ignacio Cirac"
+            ],
+            "year": 2008,
+            "venue": "Advances in Physics",
+            "publisher": null,
+            "doi": "10.1080/14789940801912366",
+            "url": null
+          },
+          {
+            "id": "fixture-bibliography-orus",
+            "key": "Orus2014",
+            "kind": "article",
+            "title": "A practical introduction to tensor networks",
+            "authors": [
+              "Roman Orus"
+            ],
+            "year": 2014,
+            "venue": "Annals of Physics",
+            "publisher": null,
+            "doi": "10.1016/j.aop.2014.06.013",
+            "url": null
           }
         ]
       }

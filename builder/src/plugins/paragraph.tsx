@@ -76,6 +76,7 @@ export function createParagraphPlugin(
           context={{
             referenceTargets: context.referenceTargets,
             inlineOrdinals: context.inlineOrdinals,
+            documentResources: context.documentResources,
           }}
         />
       );

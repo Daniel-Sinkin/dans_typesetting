@@ -40,9 +40,29 @@ graphical, browser-smoke, and PDF paths.
 Commit `ab2c589` adds structured fractions, radicals, and scripts across native
 and graphical math composition.
 
+Commit `e9f8f34` adds semantic single-line inline code across native LaTeX,
+canonical transport, and graphical editing.
+
 ## Current verified slice
 
-The semantic inline-code slice adds:
+The citation and bibliography slice adds:
+
+- `dans.bibliography.citation` multi-key inline leaves and
+  `dans.bibliography.references` normalized reference blocks;
+- a generic graphical namespaced-resource index with traversal-derived
+  ordinals, duplicate detection, live links, and unresolved diagnostics;
+- complete record and citation editors, including live ordinal changes when
+  references are reordered;
+- a native `\cite`/`thebibliography` connector with escaped selectable text and
+  working DOI/URL links;
+- independent native/browser BibTeX and bespoke-JSON adapters, strict loss
+  detection, file seams, and semantic idempotence tests;
+- canonical fixture coverage, dual-compiler native tests, real Chrome file
+  import/edit/reorder/commit coverage, and compiled-PDF sample content.
+
+See `bibliography.md` for the normalized record and adapter contract.
+
+The preceding semantic inline-code slice adds:
 
 - `dans.code.inline` as an independent Core Paragraph extension rather than a
   prose style or raw-LaTeX escape;
@@ -225,13 +245,12 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Begin the citation/bibliography contract.
-Keep the completed table, listing, inline, and structured-math contracts stable
-while adding those independent capabilities. Structured fractions, square and
-indexed roots, and sub/superscripts now have native LaTeX, graphical editing,
-typed-parser, clipboard, canonical-fixture, and browser-smoke coverage.
-Keep plugin payload codecs beside their plugin and extend the shared fixture
-whenever a new canonical type is completed.
+Begin a deliberately small Markdown writer vertical slice over the completed
+semantic contracts, keeping plugin-specific lowering in connector modules. It
+should establish explicit unsupported-content behavior before expanding toward
+the Jupyter writer. Theorems/definitions/lemmas, composite figures, external
+listing inclusion, and richer thesis mathematics remain independent plugin
+slices rather than additions to generic document core.
 
 Current deliberate compromises to reassess later:
 

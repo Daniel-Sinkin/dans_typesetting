@@ -99,6 +99,7 @@ export function ParagraphEditor({
   onPreview,
   referenceTargets,
   inlineOrdinals,
+  documentResources,
 }: ParagraphEditorProps) {
   const paragraph = requireParagraph(block);
   const [inlines, setInlines] = useState<readonly BuilderInlineNode[]>(paragraph.inlines);
@@ -251,7 +252,7 @@ export function ParagraphEditor({
           <ParagraphPreview
             paragraph={draftParagraph}
             registry={inlineRegistry}
-            context={{ referenceTargets, inlineOrdinals }}
+            context={{ referenceTargets, inlineOrdinals, documentResources }}
           />
         </div>
       </section>
@@ -369,7 +370,7 @@ export function ParagraphEditor({
                   <InlinePayloadEditor
                     inline={inline}
                     registry={inlineRegistry}
-                    context={{ referenceTargets, inlineOrdinals }}
+                    context={{ referenceTargets, inlineOrdinals, documentResources }}
                     onChange={(replacement) => {
                       setInlines((currentInlines) =>
                         Object.freeze(

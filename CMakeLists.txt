@@ -87,17 +87,29 @@ target_link_libraries(document_core PRIVATE
   typesetter_warnings
 )
 
+# Shared ordered JSON utility. Format adapters may use this without depending
+# on the canonical document envelope.
+add_library(json_support STATIC
+  src/transport/json.cpp
+  src/transport/json.hpp
+)
+add_library(dans::json_support ALIAS json_support)
+target_include_directories(json_support PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+)
+target_link_libraries(json_support PRIVATE typesetter_warnings)
+
 # Stable, versioned interchange boundary shared with the graphical builder.
 # It preserves plugin payloads opaquely; plugin modules own materialization.
 add_library(canonical_transport STATIC
   src/transport/document_transport.cpp
   src/transport/document_transport.hpp
-  src/transport/json.cpp
-  src/transport/json.hpp
 )
 add_library(dans::canonical_transport ALIAS canonical_transport)
 target_link_libraries(canonical_transport
-  PUBLIC dans::document_core
+  PUBLIC
+    dans::document_core
+    dans::json_support
   PRIVATE typesetter_warnings
 )
 
@@ -251,6 +263,38 @@ add_library(dans::inline_code_plugin ALIAS inline_code_plugin)
 target_link_libraries(inline_code_plugin
   PUBLIC dans::core_paragraph
   PRIVATE typesetter_warnings
+)
+
+add_library(bibliography_plugin STATIC
+  src/plugins/bibliography.cpp
+  src/plugins/bibliography.hpp
+)
+add_library(dans::bibliography_plugin ALIAS bibliography_plugin)
+target_link_libraries(bibliography_plugin
+  PUBLIC dans::core_paragraph
+  PRIVATE typesetter_warnings
+)
+
+add_library(bibliography_bibtex_plugin STATIC
+  src/plugins/bibliography_bibtex.cpp
+  src/plugins/bibliography_bibtex.hpp
+)
+add_library(dans::bibliography_bibtex_plugin ALIAS bibliography_bibtex_plugin)
+target_link_libraries(bibliography_bibtex_plugin
+  PUBLIC dans::bibliography_plugin
+  PRIVATE typesetter_warnings
+)
+
+add_library(bibliography_json_plugin STATIC
+  src/plugins/bibliography_json.cpp
+  src/plugins/bibliography_json.hpp
+)
+add_library(dans::bibliography_json_plugin ALIAS bibliography_json_plugin)
+target_link_libraries(bibliography_json_plugin
+  PUBLIC dans::bibliography_plugin
+  PRIVATE
+    dans::json_support
+    typesetter_warnings
 )
 
 add_library(document_shell_plugin STATIC
@@ -444,6 +488,19 @@ target_link_libraries(inline_code_latex_connector
     typesetter_warnings
 )
 
+add_library(bibliography_latex_connector STATIC
+  src/connectors/latex/bibliography.cpp
+  src/connectors/latex/bibliography.hpp
+)
+add_library(dans::bibliography_latex_connector ALIAS bibliography_latex_connector)
+target_link_libraries(bibliography_latex_connector
+  PUBLIC
+    dans::bibliography_plugin
+    dans::core_paragraph_latex_connector
+  PRIVATE
+    typesetter_warnings
+)
+
 add_library(document_shell_latex_connector STATIC
   src/connectors/latex/document_shell.cpp
   src/connectors/latex/document_shell.hpp
@@ -461,6 +518,7 @@ add_executable(document_example
   app/main.cpp
 )
 target_link_libraries(document_example PRIVATE
+  dans::bibliography_latex_connector
   dans::code_listing_latex_connector
   dans::color_span_latex_connector
   dans::core_paragraph_latex_connector
@@ -573,6 +631,20 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_code_listing_test COMMAND native_code_listing_test)
+
+  add_executable(native_bibliography_test
+    tests/native_bibliography_test.cpp
+  )
+  target_compile_definitions(native_bibliography_test PRIVATE
+    DANS_TYPESETTING_BIBLIOGRAPHY_TEST_OUTPUT="${CMAKE_CURRENT_BINARY_DIR}/native-bibliography-test.json"
+  )
+  target_link_libraries(native_bibliography_test PRIVATE
+    dans::bibliography_bibtex_plugin
+    dans::bibliography_json_plugin
+    dans::bibliography_latex_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_bibliography_test COMMAND native_bibliography_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source

@@ -2,6 +2,10 @@
 import { codeListingBlockTransportCodec } from "../plugins/codeListingTransport";
 import { colorSpanInlineTransportCodec } from "../plugins/colorSpanTransport";
 import { inlineCodeTransportCodec } from "../plugins/inlineCodeTransport";
+import {
+  bibliographyBlockTransportCodec,
+  citationInlineTransportCodec,
+} from "../plugins/bibliographyTransport";
 import { hyperlinkInlineTransportCodec } from "../plugins/hyperlinkTransport";
 import { referenceInlineTransportCodec } from "../plugins/referenceTransport";
 import { footnoteInlineTransportCodec } from "../plugins/footnoteTransport";
@@ -41,6 +45,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     excalidrawDrawingTransportCodec,
     itemListTransportCodec,
     tableTransportCodec,
+    bibliographyBlockTransportCodec,
   ],
   [
     paragraphTextInlineTransportCodec,
@@ -50,6 +55,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     referenceInlineTransportCodec,
     footnoteInlineTransportCodec,
     inlineCodeTransportCodec,
+    citationInlineTransportCodec,
   ],
 );
 

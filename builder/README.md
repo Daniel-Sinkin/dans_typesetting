@@ -2,7 +2,7 @@
 
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
 be projected either as one vertically growing continuous view or as whole-block pages. Paragraph,
-image, embedded-drawing, semantic-list, rich-table, code-listing, structured-math, title-page,
+image, embedded-drawing, semantic-list, rich-table, bibliography, code-listing, structured-math, title-page,
 table-of-contents, page-break, and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
 optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
@@ -37,7 +37,7 @@ advance following content. The page-range controls project at most five pages at
 
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
 live composed preview. Normal/bold/italic/bold-italic text, semantic single-line code, semantic RGB
-colour spans, hyperlinks, live cross-references, numbered footnotes, and structured inline math are
+colour spans, hyperlinks, live cross-references, live citations, numbered footnotes, and structured inline math are
 editable while unsupported inline nodes remain visible as named read-only chips. Footnotes render
 as live superscript markers
 with hover/focus previews; their editor composes, adds, removes, and reorders a nested inline
@@ -92,6 +92,13 @@ caption sequence, changes alignment/header role, and adds/removes/reorders struc
 optional registered capability: it adds bounded file import and plain-text export controls without
 changing the table contract. Structured-cell CSV export fails visibly instead of flattening math or
 footnotes.
+
+The references block owns normalized bibliography records while citation inline segments own only
+stable keys. The graphical writer derives numeric citation links from document order, so reordering
+records updates every preview immediately and unresolved keys stay visible. The full record editor
+supports add/remove/reorder operations. BibTeX and bespoke JSON are optional registered source
+capabilities; when present they add strict import/export controls without changing the semantic
+block or canonical document payload.
 
 Unknown document blocks remain in the flow as opaque labelled previews. Their Edit action logs a
 stable handle to the browser console, demonstrating that preview and editing support are independent.

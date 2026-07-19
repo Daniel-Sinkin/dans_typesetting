@@ -267,6 +267,7 @@ export function TableEditor({
   onCancel,
   referenceTargets,
   inlineOrdinals,
+  documentResources,
   ordinal,
 }: TableEditorProps) {
   const table = requireRichTableBlock(block);
@@ -315,7 +316,7 @@ export function TableEditor({
       rows,
     ],
   );
-  const renderContext = { referenceTargets, inlineOrdinals };
+  const renderContext = { referenceTargets, inlineOrdinals, documentResources };
   const selectedCell =
     selection.kind === "cell"
       ? rows.flatMap((row) => row.cells).find((cell) => cell.id === selection.cellId)

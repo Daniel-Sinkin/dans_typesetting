@@ -82,6 +82,7 @@ export function ItemListEditor({
   onCancel,
   referenceTargets,
   inlineOrdinals,
+  documentResources,
 }: ItemListEditorProps) {
   const list = requireItemListBlock(block);
   const identity = useState(() => ({ id: list.id, typeId: list.typeId }))[0];
@@ -142,7 +143,7 @@ export function ItemListEditor({
           <ItemListPreview
             list={draft}
             registry={inlineRegistry}
-            context={{ referenceTargets, inlineOrdinals }}
+            context={{ referenceTargets, inlineOrdinals, documentResources }}
           />
         </div>
       </section>
@@ -219,7 +220,7 @@ export function ItemListEditor({
                 <ListInlineSequence
                   inlines={item.inlines}
                   registry={inlineRegistry}
-                  context={{ referenceTargets, inlineOrdinals }}
+                  context={{ referenceTargets, inlineOrdinals, documentResources }}
                 />
               </div>
             </div>
@@ -315,7 +316,7 @@ export function ItemListEditor({
                       <InlinePayloadEditor
                         inline={inline}
                         registry={inlineRegistry}
-                        context={{ referenceTargets, inlineOrdinals }}
+                        context={{ referenceTargets, inlineOrdinals, documentResources }}
                         onChange={(replacement) => {
                           replaceInline(item.id, inline.id, replacement);
                         }}

@@ -24,8 +24,9 @@ const canonicalFixturePath = join(
   "current-features.dans.json",
 );
 const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
-const initialBlockCount = 13;
-const initialParagraphSegmentCount = 17;
+const sampleBibtexPath = join(resultsDirectory, "sample-bibliography.bib");
+const initialBlockCount = 14;
+const initialParagraphSegmentCount = 20;
 
 function assert(condition, message) {
   if (!condition) {
@@ -290,6 +291,9 @@ async function exerciseBuilder(client) {
       hyperlink: document.querySelector("a[href='https://example.com/typesetting']")?.textContent.includes("clickable links") ?? false,
       styledText: document.querySelector("[data-visual-block-id='sample-introduction'] strong em")?.textContent === "Styled text",
       inlineCode: document.querySelector("[data-visual-block-id='sample-introduction'] .inline-code-content")?.textContent === "cudaDeviceSynchronize()",
+      citation: document.querySelector("[data-visual-block-id='sample-introduction'] .inline-citation")?.textContent === "[1, 2]",
+      bibliographyEntries: document.querySelectorAll("[data-visual-block-id='sample-bibliography'] [data-bibliography-entry-key]").length,
+      bibliographyDoi: document.querySelector("[data-visual-block-id='sample-bibliography'] a[href='https://doi.org/10.1080/14789940801912366']") !== null,
       figureNumber: document.querySelector("[data-visual-block-id='sample-figure'] figcaption")?.textContent.includes("Figure 1:") ?? false,
       equationNumber: document.querySelector("[data-visual-block-id='sample-display-math'] .math-equation-number")?.textContent === "(1)",
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
@@ -318,6 +322,9 @@ async function exerciseBuilder(client) {
   assert(initial.hyperlink, "The semantic hyperlink was not rendered as a clickable link");
   assert(initial.styledText, "Styled Core Text was not rendered");
   assert(initial.inlineCode, "Semantic inline code was not rendered");
+  assert(initial.citation, "Semantic multi-citation numbering was not resolved");
+  assert(initial.bibliographyEntries === 2, "The bibliography lost normalized entries");
+  assert(initial.bibliographyDoi, "A bibliography DOI was not rendered as a working link");
   assert(initial.figureNumber && initial.equationNumber && initial.listingNumber, "Live numbering is incorrect");
   assert(initial.drawingPreview, "The Excalidraw scene was not projected through SVG");
   assert(initial.drawingNumber, "The embedded drawing did not join figure numbering");
@@ -702,6 +709,9 @@ async function exerciseBuilder(client) {
     const inlineCode = document.querySelector("input[data-inline-code-id='sample-introduction-inline-code']");
     inputSetter.call(inlineCode, "cudaGetLastError()");
     inlineCode.dispatchEvent(new Event("input", { bubbles: true }));
+    const citation = document.querySelector("input[data-citation-editor-id='sample-introduction-citation']");
+    inputSetter.call(citation, "orus2014");
+    citation.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(80);
   const paragraphLive = await client.evaluate(`(() => {
@@ -718,6 +728,7 @@ async function exerciseBuilder(client) {
       footnote: preview.querySelector(".footnote-preview > sup > button")?.textContent.trim() === "1"
         && preview.querySelector(".footnote-preview__popover")?.textContent.includes("Updated footnote"),
       inlineCode: preview.querySelector(".inline-code-content")?.textContent === "cudaGetLastError()",
+      citation: preview.querySelector(".inline-citation")?.textContent === "[2]",
     };
   })()`);
   assert(paragraphLive.text, "Paragraph live preview did not update before save");
@@ -732,6 +743,7 @@ async function exerciseBuilder(client) {
   assert(paragraphLive.reference, "Semantic reference numbering did not resolve live");
   assert(paragraphLive.footnote, "Footnote numbering or nested editing did not update live");
   assert(paragraphLive.inlineCode, "Inline-code editing did not update the live preview");
+  assert(paragraphLive.citation, "Citation editing did not update the live resource lookup");
 
   await client.evaluate(`(() => {
     document.querySelector(".footnote-editor__add button").click();
@@ -815,9 +827,71 @@ async function exerciseBuilder(client) {
   const paragraphEdited = await client.evaluate(`(() => {
     const paragraph = document.querySelector("[data-visual-block-id='sample-introduction']");
     return paragraph.textContent.includes("Edited by the browser smoke test") &&
-      paragraph.querySelector(".inline-code-content")?.textContent === "cudaGetLastError()";
+      paragraph.querySelector(".inline-code-content")?.textContent === "cudaGetLastError()" &&
+      paragraph.querySelector(".inline-citation")?.textContent === "[2]";
   })()`);
   assert(paragraphEdited, "Paragraph sequence-text editing did not commit");
+
+  await reloadBuilder(client);
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-bibliography']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(100);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector("[data-testid='bibliography-editor']");
+      return editor !== null &&
+        editor.querySelector("[aria-label='Bibliography source adapters']") !== null &&
+        editor.querySelectorAll("[data-bibliography-editor-entry]").length === 2 &&
+        editor.querySelector("[data-testid='bibliography-bibtex-export']") !== null &&
+        editor.querySelector("[data-testid='bibliography-json-export']") !== null;
+    })()`),
+    "The bibliography editor or optional source capabilities were not composed",
+  );
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='bibliography-editor']");
+    editor.querySelector("button[aria-label='Move reference 1 down']").click();
+  })()`);
+  await delay(80);
+  assert(
+    await client.evaluate(`document.querySelector("[data-visual-block-id='sample-introduction'] .inline-citation")?.textContent === "[2, 1]"`),
+    "Reordering bibliography records did not live-update citation ordinals",
+  );
+  const bibliographyRoot = await client.send("DOM.getDocument", { depth: -1, pierce: true });
+  const bibliographyFileInput = await client.send("DOM.querySelector", {
+    nodeId: bibliographyRoot.root.nodeId,
+    selector: `input[data-testid="bibliography-bibtex-file-input"]`,
+  });
+  assert(bibliographyFileInput.nodeId !== 0, "The BibTeX source input was not created");
+  await client.send("DOM.setFileInputFiles", {
+    nodeId: bibliographyFileInput.nodeId,
+    files: [sampleBibtexPath],
+  });
+  await delay(180);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector("[data-testid='bibliography-editor']");
+      return editor.textContent.includes("Imported 2 entries") &&
+        editor.textContent.includes("Imported tensor-network review");
+    })()`),
+    "BibTeX import did not replace and preview normalized records",
+  );
+  await screenshot(client, "bibliography-editor.png");
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='bibliography-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Save references")).click();
+  })()`);
+  await delay(100);
+  assert(
+    await client.evaluate(`(() => {
+      const bibliography = document.querySelector("[data-visual-block-id='sample-bibliography']");
+      const citation = document.querySelector("[data-visual-block-id='sample-introduction'] .inline-citation");
+      return bibliography.textContent.includes("Imported tensor-network review") &&
+        citation?.textContent === "[1, 2]";
+    })()`),
+    "Imported bibliography records did not commit with resolved citations",
+  );
 
   await reloadBuilder(client);
   await client.evaluate(`localStorage.removeItem("dans-typesetting.delete-detached-without-asking")`);
@@ -1291,7 +1365,9 @@ async function exerciseBuilder(client) {
         document.querySelector("[data-visual-block-id='fixture-equation'] .math-grid")?.children.length === 4 &&
         document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--fraction") !== null &&
         document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--radical") !== null &&
-        document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--script") !== null;
+        document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--script") !== null &&
+        document.querySelector("[data-visual-block-id='fixture-introduction'] .inline-citation")?.textContent === "[1, 2]" &&
+        document.querySelectorAll("[data-visual-block-id='fixture-bibliography'] [data-bibliography-entry-key]").length === 2;
     })()`),
     "Canonical document loading did not transactionally replace the graphical document",
   );
@@ -1357,6 +1433,22 @@ try {
   await writeFile(
     sampleCsvPath,
     "Kernel,Lattice,Runtime (ms)\ngemm,64 x 64,3.50\nsvd,\"128, 128\",10.25\n",
+  );
+  await writeFile(
+    sampleBibtexPath,
+    "@article{verstraete2008,\n" +
+      "  author = {Frank Verstraete and J. Ignacio Cirac},\n" +
+      "  title = {Imported tensor-network review},\n" +
+      "  journal = {Advances in Physics},\n" +
+      "  year = {2008},\n" +
+      "  doi = {10.1080/14789940801912366}\n" +
+      "}\n\n" +
+      "@article{orus2014,\n" +
+      "  author = {Roman Orus},\n" +
+      "  title = {Imported practical introduction},\n" +
+      "  journal = {Annals of Physics},\n" +
+      "  year = {2014}\n" +
+      "}\n",
   );
   await exerciseBuilder(client);
   process.stdout.write(`Browser smoke test passed; screenshots are in ${resultsDirectory}\n`);

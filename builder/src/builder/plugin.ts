@@ -7,6 +7,10 @@ import type {
   BuilderReferenceTargetDescriptor,
 } from "./reference";
 import type { InlineOrdinal, NumberedInlineOccurrence } from "./numbered";
+import type {
+  BuilderDocumentResourceDescriptor,
+  BuilderDocumentResourceIndex,
+} from "./documentResources";
 
 export interface PaletteDescriptor {
   readonly label: string;
@@ -23,6 +27,7 @@ export interface BuilderBlockRenderContext {
   readonly sectionDepth: number;
   readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
   readonly inlineOrdinals: ReadonlyMap<string, InlineOrdinal>;
+  readonly documentResources: BuilderDocumentResourceIndex;
 }
 
 export interface BuilderBlockMeasureContext {
@@ -45,6 +50,9 @@ export interface BuilderBlockAdapter {
   readonly numberedInlineOccurrences?:
     | ((block: BuilderBlock) => readonly NumberedInlineOccurrence[])
     | undefined;
+  readonly documentResources?:
+    | ((block: BuilderBlock) => readonly BuilderDocumentResourceDescriptor[])
+    | undefined;
   measure(
     block: BuilderBlock,
     availableWidth: number,
@@ -62,6 +70,7 @@ export interface BuilderBlockEditorProps {
   readonly onCancel: () => void;
   readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
   readonly inlineOrdinals: ReadonlyMap<string, InlineOrdinal>;
+  readonly documentResources: BuilderDocumentResourceIndex;
 }
 
 export interface BuilderBlockEditor {
@@ -126,5 +135,11 @@ export class BuilderPluginRegistry {
 
   public editorForBlock(block: BuilderBlock): BuilderBlockEditor | null {
     return this.#plugins.get(block.typeId)?.editor ?? null;
+  }
+
+  public documentResourcesForBlock(
+    block: BuilderBlock,
+  ): readonly BuilderDocumentResourceDescriptor[] {
+    return this.#plugins.get(block.typeId)?.documentResources?.(block) ?? [];
   }
 }

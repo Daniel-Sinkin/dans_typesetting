@@ -32,6 +32,7 @@ import {
 import type { BuilderBlockPlugin, BuilderPluginRegistry } from "../builder/plugin";
 import { copyBuilderBlockForInsert } from "../builder/copyBlock";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
+import { deriveDocumentResources } from "../builder/documentResources";
 import { deriveBlockOrdinals, deriveInlineOrdinals } from "../builder/numbering";
 import { createPageAnchor, pageAnchorId } from "../canvas/pageAnchor";
 import {
@@ -481,6 +482,10 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     () => deriveInlineOrdinals(flowBlocks, registry),
     [flowBlocks, registry],
   );
+  const documentResources = useMemo(
+    () => deriveDocumentResources(flowBlocks, registry),
+    [flowBlocks, registry],
+  );
   const blockOrdinals = useMemo(
     () =>
       deriveBlockOrdinals(flattenBuilderBlocks(flowBlocks), (block) =>
@@ -635,6 +640,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           onCommit: commitEditorBlock,
           referenceTargets,
           inlineOrdinals,
+          documentResources,
         };
   const inlineEditor =
     editingDescriptor?.presentation === "inline" && editorProps !== null
@@ -671,6 +677,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       try {
         const decoded = transport.fromString(await file.text());
         deriveReferenceTargets(decoded.blocks, registry);
+        deriveDocumentResources(decoded.blocks, registry);
         clearDrag();
         setPendingDetach(null);
         setEditingBlock(null);

@@ -126,6 +126,7 @@ export function createTablePlugin(
           context={{
             referenceTargets: context.referenceTargets,
             inlineOrdinals: context.inlineOrdinals,
+            documentResources: context.documentResources,
           }}
           ordinal={context.ordinal ?? 0}
         />

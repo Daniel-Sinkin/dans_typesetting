@@ -43,6 +43,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Paragraph | `dans.core.paragraph` |
 | Ordinary text | `dans.core.text` |
 | Inline code | `dans.code.inline` |
+| Citation | `dans.bibliography.citation` |
 | Inline math | `dans.math.inline` |
 | Display math | `dans.math.display` |
 | Hyperlink | `dans.inline.hyperlink` |
@@ -57,6 +58,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Embedded Excalidraw drawing | `dans.drawing.excalidraw` |
 | Itemized/enumerated list | `dans.list` |
 | Rich table | `dans.table` |
+| References block | `dans.bibliography.references` |
 
 Adding a plugin is not complete merely because its native class exists. A
 complete vertical slice needs semantic data, validation, at least one useful
@@ -78,6 +80,9 @@ and tests at the boundaries it implements.
   series.
 - Inline code is a semantic single-line source leaf, not a Core Text style.
   Multiline source remains a listing, and each writer owns its code syntax.
+- Citation keys and normalized bibliography records are semantic data. Visible
+  ordinals, BibTeX syntax, and `thebibliography` syntax belong to writers or
+  optional source adapters.
 - The graphical writer may show an opaque placeholder for unsupported plugins.
   It must preserve their envelope and payload rather than dropping them.
 
@@ -258,3 +263,19 @@ This same writer-owned traversal is intended for future citation occurrences
 and specialized table-note policies. It is separate from semantic target numbering: figures and
 equations have stable reference IDs, while a footnote is identified by where
 its inline occurrence appears.
+
+## Namespaced document resources
+
+Some plugin data is neither a referenceable block target nor an inline
+occurrence. Block adapters may therefore publish immutable resources under a
+semantic namespace. The graphical writer derives one document-wide index,
+assigns ordinals in traversal order, and rejects duplicate namespace/key
+pairs. Consumers receive the completed index through their render/editor
+context; generic builder code never interprets the resource value.
+
+Bibliography entries currently publish `dans.bibliography.entry` resources and
+citations consume them. This keeps citation lookup out of Core Paragraph and
+keeps bibliography numbering out of the semantic record. The contract is also
+usable for future glossaries, symbol indices, or datasets without adding a
+central ever-growing callback interface. See
+[bibliography.md](bibliography.md) for the source-adapter and writer policy.
