@@ -25,7 +25,7 @@ const canonicalFixturePath = join(
 );
 const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
 const sampleBibtexPath = join(resultsDirectory, "sample-bibliography.bib");
-const initialBlockCount = 19;
+const initialBlockCount = 23;
 const initialParagraphSegmentCount = 20;
 
 function assert(condition, message) {
@@ -296,6 +296,10 @@ async function exerciseBuilder(client) {
     ];
     const padding = document.querySelector("[data-visual-block-id='sample-padding']")?.getBoundingClientRect();
     const paddedParagraph = document.querySelector("[data-visual-block-id='sample-padding-paragraph']")?.getBoundingClientRect();
+    const grid = document.querySelector("[data-visual-block-id='sample-grid']")?.getBoundingClientRect();
+    const gridLeft = document.querySelector("[data-visual-block-id='sample-grid-left-paragraph']")?.getBoundingClientRect();
+    const gridRightPadding = document.querySelector("[data-visual-block-id='sample-grid-right-padding']")?.getBoundingClientRect();
+    const gridRightParagraph = document.querySelector("[data-visual-block-id='sample-grid-right-paragraph']")?.getBoundingClientRect();
     return {
       blocks: document.querySelectorAll("[data-block-id]").length,
       imageLoaded: image instanceof HTMLImageElement && image.complete && image.naturalWidth === 1280,
@@ -335,6 +339,9 @@ async function exerciseBuilder(client) {
       tableFootnote: document.querySelector("[data-visual-block-id='sample-table'] .footnote-preview > sup > button")?.textContent.trim() === "2",
       tableReference: [...document.querySelectorAll(".inline-reference")].some((reference) => reference.textContent === "Table 1"),
       paddingNested: padding !== undefined && paddedParagraph !== undefined && paddedParagraph.left > padding.left && paddedParagraph.right < padding.right && paddedParagraph.top > padding.top && paddedParagraph.bottom < padding.bottom,
+      gridCells: document.querySelectorAll("[data-visual-block-id='sample-grid'] [data-grid-cell]").length,
+      gridBoundaries: document.querySelectorAll("[data-visual-block-id='sample-grid'] [data-grid-horizontal-edge], [data-visual-block-id='sample-grid'] [data-grid-vertical-edge]").length,
+      gridNested: grid !== undefined && gridLeft !== undefined && gridRightPadding !== undefined && gridRightParagraph !== undefined && gridLeft.left >= grid.left && gridLeft.right < gridRightPadding.left && gridRightPadding.right <= grid.right && gridRightParagraph.left > gridRightPadding.left && gridRightParagraph.right < gridRightPadding.right,
       layers: layers.map((layer) => layer === null ? null : getComputedStyle(layer).zIndex),
     };
   })()`);
@@ -388,7 +395,58 @@ async function exerciseBuilder(client) {
   assert(initial.tableFootnote, "Table cells did not join inline occurrence numbering");
   assert(initial.tableReference, "The semantic table did not publish a live reference target");
   assert(initial.paddingNested, "Padding did not place its named child sequence inside its bounds");
+  assert(initial.gridCells === 2, "Grid did not project both cell rectangles");
+  assert(initial.gridBoundaries === 5, "Grid did not project its complete boundary vocabulary");
+  assert(initial.gridNested, "Grid did not preserve recursive Grid → Padding placement");
   assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3"]), "Canvas layering is incorrect");
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-grid']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await waitForBrowserCondition(client, `document.querySelector("[data-testid='grid-editor']") !== null`);
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='grid-editor']");
+    const inputs = [...editor.querySelectorAll("input[type='number']")];
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    inputSetter.call(inputs[0], "2");
+    inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await waitForBrowserCondition(
+    client,
+    `document.querySelectorAll("[data-visual-block-id='sample-grid'] [data-grid-cell]").length === 4`,
+  );
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='grid-editor']");
+    const horizontalEdges = editor.querySelectorAll("fieldset")[0].querySelectorAll("select");
+    const selectSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set;
+    selectSetter.call(horizontalEdges[1], "double");
+    horizontalEdges[1].dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await screenshot(client, "grid-editor.png");
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='grid-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.trim() === "Save grid").click();
+  })()`);
+  await delay(120);
+  assert(
+    await client.evaluate(`document.querySelector("[data-visual-block-id='sample-grid'] [data-grid-horizontal-edge='1']")?.classList.contains("grid-block-preview__boundary--double") ?? false`),
+    "The Grid editor did not commit an internal double boundary",
+  );
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-grid']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(80);
+  assert(
+    await client.evaluate(`document.querySelector("[data-testid='grid-editor'] input[type='number']")?.value === "2"`),
+    "The Grid editor did not retain the committed dimensions",
+  );
+  await client.evaluate(`(() => {
+    const editor = document.querySelector("[data-testid='grid-editor']");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.trim() === "Cancel").click();
+  })()`);
+  await delay(80);
 
   await client.evaluate(`(() => {
     const block = document.querySelector("[data-block-id='sample-python-plot']");

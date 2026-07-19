@@ -2,6 +2,7 @@
 #include "connectors/markdown/code_listing.hpp"
 #include "connectors/markdown/document_shell.hpp"
 #include "connectors/markdown/figure_pair.hpp"
+#include "connectors/markdown/grid.hpp"
 #include "connectors/markdown/inline_code.hpp"
 #include "connectors/markdown/math.hpp"
 #include "connectors/markdown/paragraph.hpp"
@@ -9,6 +10,7 @@
 #include "plugins/code_listing.hpp"
 #include "plugins/document_shell.hpp"
 #include "plugins/figure_pair.hpp"
+#include "plugins/grid.hpp"
 #include "plugins/inline_code.hpp"
 #include "plugins/math.hpp"
 #include "plugins/paragraph.hpp"
@@ -75,6 +77,7 @@ auto make_markdown_writer() -> std::shared_ptr<dans::document::writers::Markdown
     writer->register_block_adapter(
         std::make_unique<markdown::FigurePairMarkdownAdapter>(inline_renderer)
     );
+    writer->register_block_adapter(std::make_unique<markdown::GridMarkdownAdapter>());
     writer->register_block_adapter(std::make_unique<markdown::DisplayMathMarkdownAdapter>());
     return writer;
 }
@@ -117,6 +120,9 @@ auto make_document() -> dans::document::Document
         ReferenceId{"fig:notebook"},
         "Paired notebook figure."
     );
+    auto& grid = section.blocks().add<Grid>(1, 2, GridGaps{.column_em = 1.0});
+    grid.cell(0, 0).add<Paragraph>("Left notebook Grid cell.");
+    grid.cell(0, 1).add<Paragraph>("Right notebook Grid cell.");
     return document;
 }
 
@@ -174,6 +180,9 @@ auto verify_notebook() -> void
         || expected_markdown.str().contains("*Equation 3*")
         || !expected_markdown.str().contains("notebook-only note")
         || !expected_markdown.str().contains("*Figure 1: Paired notebook figure\\.*")
+        || !expected_markdown.str().contains("<!-- Grid layout flattened row-major: 1 x 2 -->")
+        || !expected_markdown.str().contains("Left notebook Grid cell\\.")
+        || !expected_markdown.str().contains("Right notebook Grid cell\\.")
         || serialized.str().contains("kernelspec"))
     {
         throw std::runtime_error{

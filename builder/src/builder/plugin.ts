@@ -34,6 +34,7 @@ export interface BuilderBlockRenderContext {
   readonly inlineOrdinals: ReadonlyMap<string, InlineOrdinal>;
   readonly blockOrdinals: ReadonlyMap<string, BlockOrdinal>;
   readonly documentResources: BuilderDocumentResourceIndex;
+  readonly childSequenceLayouts: readonly BuilderChildSequenceLayout[];
 }
 
 export interface BuilderBlockMeasureContext {
@@ -47,6 +48,15 @@ export interface BuilderChildSequencePlacement {
   readonly offsetX: number;
   readonly offsetY: number;
   readonly width: number;
+  readonly height?: number;
+}
+
+export interface BuilderChildSequenceLayout {
+  readonly sequenceId: string;
+  readonly offsetX: number;
+  readonly offsetY: number;
+  readonly width: number;
+  readonly height: number;
 }
 
 export type BuilderPaginationPolicy = "flow" | "page_break_after" | "isolated_page";

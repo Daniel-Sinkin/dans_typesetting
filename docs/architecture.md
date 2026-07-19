@@ -74,6 +74,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Rich table | `dans.table` |
 | References block | `dans.bibliography.references` |
 | Padding | `dans.layout.padding` |
+| Equal-column block Grid | `dans.layout.grid` |
 | Generic caption wrapper | `dans.layout.captioned` |
 | Trusted Python plot | `dans.plot.python` |
 
@@ -121,7 +122,23 @@ The graphical adapter must measure and place every endpoint it exposes. Section
 `body` remains structurally ordinary but is interpreted specially for heading
 depth and table-of-contents traversal. See
 [nested-block-sequences.md](nested-block-sequences.md) and
-[padding.md](padding.md).
+[padding.md](padding.md). Grid uses the same seam for multiple exact cell
+rectangles; generic drag targeting selects the innermost hovered endpoint.
+
+## Grid and Table boundaries
+
+`dans.layout.grid` is a general equal-column layout composite. Every cell is a
+named `BlockSequence`, gaps are em-based author intent, and whole row/column
+boundaries may be inactive, single, or double. Cells can recursively contain
+any supported block. The graphical writer retains allocated cell rectangles,
+the LaTeX connector delegates through minipages, and Markdown/Jupyter flatten
+row-major with an explicit layout-loss marker.
+
+`dans.table` remains independently data-oriented: its cells are
+`InlineSequence` values and its contract owns headers, column alignment, CSV,
+and future tabular accessibility/page policy. Similar low-level layout work is
+acceptable connector-side duplication; making Table inherit Grid would leak
+data-table semantics into arbitrary block composition. See [grid.md](grid.md).
 
 ## Generic captions and generated media
 

@@ -3,7 +3,7 @@
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
 be projected as one vertically growing continuous view, as whole-block A4 pages, or as 16:9 slides. Paragraph,
 image, two-panel figure, embedded-drawing, semantic-list, rich-table, bibliography, code-listing,
-generic-caption, trusted-Python-plot,
+generic-caption, trusted-Python-plot, compositional-grid,
 text-authored math, title-page, table-of-contents, page-break, and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
 optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
@@ -15,9 +15,16 @@ Excalidraw elements.
 Composite plugins expose stable named child block sequences. Generic builder
 machinery handles recursive lookup, validation, copy/move commands, insertion
 targets, and controls; the owning plugin adapter supplies measurement and
-placement. The Padding plugin is the first ordinary composite and makes its
-single inset `content` sequence directly draggable. See
+placement. Padding exposes one inset `content` sequence; Grid exposes one exact
+rectangle per arbitrary block-bearing cell, including recursively nested
+composites. See
 `../docs/nested-block-sequences.md`.
+
+Grid is deliberately separate from rich Table. Grid cells own ordinary block
+sequences and expose gap plus whole-boundary layout intent; Table cells own
+Inline Sequences and retain header/alignment/CSV semantics. Empty Grid cells
+remain visible drag targets, and the live editor changes rows, columns, gaps,
+and inactive/single/double boundaries. See `../docs/grid.md`.
 
 `Captioned` is a generic one-child composition block. Its optional string
 category joins writer-derived numbering (for example `Figure`), while its rich
@@ -83,7 +90,8 @@ palette. See `../docs/latex-math.md`.
 The two-panel figure extension owns two horizontal image panels, three rich inline captions, one
 group target, and optional `a`/`b` panel targets. Its editor selects each image independently and
 updates the shared panel width immediately. It is intentionally separate from an ordinary figure;
-general grids and unequal panel layouts remain a future composite-layout contract.
+general layouts now use the independent Grid contract, while this specialized
+pair retains panel-specific `a`/`b` references and one shared figure ordinal.
 
 The optional MatVec editor extension contributes square and rectangular matrix plus row/column
 vector templates. They lower to the base math model's rectangular grid and delimiter primitives,

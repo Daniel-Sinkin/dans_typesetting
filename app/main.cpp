@@ -6,6 +6,7 @@
 #include "connectors/latex/excalidraw_drawing.hpp"
 #include "connectors/latex/figure_pair.hpp"
 #include "connectors/latex/footnote.hpp"
+#include "connectors/latex/grid.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/image.hpp"
 #include "connectors/latex/inline_code.hpp"
@@ -27,6 +28,7 @@
 #include "plugins/excalidraw_drawing.hpp"
 #include "plugins/figure_pair.hpp"
 #include "plugins/footnote.hpp"
+#include "plugins/grid.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
 #include "plugins/inline_code.hpp"
@@ -279,6 +281,19 @@ auto make_sample_document()
     );
     inset.content().add<Paragraph>(
         "Padding is an ordinary compositional block exposing one named content sequence."
+    );
+
+    auto& grid = architecture.blocks().add<Grid>(1, 2, GridGaps{.row_em = 1.0, .column_em = 1.5});
+    grid.set_outer_edges(GridEdgeStyle::single);
+    grid.set_vertical_edge(1, GridEdgeStyle::double_line);
+    grid.cell(0, 0).add<Paragraph>(
+        "A Grid cell is an ordinary named block sequence rather than a special table cell."
+    );
+    auto& grid_padding = grid.cell(0, 1).add<Padding>(
+        PaddingInsets{.top_em = 0.5, .right_em = 1.0, .bottom_em = 0.5, .left_em = 1.0}
+    );
+    grid_padding.content().add<Paragraph>(
+        "Grid and Padding compose recursively without either plugin knowing the other's type."
     );
 
     auto& lists = document.blocks().add<Section>("Semantic lists");
@@ -572,6 +587,9 @@ auto run(const int argc, char** argv) -> int
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::PaddingLatexAdapter>()
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::GridLatexAdapter>()
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::CaptionedLatexAdapter>(

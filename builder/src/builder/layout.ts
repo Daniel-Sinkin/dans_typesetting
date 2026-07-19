@@ -90,6 +90,13 @@ export interface BlockInsertionTarget {
   readonly index: number;
 }
 
+export interface ChildSequenceLayout {
+  readonly parentId: string;
+  readonly sequenceId: string;
+  readonly bounds: LayoutBounds;
+  readonly pageIndex: number;
+}
+
 export interface InsertionPreview {
   readonly parentId?: string | null;
   readonly parentSequenceId?: string | null;
@@ -125,6 +132,7 @@ export interface DocumentLayout {
   readonly visiblePageRange: PageRange;
   readonly documentBlocks: readonly BuilderBlock[];
   readonly blocks: readonly BlockLayout[];
+  readonly childSequenceLayouts: readonly ChildSequenceLayout[];
   readonly previewBounds: LayoutBounds | null;
   readonly previewPageIndex: number | null;
   readonly insertionSlots: readonly InsertionSlot[];
@@ -186,6 +194,7 @@ export function computeDocumentLayout(
   const paginated = mode !== "continuous";
   const pages: MutablePage[] = [pageAt(0, geometry)];
   const blockLayouts: BlockLayout[] = [];
+  const childSequenceLayouts: ChildSequenceLayout[] = [];
   const insertionSlots: InsertionSlot[] = [];
   let currentPageIndex = 0;
   let cursorY = pages[0]?.contentBounds.y ?? geometry.contentInsetTop;
@@ -548,6 +557,8 @@ export function computeDocumentLayout(
         !Number.isFinite(placement.offsetX) ||
         !Number.isFinite(placement.offsetY) ||
         !Number.isFinite(placement.width) ||
+        (placement.height !== undefined &&
+          (!Number.isFinite(placement.height) || placement.height <= 0)) ||
         placement.offsetX < 0 ||
         placement.offsetY < 0 ||
         placement.width <= 0 ||
@@ -561,11 +572,28 @@ export function computeDocumentLayout(
         sequence.id,
         placement.width,
       );
-      if (placement.offsetY + childHeight > parent.bounds.height + 0.001) {
+      const allocatedHeight = placement.height ?? childHeight;
+      if (allocatedHeight + 0.001 < childHeight) {
+        throw new Error(
+          `Nested block adapter ${parent.block.typeId} allocated less height than its child sequence requires`,
+        );
+      }
+      if (placement.offsetY + allocatedHeight > parent.bounds.height + 0.001) {
         throw new Error(
           `Nested block adapter ${parent.block.typeId} placed child sequence outside its block`,
         );
       }
+      childSequenceLayouts.push({
+        parentId: parent.block.id,
+        sequenceId: sequence.id,
+        bounds: {
+          x: parent.bounds.x + placement.offsetX,
+          y: parent.bounds.y + placement.offsetY,
+          width: placement.width,
+          height: allocatedHeight,
+        },
+        pageIndex: parent.pageIndex,
+      });
       layoutContainedSequence(
         sequence.blocks,
         parent.block.id,
@@ -688,6 +716,7 @@ export function computeDocumentLayout(
     visiblePageRange,
     documentBlocks: blocks,
     blocks: blockLayouts,
+    childSequenceLayouts,
     previewBounds,
     previewPageIndex,
     insertionSlots,
@@ -702,9 +731,34 @@ export function insertionTargetAtScenePoint(
   const visiblePageIndices = new Set(
     layout.pages.filter((page) => page.visible).map((page) => page.pageIndex),
   );
-  const candidates = layout.insertionSlots.filter((slot) =>
+  let candidates = layout.insertionSlots.filter((slot) =>
     visiblePageIndices.has(slot.pageIndex),
   );
+  const containingSequences = [...layout.childSequenceLayouts]
+    .filter(
+      ({ bounds, pageIndex }) =>
+        visiblePageIndices.has(pageIndex) &&
+        sceneX >= bounds.x &&
+        sceneX <= bounds.x + bounds.width &&
+        sceneY >= bounds.y &&
+        sceneY <= bounds.y + bounds.height,
+    )
+    .sort(
+      (left, right) =>
+        left.bounds.width * left.bounds.height -
+        right.bounds.width * right.bounds.height,
+    );
+  const innermostSequence = containingSequences[0];
+  if (innermostSequence !== undefined) {
+    const nestedCandidates = candidates.filter(
+      (slot) =>
+        slot.parentId === innermostSequence.parentId &&
+        slot.parentSequenceId === innermostSequence.sequenceId,
+    );
+    if (nestedCandidates.length > 0) {
+      candidates = nestedCandidates;
+    }
+  }
   const closest = candidates.reduce<InsertionSlot | null>((current, candidate) => {
     if (current === null) {
       return candidate;

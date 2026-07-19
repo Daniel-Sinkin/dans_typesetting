@@ -215,6 +215,16 @@ target_link_libraries(padding_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(grid_plugin STATIC
+  src/plugins/grid.cpp
+  src/plugins/grid.hpp
+)
+add_library(dans::grid_plugin ALIAS grid_plugin)
+target_link_libraries(grid_plugin
+  PUBLIC dans::document_core
+  PRIVATE typesetter_warnings
+)
+
 add_library(captioned_plugin STATIC
   src/plugins/captioned.cpp
   src/plugins/captioned.hpp
@@ -538,6 +548,19 @@ target_link_libraries(latex_mixin_latex_connector
     dans::inline_sequence_latex_connector
   PRIVATE
     typesetter_warnings
+)
+
+add_library(grid_latex_connector STATIC
+  src/connectors/latex/grid.cpp
+  src/connectors/latex/grid.hpp
+  src/connectors/latex/graphics.hpp
+)
+add_library(dans::grid_latex_connector ALIAS grid_latex_connector)
+target_link_libraries(grid_latex_connector
+  PUBLIC
+    dans::grid_plugin
+    dans::latex_writer
+  PRIVATE typesetter_warnings
 )
 
 add_library(captioned_latex_connector STATIC
@@ -904,6 +927,18 @@ target_link_libraries(math_markdown_connector
     typesetter_warnings
 )
 
+add_library(grid_markdown_connector STATIC
+  src/connectors/markdown/grid.cpp
+  src/connectors/markdown/grid.hpp
+)
+add_library(dans::grid_markdown_connector ALIAS grid_markdown_connector)
+target_link_libraries(grid_markdown_connector
+  PUBLIC
+    dans::grid_plugin
+    dans::markdown_writer
+  PRIVATE typesetter_warnings
+)
+
 add_library(captioned_markdown_connector STATIC
   src/connectors/markdown/captioned.cpp
   src/connectors/markdown/captioned.hpp
@@ -984,6 +1019,7 @@ target_link_libraries(document_example PRIVATE
   dans::excalidraw_drawing_latex_connector
   dans::figure_pair_latex_connector
   dans::footnote_latex_connector
+  dans::grid_latex_connector
   dans::image_latex_connector
   dans::inline_code_latex_connector
   dans::item_list_latex_connector
@@ -1044,6 +1080,18 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_padding_test COMMAND native_padding_test)
+
+  add_executable(native_grid_test
+    tests/native_grid_test.cpp
+  )
+  target_link_libraries(native_grid_test PRIVATE
+    dans::grid_latex_connector
+    dans::grid_markdown_connector
+    dans::paragraph_latex_connector
+    dans::paragraph_markdown_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_grid_test COMMAND native_grid_test)
 
   add_executable(native_captioned_python_plot_test
     tests/native_captioned_python_plot_test.cpp
@@ -1203,6 +1251,7 @@ if(BUILD_TESTING)
     dans::paragraph_markdown_connector
     dans::document_shell_markdown_connector
     dans::figure_pair_markdown_connector
+    dans::grid_markdown_connector
     dans::inline_code_markdown_connector
     dans::jupyter_writer
     dans::math_markdown_connector

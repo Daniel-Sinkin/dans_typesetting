@@ -3,7 +3,27 @@
 This file records recovery information for a fresh development session. Update
 it at every milestone rather than relying on conversation history.
 
-## Current Captioned/Python-plot milestone
+## Current Grid milestone
+
+The current slice adds `dans.layout.grid` across native and browser paths.
+Grid is an equal-column layout composite with arbitrary block-bearing cells,
+bounded em gaps, and whole horizontal/vertical boundary styles. It is separate
+from the InlineSequence-cell `dans.table` contract. Recursive cells use the
+existing named-child-sequence seam; the graphical writer now retains exact
+allocated rectangles and targets the innermost hovered endpoint.
+
+Native LaTeX uses standard tabular/minipage composition, Markdown explicitly
+flattens row-major without dropping content, and Jupyter inherits that
+Markdown policy. The browser adds strict canonical transport, live
+dimension/gap/boundary editing, empty-cell targets, recursive Grid → Padding
+sample content, and real-browser interaction coverage. See `grid.md`.
+
+After this slice, Markdown/Jupyter connector expansion is intentionally paused
+to conserve development effort. Near-term vertical slices target the bespoke
+graphical builder and LaTeX publication path only; existing Markdown behavior
+is retained but is not part of the active feature-completion matrix.
+
+## Captioned/Python-plot milestone
 
 The tranche after `f5481ed` adds `dans.layout.captioned` and
 `dans.plot.python` across native and browser implementations. Captioned owns an
@@ -19,9 +39,7 @@ diagnostics, timeout, browser edit/save/reopen, canonical round trips, shared
 numbering, native connectors, and compiled PDF output. See `captioned.md` and
 `python-plots.md`.
 
-The next planned compositional slice remains Grid: generic block-bearing cells,
-gaps, and edge information, with Table retaining its independent
-InlineSequence-cell contract.
+Commit `b8bf633` contains the completed Captioned/Python-plot vertical slice.
 
 ## Verified checkpoints
 

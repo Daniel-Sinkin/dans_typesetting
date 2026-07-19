@@ -32,6 +32,7 @@ import { paragraphBlockTransportCodec } from "../plugins/paragraphTransport";
 import { paddingTransportCodec } from "../plugins/paddingTransport";
 import { captionedTransportCodec } from "../plugins/captionedTransport";
 import { pythonPlotTransportCodec } from "../plugins/pythonPlotTransport";
+import { gridTransportCodec } from "../plugins/gridTransport";
 import { textInlineTransportCodec } from "../plugins/textTransport";
 import {
   CanonicalDocumentTransport,
@@ -56,6 +57,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     paddingTransportCodec,
     captionedTransportCodec,
     pythonPlotTransportCodec,
+    gridTransportCodec,
     bibliographyBlockTransportCodec,
   ],
   [

@@ -123,6 +123,15 @@ export function DocumentVisualPage({
                   inlineOrdinals,
                   blockOrdinals: ordinals,
                   documentResources,
+                  childSequenceLayouts: layout.childSequenceLayouts
+                    .filter(({ parentId }) => parentId === block.id)
+                    .map(({ sequenceId, bounds: childBounds }) => ({
+                      sequenceId,
+                      offsetX: childBounds.x - bounds.x,
+                      offsetY: childBounds.y - bounds.y,
+                      width: childBounds.width,
+                      height: childBounds.height,
+                    })),
                 })
               )}
             </div>

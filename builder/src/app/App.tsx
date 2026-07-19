@@ -80,6 +80,8 @@ import { createCaptionedPlugin } from "../plugins/captioned";
 import { createCaptionedBlock } from "../plugins/captionedModel";
 import { pythonPlotPlugin } from "../plugins/pythonPlot";
 import { createPythonPlotBlock } from "../plugins/pythonPlotModel";
+import { gridPlugin } from "../plugins/grid";
+import { createGridBlock } from "../plugins/gridModel";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -450,6 +452,43 @@ E &= T + V
       }),
     ],
   ),
+  createGridBlock("sample-grid", 1, 2, {
+    gaps: { rowEm: 1, columnEm: 1.5 },
+    horizontalEdges: ["single", "single"],
+    verticalEdges: ["single", "double", "single"],
+    cells: [
+      [
+        Object.freeze({
+          id: "sample-grid-left-paragraph",
+          typeId: paragraphTypeId,
+          inlines: Object.freeze([
+            createText(
+              "The left Grid cell owns an ordinary block sequence.",
+              "sample-grid-left-text",
+            ),
+          ]),
+        }),
+      ],
+      [
+        createPaddingBlock(
+          "sample-grid-right-padding",
+          { topEm: 0.75, rightEm: 1, bottomEm: 0.75, leftEm: 1 },
+          [
+            Object.freeze({
+              id: "sample-grid-right-paragraph",
+              typeId: paragraphTypeId,
+              inlines: Object.freeze([
+                createText(
+                  "The right cell demonstrates recursive Grid → Padding composition.",
+                  "sample-grid-right-text",
+                ),
+              ]),
+            }),
+          ],
+        ),
+      ],
+    ],
+  }),
   createBibliographyBlock(
     [
       createBibliographyEntry({
@@ -495,6 +534,7 @@ const pluginRegistry = new BuilderPluginRegistry(
     createItemListPlugin(inlinePluginRegistry),
     createTablePlugin(inlinePluginRegistry, tableCsvCapability),
     paddingPlugin,
+    gridPlugin,
     pythonPlotPlugin,
     createCaptionedPlugin(
       inlinePluginRegistry,

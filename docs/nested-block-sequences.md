@@ -34,7 +34,8 @@ The graphical development writer asks a registered block adapter to:
 
 1. measure each child sequence through a supplied callback;
 2. include those measurements in the owner's height;
-3. return a bounded placement for every exposed sequence.
+3. return a bounded placement for every exposed sequence, optionally including
+   an allocated height larger than its current contents.
 
 Generic layout code then renders ordinary child blocks, insertion targets,
 drag/move/copy operations, nested editor controls, and animated reflow without
@@ -42,6 +43,12 @@ switching on concrete plugin type IDs. A nested block is indivisible in paged
 and slide modes, matching the existing development-writer policy. Pagination
 control blocks are currently rejected inside contained sequences because their
 scope would otherwise be ambiguous.
+
+Resolved child placements are retained as exact rectangles for preview and
+interaction. When rectangles nest, pointer targeting chooses the smallest
+containing endpoint before comparing its insertion slots. This makes empty
+Grid cells and recursively nested composites addressable without teaching the
+generic drag controller what a Grid is.
 
 Sections retain one special semantic role. They expose the ordinary `body`
 endpoint, but the graphical and publication writers also interpret it as a
@@ -51,8 +58,8 @@ contents. Other composites do not change section depth.
 ## Transport and compatibility
 
 Named sequence topology is shared; payload syntax remains plugin-owned. A
-Padding codec may call its serialized array `blocks`, while a future Grid codec
-may serialize cells. Decoders reconstruct the same stable endpoints. This keeps
+Padding codec calls its serialized array `blocks`, while the Grid codec stores
+row-major `cells`. Decoders reconstruct the same stable endpoints. This keeps
 canonical persistence explicit and lets an individual plugin migrate its schema
 without teaching the document core every composite shape.
 
