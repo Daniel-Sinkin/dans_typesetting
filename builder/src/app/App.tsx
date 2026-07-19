@@ -4,6 +4,7 @@ import { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import { BuilderPluginRegistry } from "../builder/plugin";
 import {
   createParagraphText,
+  createMathDisplayLine,
   createMathInline,
   createHyperlinkInline,
   createReferenceInline,
@@ -328,50 +329,77 @@ const initialBlocks = [
   Object.freeze({
     id: "sample-display-math",
     typeId: mathDisplayTypeId,
-    expression: createMathBinary(
-      "equals",
-      createMathBinary(
-        "minus",
-        createMathBinary("plus", createMathInteger(1), createMathInteger(2)),
-        createMathInteger(3),
-      ),
-      createMathSummation(
+    alignment: "automatic",
+    lines: Object.freeze([
+      createMathDisplayLine(
         createMathBinary(
           "equals",
-          createMathIdentifier("i"),
-          createMathInteger(1),
-        ),
-        createMathUnderbrace(
-          createMathNamedOperator(
-            "dim",
-            createMathStyledIdentifier("H", "calligraphic"),
+          createMathBinary(
+            "minus",
+            createMathBinary("plus", createMathInteger(1), createMathInteger(2)),
+            createMathInteger(3),
           ),
-          createMathText("space dimension"),
-        ),
-        createMathBinary(
-          "tensor_product",
-          createMathMatrix([
-            [createMathInteger(2), createMathInteger(4)],
-            [createMathInteger(1), createMathInteger(3)],
-          ]),
-          createMathFraction(
-            createMathColumnVector([
-              createMathIdentifier("x"),
-              createMathIdentifier("y"),
-            ]),
-            createMathRadical(
-              createMathScript(
-                createMathSymbol("lambda"),
-                createMathIdentifier("i"),
-                createMathInteger(2),
+          createMathSummation(
+            createMathBinary(
+              "equals",
+              createMathIdentifier("i"),
+              createMathInteger(1),
+            ),
+            createMathUnderbrace(
+              createMathNamedOperator(
+                "dim",
+                createMathStyledIdentifier("H", "calligraphic"),
               ),
-              createMathInteger(3),
+              createMathText("space dimension"),
+            ),
+            createMathBinary(
+              "tensor_product",
+              createMathMatrix([
+                [createMathInteger(2), createMathInteger(4)],
+                [createMathInteger(1), createMathInteger(3)],
+              ]),
+              createMathFraction(
+                createMathColumnVector([
+                  createMathIdentifier("x"),
+                  createMathIdentifier("y"),
+                ]),
+                createMathRadical(
+                  createMathScript(
+                    createMathSymbol("lambda"),
+                    createMathIdentifier("i"),
+                    createMathInteger(2),
+                  ),
+                  createMathInteger(3),
+                ),
+              ),
             ),
           ),
         ),
+        true,
+        "eq:sample-summation",
+        "sample-display-math-line-main",
       ),
-    ),
-    referenceId: "eq:sample-summation",
+      createMathDisplayLine(
+        createMathBinary(
+          "equals",
+          createMathIdentifier("E"),
+          createMathBinary(
+            "plus",
+            createMathIdentifier("T"),
+            createMathIdentifier("V"),
+          ),
+        ),
+        true,
+        null,
+        "sample-display-math-line-energy",
+      ),
+      createMathDisplayLine(
+        createMathText("An intentionally unnumbered explanatory line"),
+        false,
+        null,
+        "sample-display-math-line-note",
+      ),
+    ]),
   }),
   createCodeListingBlock(
     "sample-code-listing",

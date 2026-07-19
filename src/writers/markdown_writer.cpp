@@ -28,6 +28,7 @@ struct MarkdownSectionEntry
 struct MarkdownTargetEntry
 {
     const DocumentBlock* block{};
+    usize occurrence_index{};
     std::string reference_id{};
     std::string label{};
     std::string number{};
@@ -194,9 +195,16 @@ auto MarkdownOutput::register_footnote(std::string content) -> std::string
 
 auto MarkdownOutput::target_number(const DocumentBlock& block) const -> std::string_view
 {
+    return target_number(block, usize{0});
+}
+
+auto MarkdownOutput::target_number(const DocumentBlock& block, const usize occurrence_index) const
+    -> std::string_view
+{
     const auto match = std::ranges::find_if(
         context_.targets,
-        [&block](const MarkdownTargetEntry& target) { return target.block == &block; }
+        [&block, occurrence_index](const MarkdownTargetEntry& target)
+        { return target.block == &block && target.occurrence_index == occurrence_index; }
     );
     if (match == context_.targets.end())
     {
@@ -451,6 +459,7 @@ auto MarkdownWriter::prepare_context(const Document& document) const -> Markdown
                     + std::string{block->type_id()} + "'"
                 };
             }
+            usize occurrence_index{};
             for (const auto& descriptor : adapter->targets(*block))
             {
                 if (descriptor.label.empty() || descriptor.numbering_series.empty())
@@ -480,6 +489,7 @@ auto MarkdownWriter::prepare_context(const Document& document) const -> Markdown
                 context.targets.push_back(
                     MarkdownTargetEntry{
                         .block = block.get(),
+                        .occurrence_index = occurrence_index,
                         .reference_id = reference_id,
                         .label = std::string{descriptor.label},
                         .number =
@@ -487,6 +497,7 @@ auto MarkdownWriter::prepare_context(const Document& document) const -> Markdown
                         .anchor = reference_id,
                     }
                 );
+                ++occurrence_index;
             }
             for (const auto& descriptor : adapter->resources(*block))
             {

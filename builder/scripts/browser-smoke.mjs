@@ -21,7 +21,7 @@ const canonicalFixturePath = join(
   "..",
   "fixtures",
   "canonical",
-  "current-features.dans.json",
+  "current-features.dans_doc",
 );
 const sampleCsvPath = join(resultsDirectory, "sample-table.csv");
 const sampleBibtexPath = join(resultsDirectory, "sample-bibliography.bib");
@@ -307,7 +307,8 @@ async function exerciseBuilder(client) {
       figurePairNumber: document.querySelector("[data-visual-block-id='sample-figure-pair'] .figure-pair-content__caption")?.textContent.includes("Figure 2:") ?? false,
       figurePairMath: document.querySelectorAll("[data-visual-block-id='sample-figure-pair'] .math-node").length,
       figurePairPanelTargets: document.getElementById("dans-reference-fig%3Apaired-models%3Aleft") !== null && document.getElementById("dans-reference-fig%3Apaired-models%3Aright") !== null,
-      equationNumber: document.querySelector("[data-visual-block-id='sample-display-math'] .math-equation-number")?.textContent === "(1)",
+      equationNumbers: [...document.querySelectorAll("[data-visual-block-id='sample-display-math'] .math-equation-number")].map((node) => node.textContent.trim()),
+      equationLineCount: document.querySelectorAll("[data-visual-block-id='sample-display-math'] [data-math-display-line-id]").length,
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
       listingCaptionCode: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption .inline-code-content")?.textContent === "std::println",
       drawingPreview: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] img")?.src.startsWith("blob:") ?? false,
@@ -343,7 +344,13 @@ async function exerciseBuilder(client) {
   assert(initial.citation, "Semantic multi-citation numbering was not resolved");
   assert(initial.bibliographyEntries === 2, "The bibliography lost normalized entries");
   assert(initial.bibliographyDoi, "A bibliography DOI was not rendered as a working link");
-  assert(initial.figureNumber && initial.equationNumber && initial.listingNumber, "Live numbering is incorrect");
+  assert(
+    initial.figureNumber &&
+      initial.listingNumber &&
+      initial.equationLineCount === 3 &&
+      JSON.stringify(initial.equationNumbers) === JSON.stringify(["(1)", "(2)"]),
+    "Live numbering did not distinguish numbered and unnumbered display lines",
+  );
   assert(
     initial.figureCaptionMath && initial.figureCaptionColor,
     "The ordinary figure did not render its structured rich caption",
@@ -1186,6 +1193,56 @@ async function exerciseBuilder(client) {
     [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
   })()`);
   await delay(100);
+  const displayGroupEditor = await client.evaluate(`(() => ({
+    lines: document.querySelectorAll("[data-math-display-editor-line-id]").length,
+    previewLines: document.querySelectorAll(".math-block-editor__group-preview .math-display-line").length,
+    alignment: document.querySelector(".math-block-editor__settings select")?.value ?? null,
+  }))()`);
+  assert(
+    displayGroupEditor.lines === 3 &&
+      displayGroupEditor.previewLines === 3 &&
+      displayGroupEditor.alignment === "automatic",
+    "The display-group editor did not expose all ordered lines and alignment policy",
+  );
+  const displayAlignmentGeometry = await client.evaluate(`(() => {
+    const rows = [...document.querySelectorAll(
+      ".math-block-editor__group-preview .math-display-line--aligned",
+    )];
+    return rows.map((row) => {
+      const left = row.querySelector(".math-display-line__branch:first-child").getBoundingClientRect();
+      const symbol = row.querySelector(".math-display-line__alignment-symbol").getBoundingClientRect();
+      const right = row.querySelector(".math-display-line__branch:last-child").getBoundingClientRect();
+      return {
+        symbolCenter: symbol.x + symbol.width / 2,
+        separated: left.right <= symbol.left + 0.5 && symbol.right <= right.left + 0.5,
+      };
+    });
+  })()`);
+  assert(
+    displayAlignmentGeometry.length === 2 &&
+      displayAlignmentGeometry.every(({ separated }) => separated) &&
+      Math.max(...displayAlignmentGeometry.map(({ symbolCenter }) => symbolCenter)) -
+        Math.min(...displayAlignmentGeometry.map(({ symbolCenter }) => symbolCenter)) <
+        0.5,
+    "Display equations did not share one non-overlapping alignment column",
+  );
+  await screenshot(client, "math-display-group-editor.png");
+  await client.evaluate(`document.querySelector(".math-block-editor__add-line").click()`);
+  await delay(60);
+  assert(
+    (await client.evaluate(`document.querySelectorAll("[data-math-display-editor-line-id]").length`)) === 4,
+    "Adding a display equation line did not update the live editor",
+  );
+  await client.evaluate(`(() => {
+    const selected = document.querySelector(".math-block-editor__line--selected");
+    [...selected.querySelectorAll("button")].find((button) => button.textContent.trim() === "Remove").click();
+    document.querySelector(".math-block-editor__line-select").click();
+  })()`);
+  await delay(60);
+  assert(
+    (await client.evaluate(`document.querySelectorAll("[data-math-display-editor-line-id]").length`)) === 3,
+    "Removing a display equation line did not restore the ordered group",
+  );
   assert(
     await client.evaluate(`document.querySelector(".math-editor-canvas .math-summation-symbol") !== null`),
     "The math editor did not render the structured summation",
@@ -1563,6 +1620,8 @@ async function exerciseBuilder(client) {
         underbrace: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--underbrace") !== null,
         mathText: document.querySelector("[data-visual-block-id='fixture-equation'] .math-text")?.textContent === "spectral support",
         calligraphicIdentifier: document.querySelector("[data-visual-block-id='fixture-equation'] .math-identifier--calligraphic")?.textContent === "ℋ",
+        displayLines: document.querySelectorAll("[data-visual-block-id='fixture-equation'] [data-math-display-line-id]").length === 3,
+        displayNumbers: JSON.stringify([...document.querySelectorAll("[data-visual-block-id='fixture-equation'] .math-equation-number")].map((node) => node.textContent.trim())) === JSON.stringify(["(1)", "(2)"]),
         relation: document.querySelector("[data-visual-block-id='fixture-introduction']")?.textContent.includes("ℕ≤∞") === true,
         blackboardIdentifier: document.querySelector("[data-visual-block-id='fixture-introduction'] .math-identifier--blackboard")?.textContent === "ℕ",
         uprightIdentifier: document.querySelector("[data-visual-block-id='fixture-item-list'] .math-identifier--upright")?.textContent === "E",

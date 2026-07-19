@@ -16,7 +16,7 @@ inline constexpr std::string_view k_canonical_document_format = "dans.typesettin
 inline constexpr u32 k_canonical_document_schema_version = 1U;
 
 // The core transport deliberately knows only the common node envelope. Plugin
-// modules own the schema of payload and can materialize it independently.
+// modules own the schema of payload and can decode it independently.
 struct CanonicalNode
 {
     std::string id{};

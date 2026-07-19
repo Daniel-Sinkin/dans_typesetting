@@ -31,6 +31,8 @@ class MarkdownOutput
     [[nodiscard]] auto register_footnote(std::string content) -> std::string;
 
     [[nodiscard]] auto target_number(const DocumentBlock& block) const -> std::string_view;
+    [[nodiscard]] auto target_number(const DocumentBlock& block, usize occurrence_index) const
+        -> std::string_view;
     [[nodiscard]] auto target_number(const ReferenceId& reference_id) const -> std::string_view;
     [[nodiscard]] auto reference_link(const ReferenceId& reference_id) const -> std::string;
     [[nodiscard]] auto resource_number(std::string_view namespace_id, std::string_view key) const

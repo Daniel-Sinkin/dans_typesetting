@@ -34,6 +34,9 @@ model and does not own block data.
   stores both as strings.
 - A numbered occurrence may omit its optional reference ID. Traversal-derived
   numbering and visible captions do not depend on publishing an anchor.
+- One block may publish several numbered occurrences. Display-math lines use
+  their own stable occurrence IDs while retaining one owning block and ordered
+  mutation boundary.
 
 ## Compatibility rule
 
@@ -102,11 +105,11 @@ graphical preview state are never semantic storage. The contract provides:
 - preservation of unknown plugin payloads;
 - explicit document-model versioning and a schema-version migration seam;
 - conformance fixtures consumed by native and browser implementations;
-- no LaTeX importer.
+- LaTeX is output-only and is never parsed as document input.
 
 The core transport only understands `id`, `type`, and an ordered JSON `payload`.
 Browser plugin modules register their own payload codecs. Native plugin
-materializers will follow the same ownership rule; the native transport already
+semantic decoders will follow the same ownership rule; native transport already
 parses and reproduces the shared fixture without inspecting known or unknown
 payloads. This makes the transport a protocol between modules, not a replacement
 for their encapsulated runtime data structures.
@@ -162,7 +165,7 @@ inside the document page and publishes immutable scene drafts through the same
 transactional editor contract as every other block.
 
 The LaTeX connector does not know how Excalidraw renders. It receives an asset
-resolver that materializes the opaque scene as a PDF, PNG, or JPEG and then
+resolver that renders the opaque scene as a PDF, PNG, or JPEG and then
 lowers that asset to an ordinary numbered figure. The resolved cache path is
 writer-owned state and never enters the semantic document. The example build
 uses a committed SVG converted to PDF as a deterministic stand-in; the browser
@@ -272,6 +275,14 @@ arbitrary integer size; unary negation is a recursive node rather than a sign
 embedded in either literal. Writers may group the node to avoid ambiguous
 `a + -b` presentation, but they do not normalize or evaluate it. See
 [math-numeric-literals.md](math-numeric-literals.md).
+
+A structured display block owns an ordered sequence of equation-line
+occurrences. Line numbering is explicit and independent from optional target
+identity; one group therefore contributes zero, one, or many entries to the
+writer's equation series. The graphical registry exposes a generic
+`numberedOccurrences` endpoint rather than teaching builder core about math,
+and plural target descriptors point at those occurrence IDs. See
+[math-display-groups.md](math-display-groups.md).
 
 ## Semantic target index
 

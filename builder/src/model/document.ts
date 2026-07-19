@@ -75,10 +75,19 @@ export interface ParagraphBlock extends BuilderBlock {
   readonly inlines: readonly BuilderInlineNode[];
 }
 
+export type MathDisplayAlignment = "automatic" | "disabled";
+
+export interface MathDisplayLine {
+  readonly id: string;
+  readonly expression: MathExpression;
+  readonly numbered: boolean;
+  readonly referenceId: string | null;
+}
+
 export interface MathDisplayBlock extends BuilderBlock {
   readonly typeId: typeof mathDisplayTypeId;
-  readonly expression: MathExpression;
-  readonly referenceId: string | null;
+  readonly lines: readonly MathDisplayLine[];
+  readonly alignment: MathDisplayAlignment;
 }
 
 export interface SectionBlock extends BuilderBlock {
@@ -165,6 +174,25 @@ export function createMathInline(
   return Object.freeze({ id, typeId: mathInlineTypeId, expression });
 }
 
+export function createMathDisplayLine(
+  expression: MathExpression,
+  numbered = true,
+  referenceId: string | null = null,
+  id: string = createBlockId(),
+): MathDisplayLine {
+  validateMathExpression(expression);
+  if (id.length === 0) {
+    throw new Error("A display-math line requires a stable ID");
+  }
+  if (!numbered && referenceId !== null) {
+    throw new Error("An unnumbered display-math line cannot expose a reference ID");
+  }
+  if (referenceId !== null) {
+    validateOptionalReferenceId(referenceId, "Equation reference ID");
+  }
+  return Object.freeze({ id, expression, numbered, referenceId });
+}
+
 export function createHyperlinkInline(
   target: string,
   labelInlines: readonly BuilderInlineNode[] = [],
@@ -231,12 +259,29 @@ export function isParagraphBlock(block: BuilderBlock): block is ParagraphBlock {
   );
 }
 
+function isMathDisplayLineShape(value: unknown): value is MathDisplayLine {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "expression" in value &&
+    "numbered" in value &&
+    typeof value.numbered === "boolean" &&
+    "referenceId" in value &&
+    (value.referenceId === null || typeof value.referenceId === "string")
+  );
+}
+
 export function isMathDisplayBlock(block: BuilderBlock): block is MathDisplayBlock {
   return (
     block.typeId === mathDisplayTypeId &&
-    "expression" in block &&
-    "referenceId" in block &&
-    (block.referenceId === null || typeof block.referenceId === "string")
+    "lines" in block &&
+    Array.isArray(block.lines) &&
+    block.lines.every(isMathDisplayLineShape) &&
+    "alignment" in block &&
+    (block.alignment === "automatic" || block.alignment === "disabled")
   );
 }
 
@@ -414,9 +459,29 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
       if (!isMathDisplayBlock(block)) {
         throw new Error("A display-math block has an invalid transport shape");
       }
-      validateMathExpression(block.expression);
-      if (block.referenceId !== null) {
-        validateOptionalReferenceId(block.referenceId, "Equation reference ID");
+      if (block.lines.length === 0) {
+        throw new Error("A display-math block requires at least one line");
+      }
+      {
+        const lineIds = new Set<string>();
+        for (const line of block.lines) {
+          if (line.id.length === 0) {
+            throw new Error("A display-math line requires a stable ID");
+          }
+          if (lineIds.has(line.id)) {
+            throw new Error(`Duplicate display-math line ID: ${line.id}`);
+          }
+          lineIds.add(line.id);
+          validateMathExpression(line.expression);
+          if (!line.numbered && line.referenceId !== null) {
+            throw new Error(
+              "An unnumbered display-math line cannot expose a reference ID",
+            );
+          }
+          if (line.referenceId !== null) {
+            validateOptionalReferenceId(line.referenceId, "Equation reference ID");
+          }
+        }
       }
       return;
     case sectionTypeId:
@@ -472,6 +537,18 @@ function validateDocumentBlocks(blocks: readonly BuilderBlock[]): void {
     }
     ids.add(block.id);
   }
+  const displayLineIds = new Set<string>();
+  for (const block of flattenBuilderBlocks(blocks)) {
+    if (!isMathDisplayBlock(block)) {
+      continue;
+    }
+    for (const line of block.lines) {
+      if (ids.has(line.id) || displayLineIds.has(line.id)) {
+        throw new Error(`Duplicate document occurrence ID: ${line.id}`);
+      }
+      displayLineIds.add(line.id);
+    }
+  }
 }
 
 function freezeBuilderBlock(block: BuilderBlock): BuilderBlock {
@@ -479,6 +556,18 @@ function freezeBuilderBlock(block: BuilderBlock): BuilderBlock {
     return Object.freeze({
       ...block,
       blocks: Object.freeze(block.blocks.map(freezeBuilderBlock)),
+    });
+  }
+  if (isMathDisplayBlock(block)) {
+    return Object.freeze({
+      ...block,
+      lines: Object.freeze(
+        block.lines.map((line) =>
+          Object.freeze({
+            ...line,
+          }),
+        ),
+      ),
     });
   }
   return Object.freeze(block);

@@ -268,84 +268,125 @@
       "id": "fixture-equation",
       "type": "dans.math.display",
       "payload": {
-        "expression": {
-          "kind": "binary",
-          "operator": "approximately_equals",
-          "left": {
-            "kind": "underbrace",
-            "body": {
-              "kind": "function",
-              "name": "spectrum",
-              "namedOperator": true,
-              "delimiter": "brackets",
-              "argument": {
-                "kind": "identifier",
-                "name": "H",
-                "style": "calligraphic"
-              }
-            },
-            "annotation": {
-              "kind": "text",
-              "value": "spectral support"
-            }
-          },
-          "right": {
-            "kind": "fraction",
-            "numerator": {
-              "kind": "delimited",
-              "delimiter": "brackets",
-              "body": {
-                "kind": "grid",
-                "rows": 2,
-                "columns": 2,
-                "cells": [
-                  {
-                    "kind": "integer",
-                    "value": "1"
-                  },
-                  {
-                    "kind": "negated",
-                    "body": {
-                      "kind": "decimal",
-                      "value": "003.20"
-                    }
-                  },
-                  {
+        "alignment": "automatic",
+        "lines": [
+          {
+            "id": "fixture-equation-line-main",
+            "expression": {
+              "kind": "binary",
+              "operator": "approximately_equals",
+              "left": {
+                "kind": "underbrace",
+                "body": {
+                  "kind": "function",
+                  "name": "spectrum",
+                  "namedOperator": true,
+                  "delimiter": "brackets",
+                  "argument": {
                     "kind": "identifier",
-                    "name": "a"
-                  },
-                  {
-                    "kind": "integer",
-                    "value": "4"
+                    "name": "H",
+                    "style": "calligraphic"
                   }
-                ]
-              }
-            },
-            "denominator": {
-              "kind": "radical",
-              "body": {
-                "kind": "script",
-                "base": {
-                  "kind": "identifier",
-                  "name": "lambda"
                 },
-                "subscript": {
-                  "kind": "identifier",
-                  "name": "i"
-                },
-                "superscript": {
-                  "kind": "integer",
-                  "value": "2"
+                "annotation": {
+                  "kind": "text",
+                  "value": "spectral support"
                 }
               },
-              "degree": {
-                "kind": "integer",
-                "value": "3"
+              "right": {
+                "kind": "fraction",
+                "numerator": {
+                  "kind": "delimited",
+                  "delimiter": "brackets",
+                  "body": {
+                    "kind": "grid",
+                    "rows": 2,
+                    "columns": 2,
+                    "cells": [
+                      {
+                        "kind": "integer",
+                        "value": "1"
+                      },
+                      {
+                        "kind": "negated",
+                        "body": {
+                          "kind": "decimal",
+                          "value": "003.20"
+                        }
+                      },
+                      {
+                        "kind": "identifier",
+                        "name": "a"
+                      },
+                      {
+                        "kind": "integer",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                },
+                "denominator": {
+                  "kind": "radical",
+                  "body": {
+                    "kind": "script",
+                    "base": {
+                      "kind": "identifier",
+                      "name": "lambda"
+                    },
+                    "subscript": {
+                      "kind": "identifier",
+                      "name": "i"
+                    },
+                    "superscript": {
+                      "kind": "integer",
+                      "value": "2"
+                    }
+                  },
+                  "degree": {
+                    "kind": "integer",
+                    "value": "3"
+                  }
+                }
               }
-            }
+            },
+            "numbered": true,
+            "referenceId": "eq:canonical-equation"
+          },
+          {
+            "id": "fixture-equation-line-energy",
+            "expression": {
+              "kind": "binary",
+              "operator": "equals",
+              "left": {
+                "kind": "identifier",
+                "name": "E"
+              },
+              "right": {
+                "kind": "binary",
+                "operator": "plus",
+                "left": {
+                  "kind": "identifier",
+                  "name": "T"
+                },
+                "right": {
+                  "kind": "identifier",
+                  "name": "V"
+                }
+              }
+            },
+            "numbered": true,
+            "referenceId": null
+          },
+          {
+            "id": "fixture-equation-line-note",
+            "expression": {
+              "kind": "text",
+              "value": "unnumbered note"
+            },
+            "numbered": false,
+            "referenceId": null
           }
-        },
-        "referenceId": "eq:canonical-equation"
+        ]
       }
     },
     {

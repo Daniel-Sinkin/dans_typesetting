@@ -113,12 +113,49 @@ auto test_model() -> void
     expect(rejected_control_text, "Math text accepted a line break");
 
     make_expression().validate();
+
+    M::Display display{M::equal(M::id_a, M::id_b)};
+    display.add_unnumbered(M::equal(M::id_c, M::id_d));
+    display.add_equation(M::equal(M::id_x, M::id_y));
+    expect(display.lines().size() == 3, "A display group lost an ordered line");
+    expect(
+        display.lines()[0].numbering == M::DisplayLineNumbering::numbered,
+        "A default display line was not numbered"
+    );
+    expect(
+        display.lines()[1].numbering == M::DisplayLineNumbering::unnumbered,
+        "An unnumbered display line changed policy"
+    );
+    expect(
+        display.lines()[2].numbering == M::DisplayLineNumbering::numbered
+            && !display.lines()[2].reference_id.has_value(),
+        "A targetless numbered line acquired a reference ID"
+    );
+    expect_invalid_argument(
+        []
+        {
+            M::Display display_with_invalid_line{
+                M::id_x,
+                M::DisplayLineOptions{
+                    .numbering = M::DisplayLineNumbering::unnumbered,
+                    .reference_id = dans::document::ReferenceId{"eq:invalid"},
+                },
+            };
+            static_cast<void>(display_with_invalid_line);
+        },
+        "An unnumbered display line published a reference target"
+    );
 }
 
 auto test_latex() -> void
 {
+    using M = Math;
     Document document;
-    document.blocks().add<Math::Display>(make_expression());
+    document.blocks().add<M::Display>(make_expression());
+    document.blocks()
+        .add<M::Display>(M::equal(M::id_a, M::id_b))
+        .add_unnumbered(M::equal(M::id_c, M::id_d))
+        .add_equation(M::equal(M::id_x, M::id_y), dans::document::ReferenceId{"eq:after-gap"});
 
     LatexWriter writer;
     writer.register_block_adapter(std::make_unique<DisplayMathLatexAdapter>());
@@ -128,12 +165,24 @@ auto test_latex() -> void
 
     expect(rendered.contains(R"(\usepackage{amsfonts})"), "Math alphabets omitted amsfonts");
     expect(
+        rendered.contains("\\begin{equation}"), "A targetless default display line was not numbered"
+    );
+    expect(
         rendered.contains(R"(\frac{{x}_{i}}{\sqrt{y}})"),
         "A structured fraction or its nested square root was not lowered to LaTeX"
     );
     expect(
         rendered.contains(R"({\sqrt[3]{z}}^{2})"),
         "An indexed root or its superscript was not lowered to LaTeX"
+    );
+    expect(rendered.contains("\\begin{align}\n"), "A mixed multiline display did not use align");
+    expect(
+        rendered.contains("c &= d \\notag \\\\\n"),
+        "An unnumbered line in a numbered display did not suppress its number"
+    );
+    expect(
+        rendered.contains("x &= y \\label{eq:after-gap}"),
+        "A labelled line after an unnumbered line lost its target"
     );
 }
 
@@ -279,11 +328,11 @@ auto test_thesis_vocabulary() -> void
             M::sequence(
                 M::id_partial,
                 M::id_infinity,
-                M::id_ellipsis,
-                M::id_centered_ellipsis,
+                M::id_dots,
+                M::id_cdots,
                 M::id_dagger,
                 M::id_transpose,
-                M::id_script_ell
+                M::id_ell
             )
         ) == R"({\partial}{\infty}{\dots}{\cdots}{\dagger}{\top}{\ell})",
         "Special-symbol lowering changed"

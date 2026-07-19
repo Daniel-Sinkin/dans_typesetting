@@ -2,15 +2,19 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createMathDisplayLine,
   createParagraphText,
+  mathDisplayTypeId,
   MemoryDocumentPort,
   paragraphTypeId,
   replaceBuilderBlockInTree,
   sectionTypeId,
   type BuilderBlock,
+  type MathDisplayBlock,
   type ParagraphBlock,
   type SectionBlock,
 } from "./document";
+import { createMathInteger } from "./math";
 
 function paragraph(id: string): ParagraphBlock {
   return {
@@ -27,6 +31,15 @@ function section(id: string, blocks: readonly BuilderBlock[] = []): SectionBlock
     title: `Section ${id}`,
     referenceId: `sec:${id}`,
     blocks,
+  };
+}
+
+function display(id: string, lineId: string): MathDisplayBlock {
+  return {
+    id,
+    typeId: mathDisplayTypeId,
+    alignment: "automatic",
+    lines: [createMathDisplayLine(createMathInteger("1"), true, null, lineId)],
   };
 }
 
@@ -189,6 +202,31 @@ describe("MemoryDocumentPort", () => {
         index: 0,
       });
     }).toThrow(/inside itself/u);
+  });
+
+  it("keeps display-line occurrence identities globally stable", () => {
+    expect(() =>
+      new MemoryDocumentPort([
+        display("first-display", "same-line"),
+        display("second-display", "same-line"),
+      ]),
+    ).toThrow(/Duplicate document occurrence ID: same-line/u);
+    expect(() =>
+      new MemoryDocumentPort([
+        display("display", "paragraph"),
+        paragraph("paragraph"),
+      ]),
+    ).toThrow(/Duplicate document occurrence ID: paragraph/u);
+    expect(() =>
+      new MemoryDocumentPort([
+        {
+          id: "empty-display",
+          typeId: mathDisplayTypeId,
+          alignment: "automatic",
+          lines: [],
+        } as MathDisplayBlock,
+      ]),
+    ).toThrow(/requires at least one line/u);
   });
 
   it("projects an editor draft into a recursive tree without publishing it", () => {

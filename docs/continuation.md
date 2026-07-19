@@ -327,7 +327,7 @@ The preceding semantic document-shell and page-projection slice adds:
 
 The preceding canonical-transport slice provides:
 
-- schema-versioned `.dans.json` whole-document persistence;
+- schema-versioned `.dans_doc` whole-document persistence;
 - plugin-owned block and inline codecs in the browser;
 - stable document metadata and transactional full-document replacement;
 - unknown block and inline payload preservation;
@@ -336,8 +336,25 @@ The preceding canonical-transport slice provides:
 - one shared fixture that normalizes exactly in both implementations.
 
 The native transport still preserves plugin payloads opaquely. Native
-plugin-specific materialization into runtime `DocumentBlock` instances is not
+plugin-specific decoding into runtime `DocumentBlock` instances is not
 yet implemented; this is deliberately a separate adapter concern.
+
+The structured-display milestone now provides:
+
+- native and graphical ordered display-line contracts;
+- explicit numbered/unnumbered policy independent from optional targets;
+- writer-derived ordinals for multiple occurrences owned by one block;
+- automatic top-level-equality alignment and a disabled mode;
+- native LaTeX `equation`/`align`/`gather` lowering with `\notag`;
+- portable Markdown and presentation-Jupyter lowering;
+- a graphical live group preview plus line selection, add/remove, permutation,
+  and per-line target editing;
+- canonical ordered-line payloads and legacy one-expression normalization;
+- shared-fixture, malformed-input, reference-renumbering, and browser
+  interaction coverage.
+
+The normative contract and current native-only explicit-alignment caveat are in
+`docs/math-display-groups.md`.
 
 ## Verification commands
 
@@ -358,13 +375,16 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Continue with one complete thesis-parity slice. The focused follow-up audit now
-prioritizes multiline display groups, recursive math colour, caption-optional
-tables, round matrices/bare arrays, and constrained header spans.
-External source-file listing inclusion is not pressure from the current corpus.
-See `thesis-next-slices.md` for representative source locations and the full
-ranked list. Kernel-specific Jupyter cells and notebook attachments remain
-optional writer policies.
+Continue with one complete thesis-parity slice. The most important next slice
+is no longer another leaf plugin: add a plugin-owned native canonical decoder
+and strict `.dans_doc -> .tex/.pdf` exporter so a document authored
+in the graphical builder can enter the publication pipeline. Follow it with a
+managed asset resolver/bundle for browser-selected images and Excalidraw
+renders. Recursive math colour, caption-optional tables, round matrices, and
+block-bearing/custom-labelled lists remain the highest content gaps. See
+`thesis-next-slices.md` for representative source locations and the full ranked
+list. Kernel-specific Jupyter cells and notebook attachments remain optional
+writer policies.
 
 Current deliberate compromises to reassess later:
 
@@ -379,7 +399,7 @@ Current deliberate compromises to reassess later:
 - a drawing scene currently follows Excalidraw's plugin-private schema and will
   need a payload migration if that upstream schema changes incompatibly;
 - the native sample resolves a deterministic pre-rendered asset; production
-  native export still needs an Excalidraw scene materializer process;
+  native export still needs an Excalidraw scene rendering process;
 - nested Excalidraw instances materially increase the eager browser bundle, so
   editor lazy-loading belongs in a later shell/performance slice.
 - list editing currently uses explicit move buttons rather than pointer drag;
@@ -444,3 +464,8 @@ Current deliberate compromises to reassess later:
 - numeric leaves deliberately omit signs, exponent notation, locale separators,
   and floating-point interpretation; unary negation supplies the sign while
   preserving source spelling.
+- graphical display groups expose only automatic top-level-equality alignment
+  or disabled alignment; native explicit operator markers are not yet part of
+  the browser expression payload.
+- line permutation in the first display-group editor uses explicit controls;
+  drag gestures can replace them without changing occurrence identities.

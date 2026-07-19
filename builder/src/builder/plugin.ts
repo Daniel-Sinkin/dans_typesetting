@@ -6,7 +6,12 @@ import type {
   BuilderReferenceTarget,
   BuilderReferenceTargetDescriptor,
 } from "./reference";
-import type { InlineOrdinal, NumberedInlineOccurrence } from "./numbered";
+import type {
+  BlockOrdinal,
+  InlineOrdinal,
+  NumberedBlockOccurrence,
+  NumberedInlineOccurrence,
+} from "./numbered";
 import type {
   BuilderDocumentResourceDescriptor,
   BuilderDocumentResourceIndex,
@@ -27,6 +32,7 @@ export interface BuilderBlockRenderContext {
   readonly sectionDepth: number;
   readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
   readonly inlineOrdinals: ReadonlyMap<string, InlineOrdinal>;
+  readonly blockOrdinals: ReadonlyMap<string, BlockOrdinal>;
   readonly documentResources: BuilderDocumentResourceIndex;
 }
 
@@ -53,6 +59,9 @@ export interface BuilderBlockAdapter {
   readonly numberedInlineOccurrences?:
     | ((block: BuilderBlock) => readonly NumberedInlineOccurrence[])
     | undefined;
+  readonly numberedOccurrences?:
+    | ((block: BuilderBlock) => readonly NumberedBlockOccurrence[])
+    | undefined;
   readonly documentResources?:
     | ((block: BuilderBlock) => readonly BuilderDocumentResourceDescriptor[])
     | undefined;
@@ -73,6 +82,7 @@ export interface BuilderBlockEditorProps {
   readonly onCancel: () => void;
   readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
   readonly inlineOrdinals: ReadonlyMap<string, InlineOrdinal>;
+  readonly blockOrdinals: ReadonlyMap<string, BlockOrdinal>;
   readonly documentResources: BuilderDocumentResourceIndex;
 }
 
@@ -103,6 +113,9 @@ export interface BuilderFallbackAdapter {
     | undefined;
   readonly numberedInlineOccurrences?:
     | ((block: BuilderBlock) => readonly NumberedInlineOccurrence[])
+    | undefined;
+  readonly numberedOccurrences?:
+    | ((block: BuilderBlock) => readonly NumberedBlockOccurrence[])
     | undefined;
   measure(
     block: BuilderBlockEnvelope,
@@ -147,5 +160,18 @@ export class BuilderPluginRegistry {
     block: BuilderBlock,
   ): readonly BuilderDocumentResourceDescriptor[] {
     return this.#plugins.get(block.typeId)?.documentResources?.(block) ?? [];
+  }
+
+  public numberedOccurrencesForBlock(
+    block: BuilderBlock,
+  ): readonly NumberedBlockOccurrence[] {
+    const adapter = this.pluginForBlock(block);
+    const occurrences = adapter.numberedOccurrences?.(block);
+    if (occurrences !== undefined) {
+      return occurrences;
+    }
+    return adapter.numberingSeries === undefined
+      ? []
+      : [{ occurrenceId: block.id, numberingSeries: adapter.numberingSeries }];
   }
 }

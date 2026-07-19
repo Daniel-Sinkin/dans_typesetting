@@ -5,7 +5,7 @@ import {
   type BuilderBlock,
 } from "../model/document";
 import { requireReferenceId } from "../model/referenceId";
-import { deriveBlockOrdinals } from "./numbering";
+import { deriveNumberedBlockOrdinals } from "./numbering";
 import type { BuilderPluginRegistry } from "./plugin";
 import {
   referenceAnchorId,
@@ -61,9 +61,9 @@ export function deriveReferenceTargets(
   registry: BuilderPluginRegistry,
 ): ReadonlyMap<string, BuilderReferenceTarget> {
   const flattened = flattenBuilderBlocks(blocks);
-  const ordinals = deriveBlockOrdinals(
+  const ordinals = deriveNumberedBlockOrdinals(
     flattened,
-    (block) => registry.pluginForBlock(block).numberingSeries ?? null,
+    (block) => registry.numberedOccurrencesForBlock(block),
   );
   const sectionNumbers = deriveSectionNumbers(blocks);
   const result = new Map<string, BuilderReferenceTarget>();
@@ -83,7 +83,8 @@ export function deriveReferenceTargets(
           `Duplicate semantic reference ID '${referenceId}' on blocks ${previous.blockId} and ${block.id}`,
         );
       }
-      const ordinal = ordinals.get(block.id)?.ordinal ?? null;
+      const occurrenceId = descriptor.occurrenceId ?? block.id;
+      const ordinal = ordinals.get(occurrenceId)?.ordinal ?? null;
       const baseNumber = isSectionBlock(block)
         ? sectionNumbers.get(block.id) ?? "?"
         : ordinal === null
@@ -93,6 +94,7 @@ export function deriveReferenceTargets(
       result.set(referenceId, {
         referenceId,
         blockId: block.id,
+        occurrenceId,
         typeId: block.typeId,
         label: descriptor.label,
         number,

@@ -92,11 +92,11 @@ export const mathSymbolNames = [
   "nabla",
   "partial",
   "infinity",
-  "ellipsis",
-  "centered_ellipsis",
+  "dots",
+  "cdots",
   "dagger",
   "transpose",
-  "script_ell",
+  "ell",
   "asterisk",
 ] as const;
 
@@ -492,11 +492,11 @@ const mathSymbolGlyphs: Readonly<Record<MathSymbolName, string>> = Object.freeze
   nabla: "∇",
   partial: "∂",
   infinity: "∞",
-  ellipsis: "…",
-  centered_ellipsis: "⋯",
+  dots: "…",
+  cdots: "⋯",
   dagger: "†",
   transpose: "⊤",
-  script_ell: "ℓ",
+  ell: "ℓ",
   asterisk: "∗",
 });
 
@@ -522,15 +522,15 @@ export function mathSymbolNameFromInput(value: string): MathSymbolName | null {
     case "inf":
       return "infinity";
     case "dots":
-      return "ellipsis";
+      return "dots";
     case "cdots":
-      return "centered_ellipsis";
+      return "cdots";
     case "dag":
       return "dagger";
     case "top":
       return "transpose";
     case "ell":
-      return "script_ell";
+      return "ell";
     default:
       return null;
   }
@@ -1606,6 +1606,22 @@ function requireBooleanField(
   return fieldValue;
 }
 
+function parseSerializedMathSymbolName(name: string): MathSymbolName {
+  if ((mathSymbolNames as readonly string[]).includes(name)) {
+    return name as MathSymbolName;
+  }
+  switch (name) {
+    case "ellipsis":
+      return "dots";
+    case "centered_ellipsis":
+      return "cdots";
+    case "script_ell":
+      return "ell";
+    default:
+      throw new Error(`Unsupported serialized math symbol: ${name}`);
+  }
+}
+
 function parseSerializedMathNode(value: unknown): MathExpression {
   const node = requireObject(value, "Serialized math node");
   const kind = requireStringField(node, "kind", "Serialized math node");
@@ -1628,10 +1644,7 @@ function parseSerializedMathNode(value: unknown): MathExpression {
       return createMathText(requireStringField(node, "value", "Math text"));
     case "symbol": {
       const name = requireStringField(node, "name", "Symbol");
-      if (!(mathSymbolNames as readonly string[]).includes(name)) {
-        throw new Error(`Unsupported serialized math symbol: ${name}`);
-      }
-      return createMathSymbol(name as MathSymbolName);
+      return createMathSymbol(parseSerializedMathSymbolName(name));
     }
     case "function": {
       const delimiter = requireStringField(node, "delimiter", "Function");

@@ -64,7 +64,7 @@ export function BlockPalette({
               className="visually-hidden"
               data-testid="load-document"
               type="file"
-              accept=".json,.dans.json,application/json"
+              accept=".dans_doc,application/json"
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
                 if (file !== undefined) {

@@ -33,7 +33,10 @@ import type { BuilderBlockPlugin, BuilderPluginRegistry } from "../builder/plugi
 import { copyBuilderBlockForInsert } from "../builder/copyBlock";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
 import { deriveDocumentResources } from "../builder/documentResources";
-import { deriveBlockOrdinals, deriveInlineOrdinals } from "../builder/numbering";
+import {
+  deriveInlineOrdinals,
+  deriveNumberedBlockOrdinals,
+} from "../builder/numbering";
 import { createPageAnchor, pageAnchorId } from "../canvas/pageAnchor";
 import {
   createBlockId,
@@ -488,8 +491,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   );
   const blockOrdinals = useMemo(
     () =>
-      deriveBlockOrdinals(flattenBuilderBlocks(flowBlocks), (block) =>
-        registry.pluginForBlock(block).numberingSeries ?? null,
+      deriveNumberedBlockOrdinals(flattenBuilderBlocks(flowBlocks), (block) =>
+        registry.numberedOccurrencesForBlock(block),
       ),
     [flowBlocks, registry],
   );
@@ -634,12 +637,18 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           block: editingDraft,
           numberingSeries:
             registry.pluginForBlock(editingDraft).numberingSeries ?? null,
-          ordinal: blockOrdinals.get(editingDraft.id)?.ordinal ?? null,
+          ordinal: (() => {
+            const occurrence = registry.numberedOccurrencesForBlock(editingDraft)[0];
+            return occurrence === undefined
+              ? null
+              : blockOrdinals.get(occurrence.occurrenceId)?.ordinal ?? null;
+          })(),
           onPreview: previewEditorBlock,
           onCancel: closeEditor,
           onCommit: commitEditorBlock,
           referenceTargets,
           inlineOrdinals,
+          blockOrdinals,
           documentResources,
         };
   const inlineEditor =
@@ -659,7 +668,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       );
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "document.dans.json";
+      anchor.download = "document.dans_doc";
       document.body.append(anchor);
       anchor.click();
       anchor.remove();

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createHyperlinkInline,
+  createMathDisplayLine,
   createMathInline,
   createParagraphText,
   createReferenceInline,
@@ -30,7 +31,7 @@ import {
   DocumentTransportRegistry,
 } from "./documentTransport";
 import { projectDocumentTransport } from "./projectTransport";
-import conformanceFixture from "../../../fixtures/canonical/current-features.dans.json?raw";
+import conformanceFixture from "../../../fixtures/canonical/current-features.dans_doc?raw";
 
 function representativeBlocks(): readonly BuilderBlock[] {
   const expression = createMathBinary(
@@ -73,8 +74,15 @@ function representativeBlocks(): readonly BuilderBlock[] {
   const equation = {
     id: "equation",
     typeId: mathDisplayTypeId,
-    expression,
-    referenceId: "eq:representative",
+    alignment: "automatic",
+    lines: [
+      createMathDisplayLine(
+        expression,
+        true,
+        "eq:representative",
+        "equation-line",
+      ),
+    ],
   } satisfies MathDisplayBlock;
   return [
     paragraph,
@@ -130,6 +138,87 @@ describe("canonical document transport", () => {
       enabled: true,
       nested: [1, "two"],
     });
+  });
+
+  it("normalizes the legacy one-expression display payload into one numbered line", () => {
+    const source = `${JSON.stringify({
+      format: canonicalDocumentFormat,
+      schemaVersion: 1,
+      documentVersion: { major: 0, minor: 1, patch: 0 },
+      blocks: [
+        {
+          id: "legacy-display",
+          type: mathDisplayTypeId,
+          payload: {
+            expression: { kind: "integer", value: "0042" },
+            referenceId: "eq:legacy",
+          },
+        },
+      ],
+    })}\n`;
+
+    const decoded = projectDocumentTransport.fromString(source);
+    const display = decoded.blocks[0] as MathDisplayBlock;
+    expect(display.alignment).toBe("automatic");
+    expect(display.lines).toEqual([
+      expect.objectContaining({
+        id: "legacy-display:line:0",
+        numbered: true,
+        referenceId: "eq:legacy",
+      }),
+    ]);
+    const normalized = JSON.parse(
+      projectDocumentTransport.toString(
+        new MemoryDocumentPort(decoded.blocks, decoded.metadata).getSnapshot(),
+      ),
+    ) as { blocks: { payload: Record<string, unknown> }[] };
+    expect(normalized.blocks[0]?.payload).toMatchObject({
+      alignment: "automatic",
+      lines: [
+        {
+          id: "legacy-display:line:0",
+          numbered: true,
+          referenceId: "eq:legacy",
+        },
+      ],
+    });
+    expect(normalized.blocks[0]?.payload).not.toHaveProperty("expression");
+  });
+
+  it("rejects ambiguous or unreferenceable display-line payloads", () => {
+    const documentWithPayload = (payload: unknown): string =>
+      `${JSON.stringify({
+        format: canonicalDocumentFormat,
+        schemaVersion: 1,
+        documentVersion: { major: 0, minor: 1, patch: 0 },
+        blocks: [{ id: "display", type: mathDisplayTypeId, payload }],
+      })}\n`;
+    const expression = { kind: "integer", value: "1" };
+
+    expect(() =>
+      projectDocumentTransport.fromString(
+        documentWithPayload({
+          expression,
+          lines: [],
+          referenceId: null,
+        }),
+      ),
+    ).toThrow(/cannot mix ordered lines with legacy expression fields/u);
+    expect(() =>
+      projectDocumentTransport.fromString(
+        documentWithPayload({
+          alignment: "automatic",
+          lines: [
+            {
+              id: "line",
+              expression,
+              numbered: false,
+              referenceId: "eq:impossible",
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/unnumbered display-math line cannot expose a reference ID/u);
   });
 
   it("treats unregistered types as opaque without knowing their payload schema", () => {

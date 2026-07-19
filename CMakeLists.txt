@@ -100,7 +100,7 @@ target_include_directories(json_support PUBLIC
 target_link_libraries(json_support PRIVATE typesetter_warnings)
 
 # Stable, versioned interchange boundary shared with the graphical builder.
-# It preserves plugin payloads opaquely; plugin modules own materialization.
+# It preserves plugin payloads opaquely; plugin modules own semantic decoding.
 add_library(canonical_transport STATIC
   src/transport/document_transport.cpp
   src/transport/document_transport.hpp
@@ -790,8 +790,8 @@ if(BUILD_TESTING)
     tests/native_transport_test.cpp
   )
   target_compile_definitions(native_transport_test PRIVATE
-    DANS_TYPESETTING_CANONICAL_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/canonical/current-features.dans.json"
-    DANS_TYPESETTING_TRANSPORT_TEST_OUTPUT="${CMAKE_CURRENT_BINARY_DIR}/native-transport-roundtrip.dans.json"
+    DANS_TYPESETTING_CANONICAL_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/canonical/current-features.dans_doc"
+    DANS_TYPESETTING_TRANSPORT_TEST_OUTPUT="${CMAKE_CURRENT_BINARY_DIR}/native-transport-roundtrip.dans_doc"
   )
   target_link_libraries(native_transport_test PRIVATE
     dans::canonical_transport

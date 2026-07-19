@@ -16,7 +16,7 @@ unknown type is preserved by `DocumentPort` and rendered through one visible opa
 The fallback reads only the common stable ID and type ID and never inspects plugin-owned payload.
 
 The current `MemoryDocumentPort` is deliberately behind a command/snapshot interface. Versioned
-`.dans.json` persistence sits on the other side of that boundary: plugin-owned codecs translate
+`.dans_doc` persistence sits on the other side of that boundary: plugin-owned codecs translate
 runtime shapes to canonical payload envelopes, while unknown plugin payloads remain opaque. The
 same conformance fixture is normalized exactly by browser and native transport tests.
 
@@ -60,6 +60,15 @@ Numeric leaves preserve their decimal spelling as strings, including leading
 zeroes and leading/trailing decimal points. A minus sign is a recursive negation
 node rather than part of a number leaf, so clipboard and canonical round trips
 do not depend on JavaScript floating-point conversion.
+
+Display math owns one or more ordered equation lines. Each line can be
+numbered or explicitly unnumbered and a numbered line may independently expose
+a semantic target. Targetless numbered lines still advance later references.
+The editor shows a live group preview, supports line add/remove/permutation and
+per-line target controls, and reuses the recursive math canvas for the selected
+line. Automatic mode aligns top-level equals signs; disabled mode preserves
+ordinary centered lines. Legacy one-expression payloads normalize to this
+shape on load.
 
 The two-panel figure extension owns two horizontal image panels, three rich inline captions, one
 group target, and optional `a`/`b` panel targets. Its editor selects each image independently and

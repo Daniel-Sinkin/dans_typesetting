@@ -55,11 +55,14 @@ import {
   type MathSymbolName,
 } from "../model/math";
 import {
+  createMathDisplayLine,
   isMathDisplayBlock,
   type BuilderBlock,
   type MathDisplayBlock,
+  type MathDisplayLine,
 } from "../model/document";
 import { editableReferenceIdError } from "../builder/referenceEditing";
+import { MathDisplayPreview } from "./mathDisplayView";
 
 const detachMovementThresholdPx = 7;
 
@@ -2024,7 +2027,7 @@ export function MathExpressionEditor({
         <div className="editor-actions">
           <button
             type="button"
-            disabled={isTrackingPointer || !canCommit}
+            disabled={isTrackingPointer}
             onClick={() => {
               setDraft(expression);
               onCancel();
@@ -2035,7 +2038,7 @@ export function MathExpressionEditor({
           <button
             className="primary-action"
             type="button"
-            disabled={isTrackingPointer}
+            disabled={isTrackingPointer || !canCommit}
             onClick={() => {
               onCommit(draft);
             }}
@@ -2093,53 +2096,274 @@ export function MathExpressionEditor({
 
 export function MathEditor({
   block,
+  onPreview,
   onCommit,
   onCancel,
   inputParser,
   editorExtensions,
   referenceTargets,
+  blockOrdinals,
 }: MathEditorProps) {
-  const displayMath = requireDisplayMath(block);
-  const [referenceId, setReferenceId] = useState(displayMath.referenceId ?? "");
-  const referenceError = editableReferenceIdError(
-    referenceId,
-    displayMath.id,
-    referenceTargets,
+  const initialDisplayMath = requireDisplayMath(block);
+  const [draft, setDraft] = useState(initialDisplayMath);
+  const [selectedLineId, setSelectedLineId] = useState(
+    initialDisplayMath.lines[0]?.id ?? "",
   );
+  const selectedLine =
+    draft.lines.find((line) => line.id === selectedLineId) ?? draft.lines[0];
+  if (selectedLine === undefined) {
+    throw new Error("A display-math editor requires at least one line");
+  }
+
+  const referenceCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const line of draft.lines) {
+      if (line.referenceId !== null) {
+        counts.set(line.referenceId, (counts.get(line.referenceId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [draft.lines]);
+  const referenceErrors = useMemo(() => {
+    const errors = new Map<string, string>();
+    for (const line of draft.lines) {
+      const value = line.referenceId ?? "";
+      const externalError = editableReferenceIdError(
+        value,
+        draft.id,
+        referenceTargets,
+      );
+      if (externalError !== null) {
+        errors.set(line.id, externalError);
+      } else if (value.length > 0 && (referenceCounts.get(value) ?? 0) > 1) {
+        errors.set(line.id, `Duplicate equation reference ID '${value}'`);
+      }
+    }
+    return errors;
+  }, [draft.id, draft.lines, referenceCounts, referenceTargets]);
+  const valid = referenceErrors.size === 0;
+
+  useEffect(() => {
+    if (valid) {
+      onPreview(draft);
+    }
+  }, [draft, onPreview, valid]);
+
+  const updateLine = (
+    lineId: string,
+    update: (line: MathDisplayLine) => MathDisplayLine,
+  ): void => {
+    setDraft((current) =>
+      Object.freeze({
+        ...current,
+        lines: Object.freeze(
+          current.lines.map((line) => (line.id === lineId ? update(line) : line)),
+        ),
+      }),
+    );
+  };
+
+  const moveLine = (lineId: string, offset: -1 | 1): void => {
+    setDraft((current) => {
+      const index = current.lines.findIndex((line) => line.id === lineId);
+      const targetIndex = index + offset;
+      if (index < 0 || targetIndex < 0 || targetIndex >= current.lines.length) {
+        return current;
+      }
+      const lines = [...current.lines];
+      const [line] = lines.splice(index, 1);
+      if (line === undefined) {
+        return current;
+      }
+      lines.splice(targetIndex, 0, line);
+      return Object.freeze({ ...current, lines: Object.freeze(lines) });
+    });
+  };
+
   return (
     <div className="math-block-editor">
-      <label className="editor-field math-block-editor__reference">
-        <span>Equation reference ID · optional</span>
-        <input
-          value={referenceId}
-          pattern="[A-Za-z][A-Za-z0-9_.:-]*"
-          placeholder="eq:energy"
-          onChange={(event) => {
-            setReferenceId(event.target.value);
-          }}
+      <section className="math-block-editor__group-preview">
+        <header>
+          <strong>Display group preview</strong>
+          <span>{draft.lines.length} ordered lines</span>
+        </header>
+        <MathDisplayPreview
+          displayMath={draft}
+          blockOrdinals={blockOrdinals}
+          referenceTargets={referenceTargets}
+          renderExpression={(expression) => <MathTree expression={expression} />}
+          publishAnchors={false}
         />
-      </label>
-      {referenceError === null ? null : (
-        <p className="editor-error math-block-editor__reference-error">
-          {referenceError}
-        </p>
-      )}
+      </section>
+
+      <section className="math-block-editor__settings">
+        <label className="editor-field">
+          <span>Line alignment</span>
+          <select
+            value={draft.alignment}
+            onChange={(event) => {
+              const alignment = event.target.value;
+              if (alignment === "automatic" || alignment === "disabled") {
+                setDraft((current) => Object.freeze({ ...current, alignment }));
+              }
+            }}
+          >
+            <option value="automatic">Automatic at top-level equals signs</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </label>
+        <div className="math-block-editor__line-list">
+          {draft.lines.map((line, index) => (
+            <article
+              className={
+                line.id === selectedLine.id
+                  ? "math-block-editor__line math-block-editor__line--selected"
+                  : "math-block-editor__line"
+              }
+              data-math-display-editor-line-id={line.id}
+              key={line.id}
+            >
+              <button
+                className="math-block-editor__line-select"
+                type="button"
+                onClick={() => {
+                  setSelectedLineId(line.id);
+                }}
+              >
+                <strong>Line {index + 1}</strong>
+                <code>{mathExpressionToText(line.expression)}</code>
+              </button>
+              <label className="math-block-editor__numbered">
+                <input
+                  type="checkbox"
+                  checked={line.numbered}
+                  onChange={(event) => {
+                    const numbered = event.target.checked;
+                    updateLine(line.id, (current) =>
+                      createMathDisplayLine(
+                        current.expression,
+                        numbered,
+                        numbered ? current.referenceId : null,
+                        current.id,
+                      ),
+                    );
+                  }}
+                />
+                Numbered
+              </label>
+              <input
+                aria-label={`Line ${String(index + 1)} reference ID`}
+                value={line.referenceId ?? ""}
+                disabled={!line.numbered}
+                pattern="[A-Za-z][A-Za-z0-9_.:-]*"
+                placeholder={line.numbered ? "eq:energy · optional" : "Unnumbered"}
+                onChange={(event) => {
+                  const referenceId = event.target.value;
+                  updateLine(line.id, (current) =>
+                    Object.freeze({
+                      ...current,
+                      referenceId: referenceId.length === 0 ? null : referenceId,
+                    }),
+                  );
+                }}
+              />
+              <div className="math-block-editor__line-actions">
+                <button
+                  type="button"
+                  aria-label={`Move line ${String(index + 1)} up`}
+                  disabled={index === 0}
+                  onClick={() => {
+                    moveLine(line.id, -1);
+                  }}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Move line ${String(index + 1)} down`}
+                  disabled={index === draft.lines.length - 1}
+                  onClick={() => {
+                    moveLine(line.id, 1);
+                  }}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  disabled={draft.lines.length === 1}
+                  onClick={() => {
+                    const remaining = draft.lines.filter(
+                      (candidate) => candidate.id !== line.id,
+                    );
+                    setDraft((current) =>
+                      Object.freeze({
+                        ...current,
+                        lines: Object.freeze(remaining),
+                      }),
+                    );
+                    if (line.id === selectedLine.id) {
+                      setSelectedLineId(
+                        remaining[Math.min(index, remaining.length - 1)]?.id ?? "",
+                      );
+                    }
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+              {referenceErrors.get(line.id) === undefined ? null : (
+                <p className="editor-error">{referenceErrors.get(line.id)}</p>
+              )}
+            </article>
+          ))}
+        </div>
+        <button
+          className="math-block-editor__add-line"
+          type="button"
+          onClick={() => {
+            const line = createMathDisplayLine(createMathSlot());
+            setDraft((current) =>
+              Object.freeze({
+                ...current,
+                lines: Object.freeze([...current.lines, line]),
+              }),
+            );
+            setSelectedLineId(line.id);
+          }}
+        >
+          + Add equation line
+        </button>
+      </section>
+
       <MathExpressionEditor
-        expression={displayMath.expression}
+        key={selectedLine.id}
+        expression={selectedLine.expression}
         inputParser={inputParser}
         editorExtensions={editorExtensions}
-        canCommit={referenceError === null}
+        saveLabel="Apply line"
         onCancel={onCancel}
         onCommit={(expression) => {
-          onCommit(
-            Object.freeze({
-              ...displayMath,
-              expression,
-              referenceId: referenceId.length === 0 ? null : referenceId,
-            }),
+          updateLine(
+            selectedLine.id,
+            (line) => Object.freeze({ ...line, expression }),
           );
         }}
       />
+      <div className="editor-actions math-block-editor__actions">
+        <button type="button" onClick={onCancel}>
+          Cancel group
+        </button>
+        <button
+          className="primary-action"
+          type="button"
+          disabled={!valid}
+          onClick={() => {
+            onCommit(draft);
+          }}
+        >
+          Save display group
+        </button>
+      </div>
     </div>
   );
 }

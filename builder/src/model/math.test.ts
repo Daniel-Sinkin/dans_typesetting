@@ -178,8 +178,31 @@ describe("structured math", () => {
 
     expect(mathExpressionToString(restored)).toBe(serialized);
     expect(mathExpressionToText(restored)).toBe("∂ ≤ ∞ → Ψ ⊗ †");
-    expect(mathSymbolGlyph("centered_ellipsis")).toBe("⋯");
+    expect(mathSymbolGlyph("cdots")).toBe("⋯");
   });
+
+  it.each([
+    ["ellipsis", "dots", "…"],
+    ["centered_ellipsis", "cdots", "⋯"],
+    ["script_ell", "ell", "ℓ"],
+  ] as const)(
+    "normalizes the legacy %s symbol name to %s",
+    (legacyName, canonicalName, glyph) => {
+      const restored = mathExpressionFromString(
+        JSON.stringify({
+          format: "dans.math.expression",
+          version: 1,
+          expression: { kind: "symbol", name: legacyName },
+        }),
+      );
+      const serialized = JSON.parse(mathExpressionToString(restored)) as {
+        expression: { name: string };
+      };
+
+      expect(mathExpressionToText(restored)).toBe(glyph);
+      expect(serialized.expression.name).toBe(canonicalName);
+    },
+  );
 
   it("round-trips decorated identifiers and recursive function applications", () => {
     const expression = createMathBinary(

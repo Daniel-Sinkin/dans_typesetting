@@ -2,14 +2,20 @@
 import type { BuilderBlockPlugin } from "../builder/plugin";
 import type { MathEditorExtension } from "../math/editorExtension";
 import type { MathInputParserPlugin } from "../math/inputParser";
-import { createMathSlot, mathExpressionToText } from "../model/math";
 import {
+  createMathSlot,
+  mathExpressionToText,
+} from "../model/math";
+import {
+  createBlockId,
+  createMathDisplayLine,
   isMathDisplayBlock,
   mathDisplayTypeId,
   type BuilderBlock,
   type MathDisplayBlock,
 } from "../model/document";
 import { MathEditor, MathTree } from "./math";
+import { MathDisplayPreview } from "./mathDisplayView";
 
 function requireDisplayMath(block: BuilderBlock): MathDisplayBlock {
   if (!isMathDisplayBlock(block)) {
@@ -35,39 +41,73 @@ export function createMathPlugin(
       return Object.freeze({
         id: blockId,
         typeId: mathDisplayTypeId,
-        expression: createMathSlot(),
-        referenceId: null,
+        alignment: "automatic",
+        lines: Object.freeze([
+          createMathDisplayLine(
+            createMathSlot(),
+            true,
+            null,
+            createBlockId(),
+          ),
+        ]),
       });
     },
-    referenceTarget(block) {
+    numberedOccurrences(block) {
       const displayMath = requireDisplayMath(block);
-      return {
-        referenceId: displayMath.referenceId,
-        label: "Equation",
-      };
+      return displayMath.lines
+        .filter((line) => line.numbered)
+        .map((line) => ({
+          occurrenceId: line.id,
+          numberingSeries: "equation",
+        }));
+    },
+    referenceTargets(block) {
+      return requireDisplayMath(block).lines
+        .filter((line) => line.numbered)
+        .map((line) => ({
+          referenceId: line.referenceId,
+          occurrenceId: line.id,
+          label: "Equation",
+        }));
     },
     copyForInsert(block, copiedBlockId) {
+      const displayMath = requireDisplayMath(block);
       return Object.freeze({
-        ...requireDisplayMath(block),
+        ...displayMath,
         id: copiedBlockId,
-        referenceId: null,
+        lines: Object.freeze(
+          displayMath.lines.map((line) =>
+            createMathDisplayLine(
+              line.expression,
+              line.numbered,
+              null,
+              createBlockId(),
+            ),
+          ),
+        ),
       });
     },
     measure(block) {
       const displayMath = requireDisplayMath(block);
       const depthAllowance = Math.min(
         80,
-        mathExpressionToText(displayMath.expression).length * 0.8,
+        Math.max(
+          ...displayMath.lines.map(
+            (line) => mathExpressionToText(line.expression).length * 0.8,
+          ),
+        ),
       );
-      return 126 + depthAllowance;
+      return Math.max(126, 46 + displayMath.lines.length * 66 + depthAllowance);
     },
     renderPreview(block, context) {
       const displayMath = requireDisplayMath(block);
       return (
-        <div className="math-display-content">
-          <MathTree expression={displayMath.expression} />
-          <span className="math-equation-number">({context.ordinal ?? 0})</span>
-        </div>
+        <MathDisplayPreview
+          displayMath={displayMath}
+          blockOrdinals={context.blockOrdinals}
+          referenceTargets={context.referenceTargets}
+          renderExpression={(expression) => <MathTree expression={expression} />}
+        />
       );
     },
     editor: {

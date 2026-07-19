@@ -340,8 +340,9 @@ auto make_sample_document()
     auto& mathematics = document.blocks().add<Section>("Display mathematics");
     par_writer(
         mathematics.blocks(),
-        "These two aligned, independently numbered equations are represented by a recursive "
-        "structured-math tree rather than stored as LaTeX source."
+        "This aligned display group contains targeted equations, a targetless numbered equation, "
+        "and an explicitly unnumbered note. Every line remains structured math rather than stored "
+        "LaTeX source."
     );
     const ReferenceId energy_equation_id{"eq:energy"};
     const ReferenceId gradient_equation_id{"eq:gradient"};
@@ -353,7 +354,9 @@ auto make_sample_document()
     const ReferenceId numeric_literal_equation_id{"eq:numeric-literal"};
     mathematics.blocks()
         .add<M::Display>(make_energy_equation(), energy_equation_id)
-        .add_equation(make_gradient_equation(), gradient_equation_id);
+        .add_equation(make_gradient_equation(), gradient_equation_id)
+        .add_equation(M::equal(M::id_E, M::add(M::id_T, M::id_V)))
+        .add_unnumbered(M::text("targetless explanatory line"));
     mathematics.blocks().add<M::Display>(make_matrix_vector_equation(), matrix_equation_id);
     mathematics.blocks().add<M::Display>(
         make_fraction_radical_equation(), fraction_radical_equation_id

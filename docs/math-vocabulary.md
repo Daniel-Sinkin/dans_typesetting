@@ -41,15 +41,17 @@ connector; the Jupyter presentation writer consumes the Markdown result.
 ## Atomic symbols
 
 The browser model now mirrors the native symbol family: lowercase and capital
-Greek symbols, nabla, partial, infinity, ordinary and centered ellipses,
-dagger, transpose, script ell, and asterisk. Symbols are semantic leaves with a
+Greek symbols, nabla, partial, infinity, ordinary and centered dots,
+dagger, transpose, ell, and asterisk. Symbols are semantic leaves with a
 registered name; Unicode glyphs are graphical presentation and TeX commands
 are publication presentation.
 
 This distinction matters for `dots` versus `cdots`, whose vertical placement
 is intentionally different, and for `dag`/`dagger`, which normalize to one
 dagger atom. Canonical and clipboard payloads store names such as
-`"capital_psi"` and `"centered_ellipsis"`, never glyphs or raw LaTeX.
+`"capital_psi"` and `"cdots"`, never glyphs or raw LaTeX. Legacy documents
+using `"ellipsis"`, `"centered_ellipsis"`, or `"script_ell"` are normalized
+while decoding and are never emitted again.
 
 ## Basic-input capability
 

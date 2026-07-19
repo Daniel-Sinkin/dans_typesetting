@@ -213,11 +213,11 @@ DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Omega, omega);
 DANS_DEFINE_MATH_SYMBOL_SHORTCUT(nabla);
 DANS_DEFINE_MATH_SYMBOL_SHORTCUT(partial);
 DANS_DEFINE_MATH_SYMBOL_SHORTCUT(infinity);
-DANS_DEFINE_MATH_SYMBOL_SHORTCUT(ellipsis);
-DANS_DEFINE_MATH_SYMBOL_SHORTCUT(centered_ellipsis);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(dots);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(cdots);
 DANS_DEFINE_MATH_SYMBOL_SHORTCUT(dagger);
 DANS_DEFINE_MATH_SYMBOL_SHORTCUT(transpose);
-DANS_DEFINE_MATH_SYMBOL_SHORTCUT(script_ell);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(ell);
 
 #undef DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT
 #undef DANS_DEFINE_MATH_SYMBOL_SHORTCUT
@@ -1384,9 +1384,14 @@ auto Math::validate() const -> void
     throw std::logic_error{"Unknown structured-math expression kind"};
 }
 
+Math::Display::Display(Math expression)
+{
+    add_equation(std::move(expression));
+}
+
 Math::Display::Display(Math expression, const DisplayOptions options) : options_{options}
 {
-    add_unnumbered(std::move(expression));
+    add_equation(std::move(expression));
 }
 
 Math::Display::Display(Math expression, ReferenceId reference_id, const DisplayOptions options)
@@ -1395,16 +1400,26 @@ Math::Display::Display(Math expression, ReferenceId reference_id, const DisplayO
     add_equation(std::move(expression), std::move(reference_id));
 }
 
+Math::Display::Display(
+    Math expression, DisplayLineOptions line_options, const DisplayOptions options
+)
+    : options_{options}
+{
+    add_line(std::move(expression), std::move(line_options));
+}
+
 auto Math::Display::type_id() const noexcept -> std::string_view
 {
     return k_type_id;
 }
 
-auto Math::Display::add_equation(Math expression, ReferenceId reference_id) -> Display&
+auto Math::Display::add_equation(Math expression, std::optional<ReferenceId> reference_id)
+    -> Display&
 {
     return add_line(
-        DisplayLine{
-            .expression = std::move(expression),
+        std::move(expression),
+        DisplayLineOptions{
+            .numbering = DisplayLineNumbering::numbered,
             .reference_id = std::move(reference_id),
         }
     );
@@ -1413,15 +1428,42 @@ auto Math::Display::add_equation(Math expression, ReferenceId reference_id) -> D
 auto Math::Display::add_unnumbered(Math expression) -> Display&
 {
     return add_line(
-        DisplayLine{
-            .expression = std::move(expression),
+        std::move(expression),
+        DisplayLineOptions{
+            .numbering = DisplayLineNumbering::unnumbered,
             .reference_id = std::nullopt,
         }
     );
 }
 
-auto Math::Display::add_line(DisplayLine line) -> Display&
+auto Math::Display::add_line(Math expression, DisplayLineOptions options) -> Display&
 {
+    return append_line(
+        DisplayLine{
+            .expression = std::move(expression),
+            .numbering = options.numbering,
+            .reference_id = std::move(options.reference_id),
+        }
+    );
+}
+
+auto Math::Display::append_line(DisplayLine line) -> Display&
+{
+    switch (line.numbering)
+    {
+        case DisplayLineNumbering::numbered:
+            break;
+        case DisplayLineNumbering::unnumbered:
+            if (line.reference_id.has_value())
+            {
+                throw std::invalid_argument{
+                    "An unnumbered displayed equation cannot publish a reference target"
+                };
+            }
+            break;
+        default:
+            throw std::invalid_argument{"Unknown displayed-equation numbering policy"};
+    }
     line.expression.validate();
     const auto alignment_points = line.expression.explicit_alignment_points();
     if (alignment_points > usize{1})

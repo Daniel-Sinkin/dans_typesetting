@@ -7,7 +7,10 @@ import type {
 
 import type { DocumentLayout, LayoutBounds } from "../builder/layout";
 import type { BuilderPluginRegistry } from "../builder/plugin";
-import { deriveBlockOrdinals, deriveInlineOrdinals } from "../builder/numbering";
+import {
+  deriveInlineOrdinals,
+  deriveNumberedBlockOrdinals,
+} from "../builder/numbering";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
 import { blockAnchorId } from "../builder/reference";
 import { deriveDocumentResources } from "../builder/documentResources";
@@ -36,9 +39,9 @@ export function DocumentVisualPage({
   pageStyle,
   registry,
 }: DocumentVisualPageProps) {
-  const ordinals = deriveBlockOrdinals(
+  const ordinals = deriveNumberedBlockOrdinals(
     layout.blocks.map(({ block }) => block),
-    (block) => registry.pluginForBlock(block).numberingSeries ?? null,
+    (block) => registry.numberedOccurrencesForBlock(block),
   );
   const referenceTargets = deriveReferenceTargets(layout.documentBlocks, registry);
   const inlineOrdinals = deriveInlineOrdinals(layout.documentBlocks, registry);
@@ -68,12 +71,16 @@ export function DocumentVisualPage({
       {visibleBlocks.map(({ blockLayout, documentIndex }) => {
         const { block, bounds, depth, oversized } = blockLayout;
         const adapter = registry.pluginForBlock(block);
-        const numbering = ordinals.get(block.id) ?? {
+        const primaryOccurrence = registry.numberedOccurrencesForBlock(block)[0];
+        const numbering = (primaryOccurrence === undefined
+          ? undefined
+          : ordinals.get(primaryOccurrence.occurrenceId)) ?? {
           numberingSeries: null,
           ordinal: null,
         };
         const target = [...referenceTargets.values()].find(
-          (candidate) => candidate.blockId === block.id,
+          (candidate) =>
+            candidate.blockId === block.id && candidate.occurrenceId === block.id,
         );
         return (
           <section
@@ -100,6 +107,7 @@ export function DocumentVisualPage({
                   sectionDepth: depth,
                   referenceTargets,
                   inlineOrdinals,
+                  blockOrdinals: ordinals,
                   documentResources,
                 })
               )}

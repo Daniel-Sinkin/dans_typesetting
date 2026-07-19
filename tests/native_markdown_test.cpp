@@ -193,6 +193,8 @@ auto render_representative_document() -> std::string
         .add<M::Display>(
             M::equal(M::id_E, M::sequence(M::id_m, M::id_c.superscript(M::id_2))), equation_id
         )
+        .add_equation(M::equal(M::id_K, M::sequence(M::id_m, M::id_v.superscript(M::id_2))))
+        .add_unnumbered(M::equal(M::id_c, M::id_1))
         .add_equation(M::equal(M::id_p, M::sequence(M::id_m, M::id_v)), second_equation_id);
 
     auto& references = details.blocks().add<CoreParagraph>("See ");
@@ -379,14 +381,15 @@ auto main() noexcept -> int
         expect_contains(rendered, "**Listing 1:** CUDA kernel\\.", "listing caption");
         expect_contains(rendered, "<a id=\"eq:energy\"></a>\n$$", "equation anchor");
         expect_contains(rendered, "*Equation 1*", "equation number");
+        expect_contains(rendered, "*Equation 2*", "targetless equation number");
         expect_contains(rendered, "<a id=\"eq:momentum\"></a>\n$$", "second equation anchor");
-        expect_contains(rendered, "*Equation 2*", "second equation number");
+        expect_contains(rendered, "*Equation 3*", "second equation number");
         expect_contains(
             rendered,
             "[Section 1](#sec:overview), [Figure 1](#fig:plot), "
             "[Figure 2](#fig:pair), [Figure 2a](#fig:pair:left), "
             "[Table 1](#tab:values), [Listing 1](#lst:kernel), and "
-            "[Equation 1](#eq:energy) and [Equation 2](#eq:momentum)",
+            "[Equation 1](#eq:energy) and [Equation 3](#eq:momentum)",
             "resolved semantic references"
         );
         expect_contains(rendered, "class=\"dans-page-break\"", "page-break intent");

@@ -25,11 +25,11 @@ auto DisplayMathMarkdownAdapter::targets(const DocumentBlock& block) const
     std::vector<writers::MarkdownTargetDescriptor> targets{};
     for (const auto& line : display->lines())
     {
-        if (line.reference_id.has_value())
+        if (line.numbering == plugins::Math::DisplayLineNumbering::numbered)
         {
             targets.push_back(
                 writers::MarkdownTargetDescriptor{
-                    .reference_id = &*line.reference_id,
+                    .reference_id = line.reference_id.has_value() ? &*line.reference_id : nullptr,
                     .label = "Equation",
                     .numbering_series = "equation",
                 }
@@ -50,6 +50,7 @@ auto DisplayMathMarkdownAdapter::serialize(
             "The structured display-math adapter received a different block type"
         };
     }
+    usize numbered_occurrence_index{};
     for (const auto& line : display->lines())
     {
         if (line.reference_id.has_value())
@@ -69,11 +70,12 @@ auto DisplayMathMarkdownAdapter::serialize(
             output.write_raw("\\end{aligned}\n");
         }
         output.write_raw("$$\n");
-        if (line.reference_id.has_value())
+        if (line.numbering == plugins::Math::DisplayLineNumbering::numbered)
         {
             output.write_raw("\n*Equation ");
-            output.write_raw(output.target_number(*line.reference_id));
+            output.write_raw(output.target_number(block, numbered_occurrence_index));
             output.write_raw("*\n");
+            ++numbered_occurrence_index;
         }
         output.write_raw("\n");
     }

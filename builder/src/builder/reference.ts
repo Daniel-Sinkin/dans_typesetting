@@ -2,6 +2,7 @@
 export interface BuilderReferenceTarget {
   readonly referenceId: string;
   readonly blockId: string;
+  readonly occurrenceId: string;
   readonly typeId: string;
   readonly label: string;
   readonly number: string;
@@ -13,6 +14,7 @@ export interface BuilderReferenceTarget {
 export interface BuilderReferenceTargetDescriptor {
   readonly referenceId: string | null;
   readonly label: string;
+  readonly occurrenceId?: string | undefined;
   readonly title?: string | null | undefined;
   readonly numberSuffix?: string | undefined;
 }

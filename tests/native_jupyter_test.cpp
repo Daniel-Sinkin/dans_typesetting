@@ -75,6 +75,7 @@ auto make_markdown_writer() -> std::shared_ptr<dans::document::writers::Markdown
     writer->register_block_adapter(
         std::make_unique<markdown::FigurePairMarkdownAdapter>(inline_renderer)
     );
+    writer->register_block_adapter(std::make_unique<markdown::DisplayMathMarkdownAdapter>());
     return writer;
 }
 
@@ -97,6 +98,13 @@ auto make_document() -> dans::document::Document
     paragraph.append_text(" and offset ");
     paragraph.inlines().add<Math::Inline>(Math::negate(Math::decimal("0.125")));
     paragraph.append_text(" before reading timing data.");
+    section.blocks()
+        .add<Math::Display>(
+            Math::equal(Math::id_E, Math::add(Math::id_T, Math::id_V)),
+            ReferenceId{"eq:notebook-energy"}
+        )
+        .add_equation(Math::equal(Math::id_F, Math::id_m))
+        .add_unnumbered(Math::text("notebook-only note"));
     section.blocks().add<CodeListing>(
         CodeLanguage::cpp, "int main() { return 0; }\n", "C++ presentation source."
     );
@@ -161,6 +169,10 @@ auto verify_notebook() -> void
         || !expected_markdown.str().contains(R"($\mathbb{R}$)")
         || !expected_markdown.str().contains(R"($\underbrace{2}_{\text{FMA \& SIMD}}$)")
         || !expected_markdown.str().contains("$-0.125$")
+        || !expected_markdown.str().contains("*Equation 1*")
+        || !expected_markdown.str().contains("*Equation 2*")
+        || expected_markdown.str().contains("*Equation 3*")
+        || !expected_markdown.str().contains("notebook-only note")
         || !expected_markdown.str().contains("*Figure 1: Paired notebook figure\\.*")
         || serialized.str().contains("kernelspec"))
     {

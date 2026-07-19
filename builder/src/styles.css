@@ -623,20 +623,72 @@ button {
 }
 
 .math-display-content {
-  position: relative;
   display: grid;
+  grid-template-columns:
+    42px minmax(max-content, 1fr) auto minmax(max-content, 1fr)
+    42px;
   width: 100%;
   height: 100%;
-  place-items: center;
-  padding-top: 5px;
+  overflow-x: auto;
+  align-content: center;
+  padding: 5px 0;
+  column-gap: 0.18em;
+  row-gap: 12px;
   color: #202533;
   font-family: "STIX Two Math", "Cambria Math", Georgia, serif;
   font-size: 30px;
 }
 
+.math-display-line {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-height: 1.4em;
+  align-items: center;
+}
+
+.math-display-line__equation {
+  display: inline-flex;
+  grid-column: 2 / 5;
+  align-items: center;
+  justify-self: center;
+  justify-content: center;
+}
+
+.math-display-line--aligned .math-display-line__equation {
+  display: grid;
+  grid-column: 2 / 5;
+  grid-template-columns: subgrid;
+  align-items: center;
+  justify-self: stretch;
+}
+
+.math-display-line--aligned .math-display-line__branch:first-child {
+  grid-column: 1;
+  justify-self: end;
+}
+
+.math-display-line--aligned .math-display-line__branch:last-child {
+  grid-column: 3;
+  justify-self: start;
+}
+
+.math-display-line__branch {
+  display: inline-flex;
+  align-items: center;
+}
+
+.math-display-line__alignment-symbol {
+  grid-column: 2;
+  min-width: 0.8em;
+  color: #343a40;
+  text-align: center;
+}
+
 .math-equation-number {
-  position: absolute;
-  right: 4px;
+  grid-column: 5;
+  justify-self: end;
+  padding-right: 4px;
   color: #495057;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 15px;
@@ -2428,8 +2480,137 @@ button {
   }
 }
 
-.math-block-editor__reference {
-  margin: 0 18px 12px;
+.math-block-editor {
+  display: grid;
+  padding: 18px;
+  gap: 14px;
+}
+
+.math-block-editor__group-preview,
+.math-block-editor__settings {
+  display: grid;
+  padding: 14px;
+  gap: 12px;
+  background: #fbfaff;
+  border: 1px solid #d0bfff;
+  border-radius: 11px;
+}
+
+.math-block-editor__group-preview > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #5f3dc4;
+  font-size: 11px;
+}
+
+.math-block-editor__group-preview > .math-display-content {
+  min-height: 100px;
+  height: auto;
+  padding: 16px 0;
+  background: #fff;
+  border: 1px solid #e5dbff;
+  border-radius: 8px;
+}
+
+.math-block-editor__line-list {
+  display: grid;
+  gap: 8px;
+}
+
+.math-block-editor__line {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto minmax(180px, 0.8fr) auto;
+  align-items: center;
+  padding: 8px;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+.math-block-editor__line--selected {
+  background: #f3f0ff;
+  border-color: #845ef7;
+  box-shadow: 0 0 0 2px rgb(132 94 247 / 12%);
+}
+
+.math-block-editor__line-select {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 8px;
+  gap: 2px;
+  color: #343a40;
+  background: transparent;
+  border: 0;
+  text-align: left;
+}
+
+.math-block-editor__line-select code {
+  max-width: 100%;
+  overflow: hidden;
+  color: #7950f2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.math-block-editor__numbered {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #495057;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.math-block-editor__line > input,
+.math-block-editor__settings select {
+  min-height: 34px;
+  padding: 6px 8px;
+  color: #343a40;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 7px;
+}
+
+.math-block-editor__line-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.math-block-editor__line-actions button,
+.math-block-editor__add-line {
+  min-height: 32px;
+  padding: 5px 8px;
+  color: #5f3dc4;
+  background: #f3f0ff;
+  border: 1px solid #d0bfff;
+  border-radius: 6px;
+}
+
+.math-block-editor__line > .editor-error {
+  grid-column: 1 / -1;
+}
+
+.math-block-editor__add-line {
+  justify-self: start;
+}
+
+.math-block-editor__actions {
+  margin: 0;
+}
+
+@media (max-width: 840px) {
+  .math-block-editor__line {
+    grid-template-columns: 1fr auto;
+  }
+
+  .math-block-editor__line > input,
+  .math-block-editor__line > .editor-error {
+    grid-column: 1 / -1;
+  }
 }
 
 .hyperlink-editor,

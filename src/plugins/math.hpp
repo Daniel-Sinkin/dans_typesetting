@@ -83,11 +83,11 @@ class Math final
         nabla,
         partial,
         infinity,
-        ellipsis,
-        centered_ellipsis,
+        dots,
+        cdots,
         dagger,
         transpose,
-        script_ell,
+        ell,
         asterisk,
     };
 
@@ -160,9 +160,21 @@ class Math final
         disabled,
     };
 
+    enum class DisplayLineNumbering : u8
+    {
+        numbered,
+        unnumbered,
+    };
+
     struct DisplayOptions
     {
         DisplayAlignment alignment{DisplayAlignment::automatic};
+    };
+
+    struct DisplayLineOptions
+    {
+        DisplayLineNumbering numbering{DisplayLineNumbering::numbered};
+        std::optional<ReferenceId> reference_id{};
     };
 
     struct BinaryExpression;
@@ -439,11 +451,11 @@ class Math final
     static const Shortcut id_nabla;
     static const Shortcut id_partial;
     static const Shortcut id_infinity;
-    static const Shortcut id_ellipsis;
-    static const Shortcut id_centered_ellipsis;
+    static const Shortcut id_dots;
+    static const Shortcut id_cdots;
     static const Shortcut id_dagger;
     static const Shortcut id_transpose;
-    static const Shortcut id_script_ell;
+    static const Shortcut id_ell;
     // NOLINTEND(readability-identifier-naming)
 
   private:
@@ -467,6 +479,7 @@ struct Math::BinaryExpression
 struct Math::DisplayLine
 {
     Math expression;
+    DisplayLineNumbering numbering{DisplayLineNumbering::numbered};
     std::optional<ReferenceId> reference_id{};
 };
 
@@ -475,17 +488,21 @@ class Math::Display final : public DocumentBlock
   public:
     static constexpr std::string_view k_type_id = "dans.math.display";
 
-    explicit Display(Math expression, DisplayOptions options = {});
+    explicit Display(Math expression);
+    Display(Math expression, DisplayOptions options);
     Display(Math expression, ReferenceId reference_id, DisplayOptions options = {});
+    Display(Math expression, DisplayLineOptions line_options, DisplayOptions options = {});
 
     [[nodiscard]] auto type_id() const noexcept -> std::string_view override;
-    auto add_equation(Math expression, ReferenceId reference_id) -> Display&;
+    auto add_equation(Math expression, std::optional<ReferenceId> reference_id = std::nullopt)
+        -> Display&;
     auto add_unnumbered(Math expression) -> Display&;
+    auto add_line(Math expression, DisplayLineOptions options = {}) -> Display&;
     [[nodiscard]] auto lines() const noexcept -> std::span<const DisplayLine>;
     [[nodiscard]] auto options() const noexcept -> DisplayOptions;
 
   private:
-    auto add_line(DisplayLine line) -> Display&;
+    auto append_line(DisplayLine line) -> Display&;
 
     std::vector<DisplayLine> lines_{};
     DisplayOptions options_{};

@@ -66,6 +66,13 @@ still needs parentheses matrices, block separators, arrays, labeled arrows, larg
 operators, and several specialized environments before mathematical parity is
 close.
 
+Display math now owns ordered equation lines with numbering independent from
+optional target IDs. Native LaTeX, Markdown/Jupyter, canonical transport, and
+the graphical preview/editor cover targeted, targetless-numbered, and
+unnumbered lines plus automatic/disabled alignment. Explicit operator alignment
+points remain native-only authoring for now. See
+[math-display-groups.md](math-display-groups.md).
+
 The listing contract now covers C++, CUDA, Julia, and raw source with
 independently optional captions and reference targets in native LaTeX and the
 graphical writer. Captionless listings retain consistent writer-derived
@@ -83,6 +90,27 @@ Remaining publication work includes citation styles beyond numeric order,
 author/year disambiguation policy, multiple reference lists, and richer BibTeX
 field/LaTeX normalization where the conservative adapter currently rejects
 input.
+
+## Critical integration gap
+
+The graphical builder can save a canonical `.dans_doc` document, but the
+native transport currently preserves plugin payloads as opaque envelopes and
+cannot decode them into a runtime `Document`. Consequently a GUI-authored
+document cannot yet reach the otherwise-working LaTeX/PDF pipeline. A
+plugin-owned native decoder registry and strict document export command are the
+highest-priority vertical slice.
+
+Assets need the adjacent seam: browser file selection stores data URLs, while
+native graphics connectors consume filesystem PDF/PNG/JPEG paths. A managed
+project bundle/resolver must resolve selected images, SVG, and Excalidraw
+renders without making semantic figure blocks depend on one backend.
+
+The detailed corpus audit also found nine custom-labelled list items, three
+display equations inside list items, and two CUDA listings nested in list
+items. The current inline-only list item is therefore a real migration blocker.
+The older assembled thesis additionally needs chapters, paragraph and
+unnumbered headings, abstract/appendix transitions, rich math/code headings,
+and generated lists of figures/tables/listings.
 
 ## Representative port slices
 

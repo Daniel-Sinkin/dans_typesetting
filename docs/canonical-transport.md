@@ -1,6 +1,8 @@
 # Canonical document transport
 
-Canonical files use the `.dans.json` suffix and UTF-8 JSON. Schema version 1 is:
+Canonical document files use the `.dans_doc` suffix and contain UTF-8 JSON.
+The `dans` prefix is shared by Daniel's projects; the `doc` suffix identifies
+this particular semantic format. Schema version 1 is:
 
 ```json
 {
@@ -32,7 +34,8 @@ Canonical files use the `.dans.json` suffix and UTF-8 JSON. Schema version 1 is:
   by partial graphical writers.
 - Deserialization validates a complete replacement before mutating the active
   document, so a failed load cannot partially destroy the current document.
-- No LaTeX importer exists or is planned. LaTeX is writer output.
+- LaTeX is output-only. The system never consumes generated or handwritten
+  LaTeX as document input.
 
 Object key order has no semantic meaning, but both implementations currently
 emit two-space-indented deterministic JSON with a final newline. The shared
@@ -49,8 +52,8 @@ schema version solely for one plugin is discouraged. Envelope changes require a
 new global schema version and an explicit migration into the current in-memory
 form.
 
-Native semantic materializers are intentionally separate from the generic
-transport parser. This keeps a document containing an unavailable plugin
+Native semantic decoders are intentionally separate from the generic transport
+parser. This keeps a document containing an unavailable plugin
 round-trippable and prevents the transport core from accumulating knowledge of
 every block kind.
 
@@ -104,6 +107,16 @@ decimal point and at least one digit, preserving forms such as `003.20`, `.25`,
 and `3.` exactly. A sign is a separate `negated` payload with one recursive
 `body`; it is never embedded in either literal. See
 [math-numeric-literals.md](math-numeric-literals.md).
+
+A `dans.math.display` payload stores `alignment` plus a non-empty ordered
+`lines` array. Every line carries a stable authoring `id`, recursive
+`expression`, Boolean `numbered`, and nullable `referenceId`. Line IDs are
+numbered-occurrence identities, not semantic reference IDs. A targetless
+numbered line still advances the equation series, while an unnumbered line is
+forbidden from publishing a target. The legacy `{expression, referenceId}`
+payload remains readable and normalizes to one automatically aligned numbered
+line; new files emit only the ordered form. See
+[math-display-groups.md](math-display-groups.md).
 
 Inline source code uses `dans.code.inline` with one string-valued `code` field.
 CR and LF are rejected because multiline source belongs to the listing plugin;

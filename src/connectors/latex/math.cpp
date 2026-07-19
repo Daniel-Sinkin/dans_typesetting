@@ -32,7 +32,7 @@ auto DisplayMathLatexAdapter::serialize(
     if (lines.size() == usize{1})
     {
         const auto& line = lines.front();
-        const bool numbered = line.reference_id.has_value();
+        const bool numbered = line.numbering == plugins::Math::DisplayLineNumbering::numbered;
         output.write_raw(numbered ? "\\begin{equation}\n" : "\\[\n");
         if (has_explicit_alignment)
         {
@@ -55,7 +55,9 @@ auto DisplayMathLatexAdapter::serialize(
     }
 
     const bool numbered = std::ranges::any_of(
-        lines, [](const plugins::Math::DisplayLine& line) { return line.reference_id.has_value(); }
+        lines,
+        [](const plugins::Math::DisplayLine& line)
+        { return line.numbering == plugins::Math::DisplayLineNumbering::numbered; }
     );
     const bool aligned = math->options().alignment == plugins::Math::DisplayAlignment::automatic;
     output.write_raw("\\begin{");
@@ -78,7 +80,7 @@ auto DisplayMathLatexAdapter::serialize(
             output.write_raw(line.reference_id->value());
             output.write_raw("}");
         }
-        else if (numbered)
+        if (numbered && line.numbering == plugins::Math::DisplayLineNumbering::unnumbered)
         {
             output.write_raw(" \\notag");
         }

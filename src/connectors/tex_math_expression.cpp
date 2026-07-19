@@ -282,10 +282,10 @@ auto write_symbol(Output& output, const Math::Symbol symbol) -> void
         case Math::Symbol::infinity:
             output.write_raw("\\infty");
             return;
-        case Math::Symbol::ellipsis:
+        case Math::Symbol::dots:
             output.write_raw("\\dots");
             return;
-        case Math::Symbol::centered_ellipsis:
+        case Math::Symbol::cdots:
             output.write_raw("\\cdots");
             return;
         case Math::Symbol::dagger:
@@ -294,7 +294,7 @@ auto write_symbol(Output& output, const Math::Symbol symbol) -> void
         case Math::Symbol::transpose:
             output.write_raw("\\top");
             return;
-        case Math::Symbol::script_ell:
+        case Math::Symbol::ell:
             output.write_raw("\\ell");
             return;
         case Math::Symbol::asterisk:

@@ -11,7 +11,15 @@ import {
   paragraphTextInlinePlugin,
 } from "../plugins/paragraphInline";
 import { sectionPlugin } from "../plugins/documentShell";
-import type { BuilderBlock, SectionBlock } from "../model/document";
+import {
+  createMathDisplayLine,
+  mathDisplayTypeId,
+  type BuilderBlock,
+  type MathDisplayBlock,
+  type SectionBlock,
+} from "../model/document";
+import { createMathIdentifier } from "../model/math";
+import { createMathPlugin } from "../plugins/mathPlugin";
 
 const inlineRegistry = new BuilderInlinePluginRegistry(
   [paragraphTextInlinePlugin],
@@ -110,5 +118,51 @@ describe("semantic reference target index", () => {
 
     expect(targets.get("fig:pair")?.displayText).toBe("Figure 1");
     expect(targets.get("fig:pair:left")?.displayText).toBe("Figure 1a");
+  });
+
+  it("numbers targetless equation lines while resolving later line targets", () => {
+    const mathPlugin = createMathPlugin();
+    const mathRegistry = new BuilderPluginRegistry(
+      [mathPlugin],
+      opaqueBlockAdapter,
+    );
+    const display: MathDisplayBlock = {
+      id: "display",
+      typeId: mathDisplayTypeId,
+      alignment: "automatic",
+      lines: [
+        createMathDisplayLine(
+          createMathIdentifier("a"),
+          true,
+          "eq:first",
+          "line-first",
+        ),
+        createMathDisplayLine(
+          createMathIdentifier("b"),
+          true,
+          null,
+          "line-targetless",
+        ),
+        createMathDisplayLine(
+          createMathIdentifier("note"),
+          false,
+          null,
+          "line-unnumbered",
+        ),
+        createMathDisplayLine(
+          createMathIdentifier("c"),
+          true,
+          "eq:last",
+          "line-last",
+        ),
+      ],
+    };
+
+    const targets = deriveReferenceTargets([display], mathRegistry);
+
+    expect(targets.get("eq:first")?.displayText).toBe("Equation 1");
+    expect(targets.get("eq:first")?.occurrenceId).toBe("line-first");
+    expect(targets.get("eq:last")?.displayText).toBe("Equation 3");
+    expect(targets.get("eq:last")?.occurrenceId).toBe("line-last");
   });
 });
