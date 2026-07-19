@@ -47,8 +47,14 @@ export function createItemListPlugin(
       }, 0);
       return 68 + list.items.length * 10 + lines * 28;
     },
-    renderPreview(block) {
-      return <ItemListPreview list={requireItemListBlock(block)} registry={inlineRegistry} />;
+    renderPreview(block, context) {
+      return (
+        <ItemListPreview
+          list={requireItemListBlock(block)}
+          registry={inlineRegistry}
+          context={{ referenceTargets: context.referenceTargets }}
+        />
+      );
     },
     editor: {
       title(block) {

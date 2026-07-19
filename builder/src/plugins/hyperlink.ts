@@ -36,8 +36,8 @@ export const hyperlinkInlinePlugin: BuilderInlinePlugin = {
       )
       .join("");
   },
-  renderPreview(inline, registry) {
-    return createElement(HyperlinkPreview, { inline, registry });
+  renderPreview(inline, registry, context) {
+    return createElement(HyperlinkPreview, { inline, registry, context });
   },
   editor: {
     render(props) {

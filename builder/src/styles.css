@@ -860,7 +860,20 @@ button {
   min-width: 0;
 }
 
-.toc-content li > span:first-child {
+.toc-content li > a {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.toc-content li > a:hover {
+  color: #5f3dc4;
+  text-decoration: underline;
+}
+
+.toc-content li > a > span:first-child {
   color: #667085;
   font-variant-numeric: tabular-nums;
   min-width: 32px;
@@ -1535,6 +1548,35 @@ button {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+}
+
+.inline-reference {
+  color: #5f3dc4;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.inline-reference--unresolved {
+  padding: 1px 4px;
+  color: #c92a2a;
+  background: #fff5f5;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.reference-inline-editor {
+  display: grid;
+  gap: 6px;
+}
+
+.reference-inline-editor > small {
+  color: #5f3dc4;
+}
+
+.math-block-editor__reference {
+  margin: 0 18px 12px;
 }
 
 .hyperlink-editor,

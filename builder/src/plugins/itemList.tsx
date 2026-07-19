@@ -1,11 +1,14 @@
 // Graphical writer adapter and editor for semantic ordered/unordered lists.
 import { Fragment, useEffect, useMemo, useState } from "react";
 
-import type { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
+import type {
+  BuilderInlinePluginRegistry,
+  BuilderInlineRenderContext,
+} from "../builder/inlinePlugin";
+import type { BuilderBlockEditorProps } from "../builder/plugin";
 import {
   createBlockId,
   createParagraphText,
-  type BuilderBlock,
   type BuilderInlineNode,
 } from "../model/document";
 import { InlinePayloadEditor } from "./paragraphEditor";
@@ -21,13 +24,15 @@ import {
 function ListInlineSequence({
   inlines,
   registry,
+  context,
 }: Readonly<{
   inlines: readonly BuilderInlineNode[];
   registry: BuilderInlinePluginRegistry;
+  context: BuilderInlineRenderContext;
 }>) {
   return inlines.map((inline) => (
     <Fragment key={inline.id}>
-      {registry.adapterForInline(inline).renderPreview(inline, registry)}
+      {registry.adapterForInline(inline).renderPreview(inline, registry, context)}
     </Fragment>
   ));
 }
@@ -35,10 +40,15 @@ function ListInlineSequence({
 export function ItemListPreview({
   list,
   registry,
-}: Readonly<{ list: ItemListBlock; registry: BuilderInlinePluginRegistry }>) {
+  context,
+}: Readonly<{
+  list: ItemListBlock;
+  registry: BuilderInlinePluginRegistry;
+  context: BuilderInlineRenderContext;
+}>) {
   const children = list.items.map((item) => (
     <li key={item.id} data-list-item-id={item.id}>
-      <ListInlineSequence inlines={item.inlines} registry={registry} />
+      <ListInlineSequence inlines={item.inlines} registry={registry} context={context} />
     </li>
   ));
   return list.presentation === "enumerated" ? (
@@ -52,12 +62,8 @@ export function ItemListPreview({
   );
 }
 
-interface ItemListEditorProps {
-  readonly block: BuilderBlock;
+interface ItemListEditorProps extends BuilderBlockEditorProps {
   readonly inlineRegistry: BuilderInlinePluginRegistry;
-  readonly onPreview: (block: BuilderBlock) => void;
-  readonly onCommit: (block: BuilderBlock) => void;
-  readonly onCancel: () => void;
 }
 
 function updateListItem(
@@ -74,6 +80,7 @@ export function ItemListEditor({
   onPreview,
   onCommit,
   onCancel,
+  referenceTargets,
 }: ItemListEditorProps) {
   const list = requireItemListBlock(block);
   const identity = useState(() => ({ id: list.id, typeId: list.typeId }))[0];
@@ -131,7 +138,11 @@ export function ItemListEditor({
           <small>{items.length} item{items.length === 1 ? "" : "s"}</small>
         </header>
         <div>
-          <ItemListPreview list={draft} registry={inlineRegistry} />
+          <ItemListPreview
+            list={draft}
+            registry={inlineRegistry}
+            context={{ referenceTargets }}
+          />
         </div>
       </section>
 
@@ -204,7 +215,11 @@ export function ItemListEditor({
             <div className="item-list-editor__composed">
               <span>{presentation === "enumerated" ? `${String(itemIndex + 1)}.` : "•"}</span>
               <div>
-                <ListInlineSequence inlines={item.inlines} registry={inlineRegistry} />
+                <ListInlineSequence
+                  inlines={item.inlines}
+                  registry={inlineRegistry}
+                  context={{ referenceTargets }}
+                />
               </div>
             </div>
 
@@ -299,6 +314,7 @@ export function ItemListEditor({
                       <InlinePayloadEditor
                         inline={inline}
                         registry={inlineRegistry}
+                        context={{ referenceTargets }}
                         onChange={(replacement) => {
                           replaceInline(item.id, inline.id, replacement);
                         }}

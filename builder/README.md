@@ -37,7 +37,7 @@ advance following content. The page-range controls project at most five pages at
 
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
 live composed preview. Normal/bold/italic/bold-italic text, semantic RGB colour spans, hyperlinks,
-and structured inline math are editable while unsupported inline nodes remain visible as named
+live cross-references, and structured inline math are editable while unsupported inline nodes remain visible as named
 read-only chips. Image editing uses the native file picker and stores a preview together with the
 requested width and detected pixel dimensions. Code listings are limited to C++ and Julia; a
 transparent textarea aligned over the syntax-coloured preview makes the rendered surface directly
@@ -47,6 +47,13 @@ copy, or detach a subtree. An independently registered basic input-parser capabi
 grouping, arithmetic, comma sequences, signed numbers, and identifiers into the same structured
 tree. Selection locks retain the bounds of the containing scope, making nested expressions
 addressable without flattening their structure.
+
+Sections, images, drawings, display equations, and listings may publish stable
+semantic target IDs. The graphical writer derives their visible numbers from
+current document order; reference segments therefore update immediately after
+reordering. Duplicate IDs are rejected, unresolved references are shown in red,
+and plugin-aware Alt-drag copies clear target identity rather than creating an
+ambiguous duplicate.
 
 An Excalidraw drawing is a semantic figure block rather than part of the surrounding note canvas.
 Choose Edit to mount a second, clipped Excalidraw instance directly inside that block. Caption,

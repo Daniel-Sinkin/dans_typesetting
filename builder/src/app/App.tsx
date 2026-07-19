@@ -6,6 +6,7 @@ import {
   createParagraphText,
   createMathInline,
   createHyperlinkInline,
+  createReferenceInline,
   codeListingTypeId,
   imageTypeId,
   MemoryDocumentPort,
@@ -28,6 +29,7 @@ import { codeListingPlugin } from "../plugins/codeListing";
 import { createMathPlugin } from "../plugins/mathPlugin";
 import { createInlineMathPlugin } from "../plugins/mathInline";
 import { hyperlinkInlinePlugin } from "../plugins/hyperlink";
+import { referenceInlinePlugin } from "../plugins/reference";
 import { basicMathInputParser } from "../plugins/basicMathInputParser";
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import { createParagraphPlugin } from "../plugins/paragraph";
@@ -58,6 +60,7 @@ const inlinePluginRegistry = new BuilderInlinePluginRegistry(
     colorSpanInlinePlugin,
     createInlineMathPlugin(basicMathInputParser),
     hyperlinkInlinePlugin,
+    referenceInlinePlugin,
   ],
   opaqueInlineAdapter,
 );
@@ -137,6 +140,12 @@ const initialBlocks = [
         ],
         "sample-introduction-colour",
       ),
+      createParagraphText(" See ", "sample-introduction-reference-join"),
+      createReferenceInline(
+        "fig:domain-decomposition",
+        "sample-introduction-reference",
+      ),
+      createParagraphText(" for the decomposition.", "sample-introduction-reference-tail"),
     ]),
   }),
   Object.freeze({
@@ -144,6 +153,7 @@ const initialBlocks = [
     typeId: imageTypeId,
     source: "/sample-domain-decomposition.svg",
     caption: "A browser-rendered, captioned, referenceable image block.",
+    referenceId: "fig:domain-decomposition",
     widthFraction: 0.72,
     preferredPixelWidth: 1280,
     preferredPixelHeight: 720,
@@ -177,6 +187,7 @@ const initialBlocks = [
         createMathBinary("times", createMathInteger(2), createMathInteger(4)),
       ),
     ),
+    referenceId: "eq:sample-summation",
   }),
   Object.freeze({
     id: "sample-code-listing",
@@ -191,6 +202,7 @@ const initialBlocks = [
       "}",
     ].join("\n"),
     caption: "A selectable C++ source-code block.",
+    referenceId: "lst:hello-typesetter",
   }),
   Object.freeze({
     id: "sample-item-list",

@@ -4,6 +4,7 @@ import {
   createHyperlinkInline,
   createMathInline,
   createParagraphText,
+  createReferenceInline,
   defaultDocumentMetadata,
   imageTypeId,
   mathDisplayTypeId,
@@ -50,6 +51,7 @@ function representativeBlocks(): readonly BuilderBlock[] {
         [createParagraphText(" results", "link-text", "italic")],
         "link",
       ),
+      createReferenceInline("fig:representative", "reference"),
       {
         id: "future-inline",
         typeId: "dans.future.inline",
@@ -63,6 +65,7 @@ function representativeBlocks(): readonly BuilderBlock[] {
     typeId: imageTypeId,
     source: "/figure.png",
     caption: "A figure",
+    referenceId: "fig:representative",
     widthFraction: 0.7,
     preferredPixelWidth: 1280,
     preferredPixelHeight: 720,
@@ -71,6 +74,7 @@ function representativeBlocks(): readonly BuilderBlock[] {
     id: "equation",
     typeId: mathDisplayTypeId,
     expression,
+    referenceId: "eq:representative",
   } satisfies MathDisplayBlock;
   return [
     paragraph,

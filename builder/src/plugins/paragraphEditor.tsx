@@ -11,6 +11,7 @@ import {
 import type {
   BuilderInlineEditorProps,
   BuilderInlinePluginRegistry,
+  BuilderInlineRenderContext,
 } from "../builder/inlinePlugin";
 import type { BuilderBlockEditorProps } from "../builder/plugin";
 import {
@@ -37,10 +38,11 @@ export function InlinePayloadEditor({
   inline,
   registry,
   onChange,
+  context,
 }: BuilderInlineEditorProps) {
   const editor = registry.editorForInline(inline);
   if (editor !== null) {
-    return <>{editor.render({ inline, registry, onChange })}</>;
+    return <>{editor.render({ inline, registry, onChange, context })}</>;
   }
   return (
     <div className="inline-payload-opaque">
@@ -54,9 +56,11 @@ export function InlinePayloadEditor({
 export function ParagraphPreview({
   paragraph,
   registry,
+  context,
 }: Readonly<{
   paragraph: ParagraphBlock;
   registry: BuilderInlinePluginRegistry;
+  context: BuilderInlineRenderContext;
 }>) {
   return (
     <p className="paragraph-content">
@@ -65,7 +69,7 @@ export function ParagraphPreview({
       ) : (
         paragraph.inlines.map((inline) => (
           <Fragment key={inline.id}>
-            {registry.adapterForInline(inline).renderPreview(inline, registry)}
+            {registry.adapterForInline(inline).renderPreview(inline, registry, context)}
           </Fragment>
         ))
       )}
@@ -91,6 +95,7 @@ export function ParagraphEditor({
   inlineRegistry,
   onCommit,
   onCancel,
+  referenceTargets,
 }: ParagraphEditorProps) {
   const paragraph = requireParagraph(block);
   const [inlines, setInlines] = useState<readonly BuilderInlineNode[]>(paragraph.inlines);
@@ -229,7 +234,11 @@ export function ParagraphEditor({
           <small>{inlines.length} segment{inlines.length === 1 ? "" : "s"}</small>
         </header>
         <div>
-          <ParagraphPreview paragraph={draftParagraph} registry={inlineRegistry} />
+          <ParagraphPreview
+            paragraph={draftParagraph}
+            registry={inlineRegistry}
+            context={{ referenceTargets }}
+          />
         </div>
       </section>
 
@@ -346,6 +355,7 @@ export function ParagraphEditor({
                   <InlinePayloadEditor
                     inline={inline}
                     registry={inlineRegistry}
+                    context={{ referenceTargets }}
                     onChange={(replacement) => {
                       setInlines((currentInlines) =>
                         Object.freeze(

@@ -15,6 +15,7 @@ import {
 } from "./codeListingSupport";
 import { insertSpacesAtSelection } from "./codeListingEditing";
 import { highlightCode } from "./codeHighlighting";
+import { editableReferenceIdError } from "../builder/referenceEditing";
 
 function HighlightedCode({
   language,
@@ -58,17 +59,29 @@ export function CodeListingPreview({
   );
 }
 
-export function CodeListingEditor({ block, onCommit, onCancel }: BuilderBlockEditorProps) {
+export function CodeListingEditor({
+  block,
+  onCommit,
+  onCancel,
+  referenceTargets,
+}: BuilderBlockEditorProps) {
   const listing = requireCodeListing(block);
   const [language, setLanguage] = useState<CodeListingLanguage>(listing.language);
   const [code, setCode] = useState(listing.code);
   const [caption, setCaption] = useState(listing.caption);
+  const [referenceId, setReferenceId] = useState(listing.referenceId ?? "");
   const highlightRef = useRef<HTMLPreElement>(null);
+  const referenceError = editableReferenceIdError(
+    referenceId,
+    listing.id,
+    referenceTargets,
+  );
   const draftListing: CodeListingBlock = Object.freeze({
     ...listing,
     language,
     code,
     caption,
+    referenceId: referenceId.length === 0 ? null : referenceId,
   });
 
   return (
@@ -93,6 +106,20 @@ export function CodeListingEditor({ block, onCommit, onCancel }: BuilderBlockEdi
           <option value="cpp">C++</option>
           <option value="julia">Julia</option>
         </select>
+      </label>
+      {referenceError === null ? null : (
+        <p className="editor-error">{referenceError}</p>
+      )}
+      <label className="editor-field">
+        <span>Reference ID · optional</span>
+        <input
+          value={referenceId}
+          pattern="[A-Za-z][A-Za-z0-9_.:-]*"
+          placeholder="lst:solver-kernel"
+          onChange={(event) => {
+            setReferenceId(event.target.value);
+          }}
+        />
       </label>
       <label className="editor-field">
         <span>Source code</span>
@@ -155,7 +182,11 @@ export function CodeListingEditor({ block, onCommit, onCancel }: BuilderBlockEdi
         <button
           className="primary-action"
           type="submit"
-          disabled={code.length === 0 || caption.trim().length === 0}
+          disabled={
+            code.length === 0 ||
+            caption.trim().length === 0 ||
+            referenceError !== null
+          }
         >
           Save listing
         </button>

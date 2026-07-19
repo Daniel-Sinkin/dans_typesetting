@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import type {
   BuilderInlineEditorProps,
   BuilderInlinePluginRegistry,
+  BuilderInlineRenderContext,
 } from "../builder/inlinePlugin";
 import {
   createBlockId,
@@ -19,9 +20,11 @@ import {
 export function HyperlinkPreview({
   inline,
   registry,
+  context,
 }: Readonly<{
   inline: BuilderInlineNode;
   registry: BuilderInlinePluginRegistry;
+  context: BuilderInlineRenderContext;
 }>) {
   const link = requireHyperlink(inline);
   return (
@@ -38,7 +41,9 @@ export function HyperlinkPreview({
         ? link.target
         : link.labelInlines.map((labelInline) => (
             <Fragment key={labelInline.id}>
-              {registry.adapterForInline(labelInline).renderPreview(labelInline, registry)}
+              {registry
+                .adapterForInline(labelInline)
+                .renderPreview(labelInline, registry, context)}
             </Fragment>
           ))}
     </a>
@@ -49,6 +54,7 @@ export function HyperlinkEditor({
   inline,
   registry,
   onChange,
+  context,
 }: BuilderInlineEditorProps) {
   const link = requireHyperlink(inline);
   const [newLabelType, setNewLabelType] = useState(paragraphTextInlineTypeId);
@@ -138,6 +144,7 @@ export function HyperlinkEditor({
             <InlinePayloadEditor
               inline={labelInline}
               registry={registry}
+              context={context}
               onChange={(replacement) => {
                 replaceLabel(
                   link.labelInlines.map((candidate) =>

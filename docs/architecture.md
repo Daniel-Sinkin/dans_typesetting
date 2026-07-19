@@ -45,6 +45,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Inline math | `dans.math.inline` |
 | Display math | `dans.math.display` |
 | Hyperlink | `dans.inline.hyperlink` |
+| Semantic reference | `dans.inline.reference` |
 | Figure | `dans.image.figure` |
 | Listing | `dans.code.listing` |
 | Section | `dans.core.section` |
@@ -154,10 +155,22 @@ same inline renderer used by paragraphs and captions, and only contributes the
 `itemize`/`enumerate` structure. This is the intended pattern for plugin-owned
 repeated nested data: the document core still sees one opaque block.
 
-## Next architectural gate: target registry and footnotes
+## Semantic target index
 
-Native references already lower stable target IDs through LaTeX, but the
-canonical/browser side needs the same inline contract and a derived registry
-that classifies sections, figures, equations, tables, and listings. Footnotes
-can then reuse inline sequences while testing nested inline-host constraints
-before the richer table core is introduced.
+Referenceable block plugins expose a small descriptor containing an optional
+stable target ID, semantic label, and optional title. They do not own visible
+counters. The graphical writer walks the current section tree once and derives
+section paths plus plugin-declared numbering-series ordinals. Consequently an
+inline `dans.inline.reference` stores only its stable target ID while rendering
+live text such as `Section 1.2`, `Figure 3`, `Equation 4`, or `Listing 2`.
+
+The derived index rejects duplicate target IDs across independent plugins.
+Plugin-aware Alt-drag copies clear target IDs while preserving every other
+payload field, including recursively copied section children, so a copy cannot
+silently create an ambiguous reference. Unknown and unresolved references stay
+visible rather than being discarded. LaTeX retains its independent `\label`
+and `\autoref` lowering over the same semantic IDs.
+
+Footnotes are the next inline-host gate. They should reuse ordered inline
+sequences and generic writer-owned occurrence numbering before the richer table
+core is introduced.

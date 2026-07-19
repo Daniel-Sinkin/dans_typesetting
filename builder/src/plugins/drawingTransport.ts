@@ -6,6 +6,7 @@ import {
   requireTransportString,
   type BlockTransportCodec,
 } from "../transport/documentTransport";
+import { decodeOptionalReferenceId } from "../model/referenceId";
 import {
   excalidrawDrawingTypeId,
   normalizeExcalidrawScene,
@@ -13,13 +14,6 @@ import {
   validateExcalidrawDrawingBlock,
   type ExcalidrawDrawingBlock,
 } from "./drawingModel";
-
-function decodeReferenceId(data: Record<string, unknown>): string | null {
-  if (data.referenceId === null) {
-    return null;
-  }
-  return requireTransportString(data, "referenceId", "Excalidraw drawing payload");
-}
 
 export const excalidrawDrawingTransportCodec: BlockTransportCodec = {
   typeId: excalidrawDrawingTypeId,
@@ -39,7 +33,10 @@ export const excalidrawDrawingTransportCodec: BlockTransportCodec = {
       id,
       typeId: excalidrawDrawingTypeId,
       caption: requireTransportString(data, "caption", "Excalidraw drawing payload"),
-      referenceId: decodeReferenceId(data),
+      referenceId: decodeOptionalReferenceId(
+        data.referenceId,
+        "Excalidraw drawing reference ID",
+      ),
       widthFraction: requireTransportNumber(
         data,
         "widthFraction",

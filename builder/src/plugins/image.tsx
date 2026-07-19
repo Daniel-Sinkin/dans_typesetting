@@ -30,9 +30,25 @@ export const imagePlugin: BuilderBlockPlugin = {
       typeId: imageTypeId,
       source: "/sample-domain-decomposition.svg",
       caption: "A new figure caption.",
+      referenceId: null,
       widthFraction: 0.72,
       preferredPixelWidth: 1280,
       preferredPixelHeight: 720,
+    });
+  },
+  referenceTarget(block) {
+    const image = requireImage(block);
+    return {
+      referenceId: image.referenceId,
+      label: "Figure",
+      title: image.caption,
+    };
+  },
+  copyForInsert(block, copiedBlockId) {
+    return Object.freeze({
+      ...requireImage(block),
+      id: copiedBlockId,
+      referenceId: null,
     });
   },
   measure(block, availableWidth) {

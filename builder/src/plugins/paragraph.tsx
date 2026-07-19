@@ -52,9 +52,13 @@ export function createParagraphPlugin(
       );
       return 60 + lineCount * 28;
     },
-    renderPreview(block) {
+    renderPreview(block, context) {
       return (
-        <ParagraphPreview paragraph={requireParagraph(block)} registry={inlineRegistry} />
+        <ParagraphPreview
+          paragraph={requireParagraph(block)}
+          registry={inlineRegistry}
+          context={{ referenceTargets: context.referenceTargets }}
+        />
       );
     },
     editor: {

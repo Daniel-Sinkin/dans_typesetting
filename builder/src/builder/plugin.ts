@@ -2,6 +2,10 @@
 import type { ReactNode } from "react";
 
 import type { BuilderBlock, BuilderBlockEnvelope } from "../model/document";
+import type {
+  BuilderReferenceTarget,
+  BuilderReferenceTargetDescriptor,
+} from "./reference";
 
 export interface PaletteDescriptor {
   readonly label: string;
@@ -16,6 +20,7 @@ export interface BuilderBlockRenderContext {
   readonly ordinal: number | null;
   readonly documentBlocks: readonly BuilderBlock[];
   readonly sectionDepth: number;
+  readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
 }
 
 export interface BuilderBlockMeasureContext {
@@ -29,6 +34,12 @@ export interface BuilderBlockAdapter {
   readonly palette: PaletteDescriptor;
   readonly numberingSeries?: string | undefined;
   readonly paginationPolicy?: BuilderPaginationPolicy | undefined;
+  readonly referenceTarget?:
+    | ((block: BuilderBlock) => BuilderReferenceTargetDescriptor | null)
+    | undefined;
+  readonly copyForInsert?:
+    | ((block: BuilderBlock, copiedBlockId: string) => BuilderBlock)
+    | undefined;
   measure(
     block: BuilderBlock,
     availableWidth: number,
@@ -42,6 +53,7 @@ export interface BuilderBlockEditorProps {
   readonly onPreview: (block: BuilderBlock) => void;
   readonly onCommit: (block: BuilderBlock) => void;
   readonly onCancel: () => void;
+  readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
 }
 
 export interface BuilderBlockEditor {
@@ -60,6 +72,12 @@ export interface BuilderFallbackAdapter {
   readonly palette: PaletteDescriptor;
   readonly numberingSeries?: string | undefined;
   readonly paginationPolicy?: BuilderPaginationPolicy | undefined;
+  readonly referenceTarget?:
+    | ((block: BuilderBlock) => BuilderReferenceTargetDescriptor | null)
+    | undefined;
+  readonly copyForInsert?:
+    | ((block: BuilderBlock, copiedBlockId: string) => BuilderBlock)
+    | undefined;
   measure(
     block: BuilderBlockEnvelope,
     availableWidth: number,

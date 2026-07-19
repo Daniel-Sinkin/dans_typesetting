@@ -36,8 +36,8 @@ export const colorSpanInlinePlugin: BuilderInlinePlugin = {
       )
       .join("");
   },
-  renderPreview(inline, registry) {
-    return createElement(ColorSpanPreview, { inline, registry });
+  renderPreview(inline, registry, context) {
+    return createElement(ColorSpanPreview, { inline, registry, context });
   },
   editor: {
     render(props) {

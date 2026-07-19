@@ -101,6 +101,13 @@
             }
           },
           {
+            "id": "fixture-reference",
+            "type": "dans.inline.reference",
+            "payload": {
+              "targetReferenceId": "fig:canonical-figure"
+            }
+          },
+          {
             "id": "fixture-colour",
             "type": "dans.inline.color_span",
             "payload": {
@@ -137,6 +144,7 @@
       "payload": {
         "source": "/sample-domain-decomposition.svg",
         "caption": "A canonical figure.",
+        "referenceId": "fig:canonical-figure",
         "widthFraction": 0.72,
         "preferredPixelWidth": 1280,
         "preferredPixelHeight": 720
@@ -157,7 +165,8 @@
             "kind": "decimal",
             "value": "3.2"
           }
-        }
+        },
+        "referenceId": "eq:canonical-equation"
       }
     },
     {
@@ -166,7 +175,8 @@
       "payload": {
         "language": "julia",
         "code": "function energy(x)\n    return sum(abs2, x)\nend",
-        "caption": "A canonical Julia listing."
+        "caption": "A canonical Julia listing.",
+        "referenceId": "lst:canonical-energy"
       }
     },
     {

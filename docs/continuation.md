@@ -18,9 +18,30 @@ native and graphical implementations.
 Commit `a249217` adds the semantic document shell, recursive sections, and
 continuous/paged whole-block projection.
 
+Commit `17fd196` adds bounded inline Excalidraw drawing blocks.
+
+Commit `5d9a837` adds itemized/enumerated semantic lists.
+
 ## Current verified slice
 
-The semantic item-list slice adds:
+The semantic target/reference slice adds:
+
+- `dans.inline.reference` in the canonical browser contract, matching the
+  native reference plugin;
+- plugin-exposed target descriptors for sections, images, drawings, display
+  equations, and listings;
+- live writer-derived `Section 1.2`, `Figure 3`, `Equation 4`, and `Listing 2`
+  labels with stable clickable anchors;
+- duplicate-target validation and an editor target picker with unresolved
+  references remaining visibly diagnosable;
+- optional target IDs in figure/equation/listing codecs with backward-compatible
+  decoding of earlier payloads;
+- plugin-aware recursive copies that clear target identity while preserving
+  authoring content;
+- canonical fixture, target-index, copy, browser interaction, native transport,
+  and PDF build coverage.
+
+The preceding semantic item-list slice adds:
 
 - `dans.list` with explicit itemized/enumerated presentation;
 - stable ordered items, each owning the Core Paragraph inline contract;
@@ -92,9 +113,9 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Implement the browser/canonical reference inline and a derived semantic-target
-registry, followed by inline footnotes. Then use the repeated nested-content
-lessons from lists and footnotes for the rich table core and its CSV adapter.
+Implement inline footnotes with writer-derived occurrence numbering. Then use
+the repeated nested-content lessons from lists and footnotes for the rich table
+core and its CSV adapter.
 Keep plugin payload codecs beside their plugin and extend the shared fixture
 whenever a new canonical type is completed.
 

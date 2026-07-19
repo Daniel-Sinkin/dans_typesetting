@@ -10,6 +10,7 @@ import {
   requireTransportString,
   type BlockTransportCodec,
 } from "../transport/documentTransport";
+import { decodeOptionalReferenceId } from "../model/referenceId";
 
 function requireLanguage(value: string): CodeListingLanguage {
   if (value !== "cpp" && value !== "julia") {
@@ -28,6 +29,7 @@ export const codeListingBlockTransportCodec: BlockTransportCodec = {
       language: block.language,
       code: block.code,
       caption: block.caption,
+      referenceId: block.referenceId,
     };
   },
   decode(id, payload): BuilderBlock {
@@ -40,6 +42,10 @@ export const codeListingBlockTransportCodec: BlockTransportCodec = {
       ),
       code: requireTransportString(data, "code", "Code-listing payload"),
       caption: requireTransportString(data, "caption", "Code-listing payload"),
+      referenceId: decodeOptionalReferenceId(
+        data.referenceId,
+        "Code-listing payload.referenceId",
+      ),
     });
   },
 };

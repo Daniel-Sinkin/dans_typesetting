@@ -8,6 +8,8 @@ import type {
 import type { DocumentLayout, LayoutBounds } from "../builder/layout";
 import type { BuilderPluginRegistry } from "../builder/plugin";
 import { deriveBlockOrdinals } from "../builder/numbering";
+import { deriveReferenceTargets } from "../builder/referenceTargets";
+import { blockAnchorId } from "../builder/reference";
 import type { BuilderBlock } from "../model/document";
 
 interface DocumentVisualPageProps {
@@ -37,6 +39,7 @@ export function DocumentVisualPage({
     layout.blocks.map(({ block }) => block),
     (block) => registry.pluginForBlock(block).numberingSeries ?? null,
   );
+  const referenceTargets = deriveReferenceTargets(layout.documentBlocks, registry);
   const visibleBlocks = layout.blocks
     .map((blockLayout, documentIndex) => ({ blockLayout, documentIndex }))
     .filter(({ blockLayout }) => isPageVisible(layout, blockLayout.pageIndex));
@@ -66,11 +69,15 @@ export function DocumentVisualPage({
           numberingSeries: null,
           ordinal: null,
         };
+        const target = [...referenceTargets.values()].find(
+          (candidate) => candidate.blockId === block.id,
+        );
         return (
           <section
             className={`document-block-visual${oversized ? " document-block-visual--oversized" : ""}`}
             data-section-depth={depth}
             data-visual-block-id={block.id}
+            id={target?.anchorId ?? blockAnchorId(block.id)}
             key={block.id}
             style={positionStyle(layout, bounds)}
           >
@@ -88,6 +95,7 @@ export function DocumentVisualPage({
                   ordinal: numbering.ordinal,
                   documentBlocks: layout.documentBlocks,
                   sectionDepth: depth,
+                  referenceTargets,
                 })
               )}
             </div>

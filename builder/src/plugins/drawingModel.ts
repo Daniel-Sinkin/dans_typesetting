@@ -1,5 +1,6 @@
 // Semantic payload owned by the embedded Excalidraw drawing plugin.
 import type { BuilderBlock } from "../model/document";
+import { validateOptionalReferenceId } from "../model/referenceId";
 
 export const excalidrawDrawingTypeId = "dans.drawing.excalidraw";
 export const drawingCanvasHeight = Object.freeze({ minimum: 240, maximum: 720 });
@@ -101,9 +102,7 @@ export function validateExcalidrawDrawingBlock(block: ExcalidrawDrawingBlock): v
   if (block.caption.trim().length === 0) {
     throw new Error("An Excalidraw drawing requires a caption");
   }
-  if (block.referenceId !== null && !/^[A-Za-z][A-Za-z0-9_.:-]*$/u.test(block.referenceId)) {
-    throw new Error("An Excalidraw drawing reference ID is invalid");
-  }
+  validateOptionalReferenceId(block.referenceId, "Excalidraw drawing reference ID");
   if (block.widthFraction <= 0 || block.widthFraction > 1) {
     throw new Error("Excalidraw drawing widthFraction must be in (0, 1]");
   }

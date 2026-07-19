@@ -41,6 +41,7 @@ import {
   type BuilderBlock,
   type MathDisplayBlock,
 } from "../model/document";
+import { editableReferenceIdError } from "../builder/referenceEditing";
 
 const detachMovementThresholdPx = 7;
 
@@ -667,6 +668,7 @@ interface MathExpressionEditorProps {
   readonly expression: MathExpression;
   readonly inputParser?: MathInputParserPlugin | undefined;
   readonly saveLabel?: string | undefined;
+  readonly canCommit?: boolean | undefined;
   readonly onCommit: (expression: MathExpression) => void;
   readonly onCancel: () => void;
 }
@@ -675,6 +677,7 @@ export function MathExpressionEditor({
   expression,
   inputParser,
   saveLabel = "Save equation",
+  canCommit = true,
   onCommit,
   onCancel,
 }: MathExpressionEditorProps) {
@@ -1477,7 +1480,7 @@ export function MathExpressionEditor({
         <div className="editor-actions">
           <button
             type="button"
-            disabled={isTrackingPointer}
+            disabled={isTrackingPointer || !canCommit}
             onClick={() => {
               setDraft(expression);
               onCancel();
@@ -1544,16 +1547,53 @@ export function MathExpressionEditor({
   );
 }
 
-export function MathEditor({ block, onCommit, onCancel, inputParser }: MathEditorProps) {
+export function MathEditor({
+  block,
+  onCommit,
+  onCancel,
+  inputParser,
+  referenceTargets,
+}: MathEditorProps) {
   const displayMath = requireDisplayMath(block);
+  const [referenceId, setReferenceId] = useState(displayMath.referenceId ?? "");
+  const referenceError = editableReferenceIdError(
+    referenceId,
+    displayMath.id,
+    referenceTargets,
+  );
   return (
-    <MathExpressionEditor
-      expression={displayMath.expression}
-      inputParser={inputParser}
-      onCancel={onCancel}
-      onCommit={(expression) => {
-        onCommit(Object.freeze({ ...displayMath, expression }));
-      }}
-    />
+    <div className="math-block-editor">
+      <label className="editor-field math-block-editor__reference">
+        <span>Equation reference ID · optional</span>
+        <input
+          value={referenceId}
+          pattern="[A-Za-z][A-Za-z0-9_.:-]*"
+          placeholder="eq:energy"
+          onChange={(event) => {
+            setReferenceId(event.target.value);
+          }}
+        />
+      </label>
+      {referenceError === null ? null : (
+        <p className="editor-error math-block-editor__reference-error">
+          {referenceError}
+        </p>
+      )}
+      <MathExpressionEditor
+        expression={displayMath.expression}
+        inputParser={inputParser}
+        canCommit={referenceError === null}
+        onCancel={onCancel}
+        onCommit={(expression) => {
+          onCommit(
+            Object.freeze({
+              ...displayMath,
+              expression,
+              referenceId: referenceId.length === 0 ? null : referenceId,
+            }),
+          );
+        }}
+      />
+    </div>
   );
 }

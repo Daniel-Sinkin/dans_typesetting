@@ -1,5 +1,6 @@
 // builder/src/model/document.ts — define the builder transport snapshot and command boundary.
 import { validateMathExpression, type MathExpression } from "./math";
+import { requireReferenceId, validateOptionalReferenceId } from "./referenceId";
 
 export const paragraphTypeId = "dans.core.paragraph";
 export const paragraphTextInlineTypeId = "dans.core.text";
@@ -7,6 +8,7 @@ export const imageTypeId = "dans.image.figure";
 export const mathDisplayTypeId = "dans.math.display";
 export const mathInlineTypeId = "dans.math.inline";
 export const hyperlinkInlineTypeId = "dans.inline.hyperlink";
+export const referenceInlineTypeId = "dans.inline.reference";
 export const codeListingTypeId = "dans.code.listing";
 export const sectionTypeId = "dans.core.section";
 export const titlePageTypeId = "dans.document.title_page";
@@ -66,6 +68,11 @@ export interface HyperlinkInline extends BuilderInlineNode {
   readonly labelInlines: readonly BuilderInlineNode[];
 }
 
+export interface ReferenceInline extends BuilderInlineNode {
+  readonly typeId: typeof referenceInlineTypeId;
+  readonly targetReferenceId: string;
+}
+
 export interface ParagraphBlock extends BuilderBlock {
   readonly typeId: typeof paragraphTypeId;
   readonly inlines: readonly BuilderInlineNode[];
@@ -75,6 +82,7 @@ export interface ImageBlock extends BuilderBlock {
   readonly typeId: typeof imageTypeId;
   readonly source: string;
   readonly caption: string;
+  readonly referenceId: string | null;
   readonly widthFraction: number;
   readonly preferredPixelWidth: number;
   readonly preferredPixelHeight: number;
@@ -83,6 +91,7 @@ export interface ImageBlock extends BuilderBlock {
 export interface MathDisplayBlock extends BuilderBlock {
   readonly typeId: typeof mathDisplayTypeId;
   readonly expression: MathExpression;
+  readonly referenceId: string | null;
 }
 
 export interface CodeListingBlock extends BuilderBlock {
@@ -90,6 +99,7 @@ export interface CodeListingBlock extends BuilderBlock {
   readonly language: CodeListingLanguage;
   readonly code: string;
   readonly caption: string;
+  readonly referenceId: string | null;
 }
 
 export interface SectionBlock extends BuilderBlock {
@@ -189,20 +199,15 @@ export function createHyperlinkInline(
   });
 }
 
-export function cloneBuilderBlock(block: BuilderBlock, id: string): BuilderBlock {
-  if (id.length === 0) {
-    throw new Error("A cloned builder block requires a stable ID");
-  }
-  if (isSectionBlock(block)) {
-    return Object.freeze({
-      ...block,
-      id,
-      blocks: Object.freeze(
-        block.blocks.map((child) => cloneBuilderBlock(child, createBlockId())),
-      ),
-    });
-  }
-  return Object.freeze({ ...block, id });
+export function createReferenceInline(
+  targetReferenceId: string,
+  id: string = createBlockId(),
+): ReferenceInline {
+  return Object.freeze({
+    id,
+    typeId: referenceInlineTypeId,
+    targetReferenceId: requireReferenceId(targetReferenceId, "Reference target ID"),
+  });
 }
 
 export function isParagraphTextInline(
@@ -231,6 +236,14 @@ export function isHyperlinkInline(inline: BuilderInlineNode): inline is Hyperlin
   );
 }
 
+export function isReferenceInline(inline: BuilderInlineNode): inline is ReferenceInline {
+  return (
+    inline.typeId === referenceInlineTypeId &&
+    "targetReferenceId" in inline &&
+    typeof inline.targetReferenceId === "string"
+  );
+}
+
 export function isParagraphBlock(block: BuilderBlock): block is ParagraphBlock {
   return (
     block.typeId === paragraphTypeId &&
@@ -246,6 +259,8 @@ export function isImageBlock(block: BuilderBlock): block is ImageBlock {
     typeof block.source === "string" &&
     "caption" in block &&
     typeof block.caption === "string" &&
+    "referenceId" in block &&
+    (block.referenceId === null || typeof block.referenceId === "string") &&
     "widthFraction" in block &&
     typeof block.widthFraction === "number" &&
     "preferredPixelWidth" in block &&
@@ -256,7 +271,12 @@ export function isImageBlock(block: BuilderBlock): block is ImageBlock {
 }
 
 export function isMathDisplayBlock(block: BuilderBlock): block is MathDisplayBlock {
-  return block.typeId === mathDisplayTypeId && "expression" in block;
+  return (
+    block.typeId === mathDisplayTypeId &&
+    "expression" in block &&
+    "referenceId" in block &&
+    (block.referenceId === null || typeof block.referenceId === "string")
+  );
 }
 
 export function isCodeListingBlock(block: BuilderBlock): block is CodeListingBlock {
@@ -267,7 +287,9 @@ export function isCodeListingBlock(block: BuilderBlock): block is CodeListingBlo
     "code" in block &&
     typeof block.code === "string" &&
     "caption" in block &&
-    typeof block.caption === "string"
+    typeof block.caption === "string" &&
+    "referenceId" in block &&
+    (block.referenceId === null || typeof block.referenceId === "string")
   );
 }
 
@@ -417,14 +439,12 @@ function validateInlineSequence(
       validateHyperlinkTarget(inline.target);
       validateInlineSequence(inline.labelInlines, false, false);
     }
-  }
-}
-
-function validateReferenceId(referenceId: string): void {
-  if (!/^[A-Za-z][A-Za-z0-9_.:-]*$/u.test(referenceId)) {
-    throw new Error(
-      "A reference ID must begin with an ASCII letter and contain only letters, digits, '-', '_', '.', and ':'",
-    );
+    if (inline.typeId === referenceInlineTypeId) {
+      if (!isReferenceInline(inline)) {
+        throw new Error("A reference inline has an invalid transport shape");
+      }
+      requireReferenceId(inline.targetReferenceId, "Reference target ID");
+    }
   }
 }
 
@@ -450,6 +470,9 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
       if (block.source.trim().length === 0 || block.caption.trim().length === 0) {
         throw new Error("An image block requires a source and caption");
       }
+      if (block.referenceId !== null) {
+        validateOptionalReferenceId(block.referenceId, "Image reference ID");
+      }
       if (block.widthFraction <= 0 || block.widthFraction > 1) {
         throw new Error("Image widthFraction must be in the interval (0, 1]");
       }
@@ -462,6 +485,9 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
         throw new Error("A display-math block has an invalid transport shape");
       }
       validateMathExpression(block.expression);
+      if (block.referenceId !== null) {
+        validateOptionalReferenceId(block.referenceId, "Equation reference ID");
+      }
       return;
     case codeListingTypeId:
       if (!isCodeListingBlock(block)) {
@@ -469,6 +495,9 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
       }
       if (block.code.length === 0 || block.caption.trim().length === 0) {
         throw new Error("A code listing requires source code and a caption");
+      }
+      if (block.referenceId !== null) {
+        validateOptionalReferenceId(block.referenceId, "Listing reference ID");
       }
       return;
     case sectionTypeId:
@@ -482,7 +511,7 @@ function validateBlock(block: BuilderBlock, sectionDepth = 0): void {
         throw new Error("A section requires a title");
       }
       if (block.referenceId !== null) {
-        validateReferenceId(block.referenceId);
+        validateOptionalReferenceId(block.referenceId, "Section reference ID");
       }
       for (const child of block.blocks) {
         validateBlock(child, sectionDepth + 1);

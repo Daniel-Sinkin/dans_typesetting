@@ -9,6 +9,7 @@ import {
   type SectionBlock,
   type TitlePageBlock,
 } from "../model/document";
+import { editableReferenceIdError } from "../builder/referenceEditing";
 
 function requireSection(block: BuilderBlock): SectionBlock {
   if (!isSectionBlock(block)) {
@@ -67,10 +68,20 @@ export function TitlePageEditor({ block, onCommit, onCancel }: BuilderBlockEdito
   );
 }
 
-export function SectionEditor({ block, onCommit, onCancel }: BuilderBlockEditorProps) {
+export function SectionEditor({
+  block,
+  onCommit,
+  onCancel,
+  referenceTargets,
+}: BuilderBlockEditorProps) {
   const section = requireSection(block);
   const [title, setTitle] = useState(section.title);
   const [referenceId, setReferenceId] = useState(section.referenceId ?? "");
+  const referenceError = editableReferenceIdError(
+    referenceId,
+    section.id,
+    referenceTargets,
+  );
   return (
     <form
       className="block-editor-form"
@@ -94,10 +105,14 @@ export function SectionEditor({ block, onCommit, onCancel }: BuilderBlockEditorP
           }}
         />
       </label>
+      {referenceError === null ? null : (
+        <p className="editor-error">{referenceError}</p>
+      )}
       <label className="editor-field">
         <span>Reference ID · optional</span>
         <input
           value={referenceId}
+          pattern="[A-Za-z][A-Za-z0-9_.:-]*"
           placeholder="sec:results"
           onChange={(event) => {
             setReferenceId(event.target.value);
@@ -111,7 +126,11 @@ export function SectionEditor({ block, onCommit, onCancel }: BuilderBlockEditorP
         <button type="button" onClick={onCancel}>
           Cancel
         </button>
-        <button className="primary-action" type="submit" disabled={title.trim().length === 0}>
+        <button
+          className="primary-action"
+          type="submit"
+          disabled={title.trim().length === 0 || referenceError !== null}
+        >
           Save section
         </button>
       </div>

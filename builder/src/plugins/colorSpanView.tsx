@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import type {
   BuilderInlineEditorProps,
   BuilderInlinePluginRegistry,
+  BuilderInlineRenderContext,
 } from "../builder/inlinePlugin";
 import type { BuilderInlineNode } from "../model/document";
 import {
@@ -17,23 +18,32 @@ import { InlinePayloadEditor } from "./paragraphEditor";
 export function ColorSpanPreview({
   inline,
   registry,
+  context,
 }: Readonly<{
   inline: BuilderInlineNode;
   registry: BuilderInlinePluginRegistry;
+  context: BuilderInlineRenderContext;
 }>) {
   const colorSpan = requireColorSpan(inline);
   return (
     <span className="inline-color-span" style={{ color: colorToCss(colorSpan.color) }}>
       {colorSpan.inlines.map((nestedInline) => (
         <Fragment key={nestedInline.id}>
-          {registry.adapterForInline(nestedInline).renderPreview(nestedInline, registry)}
+          {registry
+            .adapterForInline(nestedInline)
+            .renderPreview(nestedInline, registry, context)}
         </Fragment>
       ))}
     </span>
   );
 }
 
-export function ColorSpanEditor({ inline, registry, onChange }: BuilderInlineEditorProps) {
+export function ColorSpanEditor({
+  inline,
+  registry,
+  onChange,
+  context,
+}: BuilderInlineEditorProps) {
   const colorSpan = requireColorSpan(inline);
 
   return (
@@ -65,6 +75,7 @@ export function ColorSpanEditor({ inline, registry, onChange }: BuilderInlineEdi
             <InlinePayloadEditor
               inline={nestedInline}
               registry={registry}
+              context={context}
               onChange={(replacement) => {
                 onChange(
                   Object.freeze({

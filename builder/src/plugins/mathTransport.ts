@@ -12,6 +12,7 @@ import {
   mathExpressionFromTransport,
   mathExpressionToTransport,
 } from "../model/math";
+import { decodeOptionalReferenceId } from "../model/referenceId";
 import {
   requireTransportRecord,
   type BlockTransportCodec,
@@ -24,7 +25,10 @@ export const displayMathTransportCodec: BlockTransportCodec = {
     if (!isMathDisplayBlock(block)) {
       throw new Error(`Display-math codec cannot encode ${block.typeId}`);
     }
-    return { expression: mathExpressionToTransport(block.expression) };
+    return {
+      expression: mathExpressionToTransport(block.expression),
+      referenceId: block.referenceId,
+    };
   },
   decode(id, payload): BuilderBlock {
     const data = requireTransportRecord(payload, "Display-math payload");
@@ -32,6 +36,10 @@ export const displayMathTransportCodec: BlockTransportCodec = {
       id,
       typeId: mathDisplayTypeId,
       expression: mathExpressionFromTransport(data.expression),
+      referenceId: decodeOptionalReferenceId(
+        data.referenceId,
+        "Display-math payload.referenceId",
+      ),
     });
   },
 };

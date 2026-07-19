@@ -7,6 +7,7 @@ import {
   type BuilderBlock,
   type ImageBlock,
 } from "../model/document";
+import { editableReferenceIdError } from "../builder/referenceEditing";
 
 function requireImage(block: BuilderBlock): ImageBlock {
   if (!isImageBlock(block)) {
@@ -45,10 +46,16 @@ function readImageDimensions(source: string): Promise<Readonly<{ width: number; 
   });
 }
 
-export function ImageEditor({ block, onCommit, onCancel }: BuilderBlockEditorProps) {
+export function ImageEditor({
+  block,
+  onCommit,
+  onCancel,
+  referenceTargets,
+}: BuilderBlockEditorProps) {
   const image = requireImage(block);
   const [source, setSource] = useState(image.source);
   const [caption, setCaption] = useState(image.caption);
+  const [referenceId, setReferenceId] = useState(image.referenceId ?? "");
   const [widthFraction, setWidthFraction] = useState(image.widthFraction);
   const [pixelWidth, setPixelWidth] = useState(image.preferredPixelWidth);
   const [pixelHeight, setPixelHeight] = useState(image.preferredPixelHeight);
@@ -57,6 +64,11 @@ export function ImageEditor({ block, onCommit, onCancel }: BuilderBlockEditorPro
   const [isReading, setIsReading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const openedPickerRef = useRef(false);
+  const referenceError = editableReferenceIdError(
+    referenceId,
+    image.id,
+    referenceTargets,
+  );
 
   useEffect(() => {
     if (openedPickerRef.current) {
@@ -102,6 +114,7 @@ export function ImageEditor({ block, onCommit, onCancel }: BuilderBlockEditorPro
             ...image,
             source,
             caption,
+            referenceId: referenceId.length === 0 ? null : referenceId,
             widthFraction,
             preferredPixelWidth: pixelWidth,
             preferredPixelHeight: pixelHeight,
@@ -150,6 +163,20 @@ export function ImageEditor({ block, onCommit, onCancel }: BuilderBlockEditorPro
           }}
         />
       </label>
+      {referenceError === null ? null : (
+        <p className="editor-error">{referenceError}</p>
+      )}
+      <label className="editor-field">
+        <span>Reference ID · optional</span>
+        <input
+          value={referenceId}
+          pattern="[A-Za-z][A-Za-z0-9_.:-]*"
+          placeholder="fig:domain-decomposition"
+          onChange={(event) => {
+            setReferenceId(event.target.value);
+          }}
+        />
+      </label>
       <label className="editor-field">
         <span>Preferred width · {Math.round(widthFraction * 100)}%</span>
         <input
@@ -170,7 +197,11 @@ export function ImageEditor({ block, onCommit, onCancel }: BuilderBlockEditorPro
         <button
           className="primary-action"
           type="submit"
-          disabled={isReading || caption.trim().length === 0}
+          disabled={
+            isReading ||
+            caption.trim().length === 0 ||
+            referenceError !== null
+          }
         >
           {isReading ? "Reading image…" : "Save image"}
         </button>

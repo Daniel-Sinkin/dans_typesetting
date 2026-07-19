@@ -34,6 +34,21 @@ export function createMathPlugin(
         id: blockId,
         typeId: mathDisplayTypeId,
         expression: createMathSlot(),
+        referenceId: null,
+      });
+    },
+    referenceTarget(block) {
+      const displayMath = requireDisplayMath(block);
+      return {
+        referenceId: displayMath.referenceId,
+        label: "Equation",
+      };
+    },
+    copyForInsert(block, copiedBlockId) {
+      return Object.freeze({
+        ...requireDisplayMath(block),
+        id: copiedBlockId,
+        referenceId: null,
       });
     },
     measure(block) {

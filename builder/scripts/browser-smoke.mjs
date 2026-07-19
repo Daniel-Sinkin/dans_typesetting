@@ -24,6 +24,7 @@ const canonicalFixturePath = join(
   "current-features.dans.json",
 );
 const initialBlockCount = 12;
+const initialParagraphSegmentCount = 11;
 
 function assert(condition, message) {
   if (!condition) {
@@ -597,14 +598,19 @@ async function exerciseBuilder(client) {
       inlineMathEditor: document.querySelector(".inline-math-editor .math-editor-canvas") !== null,
       hyperlink: preview.querySelector("a[href='https://www.google.com']")?.textContent === "updated link",
       styled: preview.querySelector("em")?.textContent === "Styled text",
+      reference: preview.querySelector("a.inline-reference")?.textContent === "Figure 1",
     };
   })()`);
   assert(paragraphLive.text, "Paragraph live preview did not update before save");
   assert(paragraphLive.colour === "rgb(201, 42, 42)", "Colour-span preview did not update");
-  assert(paragraphLive.segments === 8, "The paragraph did not expose all inline segments");
+  assert(
+    paragraphLive.segments === initialParagraphSegmentCount,
+    "The paragraph did not expose all inline segments",
+  );
   assert(paragraphLive.inlineMathEditor, "Inline structured math did not expose its graphical editor");
   assert(paragraphLive.hyperlink, "Hyperlink target and label did not live-update");
   assert(paragraphLive.styled, "Core Text style did not live-update");
+  assert(paragraphLive.reference, "Semantic reference numbering did not resolve live");
 
   const addSegmentPoints = await client.evaluate(`(() => {
     const center = (element) => {
@@ -620,7 +626,9 @@ async function exerciseBuilder(client) {
   await pointerDrag(client, addSegmentPoints.start, addSegmentPoints.end);
   const addedInlineId = await client.evaluate(`(() => {
     const items = [...document.querySelectorAll("[data-inline-editor-id]")];
-    return items.length === 9 ? items.at(-1).dataset.inlineEditorId : null;
+    return items.length === ${String(initialParagraphSegmentCount + 1)}
+      ? items.at(-1).dataset.inlineEditorId
+      : null;
   })()`);
   assert(addedInlineId !== null, "Dragging from the inline palette did not add a segment");
 

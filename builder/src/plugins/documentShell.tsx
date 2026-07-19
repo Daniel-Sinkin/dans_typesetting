@@ -17,6 +17,7 @@ import {
   type TitlePageBlock,
 } from "../model/document";
 import { SectionEditor, TitlePageEditor } from "./documentShellEditors";
+import { blockAnchorId } from "../builder/reference";
 
 function requireSection(block: BuilderBlock): SectionBlock {
   if (!isSectionBlock(block)) {
@@ -132,8 +133,10 @@ export const tableOfContentsPlugin: BuilderBlockPlugin = {
           <ol>
             {entries.map((entry) => (
               <li key={entry.id} style={{ paddingLeft: `${String(entry.depth * 22)}px` }}>
-                <span>{entry.number}</span>
-                <span>{entry.title}</span>
+                <a href={`#${blockAnchorId(entry.id)}`}>
+                  <span>{entry.number}</span>
+                  <span>{entry.title}</span>
+                </a>
                 <i aria-hidden="true" />
                 <small>—</small>
               </li>
@@ -187,6 +190,21 @@ export const sectionPlugin: BuilderBlockPlugin = {
       title: "New section",
       referenceId: null,
       blocks: Object.freeze([]),
+    });
+  },
+  referenceTarget(block) {
+    const section = requireSection(block);
+    return {
+      referenceId: section.referenceId,
+      label: "Section",
+      title: section.title,
+    };
+  },
+  copyForInsert(block, copiedBlockId) {
+    return Object.freeze({
+      ...requireSection(block),
+      id: copiedBlockId,
+      referenceId: null,
     });
   },
   measure() {

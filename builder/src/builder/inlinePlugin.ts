@@ -3,11 +3,17 @@ import type { ReactNode } from "react";
 
 import type { BuilderInlineNode } from "../model/document";
 import type { PaletteDescriptor } from "./plugin";
+import type { BuilderReferenceTarget } from "./reference";
+
+export interface BuilderInlineRenderContext {
+  readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
+}
 
 export interface BuilderInlineEditorProps {
   readonly inline: BuilderInlineNode;
   readonly registry: BuilderInlinePluginRegistry;
   readonly onChange: (inline: BuilderInlineNode) => void;
+  readonly context: BuilderInlineRenderContext;
 }
 
 export interface BuilderInlineEditor {
@@ -21,6 +27,7 @@ export interface BuilderInlineAdapter {
   renderPreview(
     inline: BuilderInlineNode,
     registry: BuilderInlinePluginRegistry,
+    context: BuilderInlineRenderContext,
   ): ReactNode;
 }
 

@@ -3,6 +3,7 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import { useCallback, useEffect, useState } from "react";
 
 import type { BuilderBlockEditorProps } from "../builder/plugin";
+import { editableReferenceIdError } from "../builder/referenceEditing";
 import {
   drawingCanvasHeight,
   requireExcalidrawDrawingBlock,
@@ -32,6 +33,7 @@ export function ExcalidrawDrawingEditor({
   onPreview,
   onCommit,
   onCancel,
+  referenceTargets,
 }: BuilderBlockEditorProps) {
   const [draft, setDraft] = useState<ExcalidrawDrawingBlock>(() =>
     requireExcalidrawDrawingBlock(block),
@@ -41,9 +43,18 @@ export function ExcalidrawDrawingEditor({
   >("idle");
   const initialScene = useState(() => restoreExcalidrawScene(draft.scene))[0];
 
+  const referenceError = editableReferenceIdError(
+    draft.referenceId ?? "",
+    draft.id,
+    referenceTargets,
+  );
+  const valid = draft.caption.trim().length > 0 && referenceError === null;
+
   useEffect(() => {
-    onPreview(draft);
-  }, [draft, onPreview]);
+    if (valid) {
+      onPreview(draft);
+    }
+  }, [draft, onPreview, valid]);
 
   const updateDraft = useCallback(
     (change: Partial<Omit<ExcalidrawDrawingBlock, "id" | "typeId">>) => {
@@ -66,11 +77,6 @@ export function ExcalidrawDrawingEditor({
       setExportState("failed");
     }
   }, [draft.id, draft.scene]);
-
-  const valid =
-    draft.caption.trim().length > 0 &&
-    (draft.referenceId === null ||
-      /^[A-Za-z][A-Za-z0-9_.:-]*$/u.test(draft.referenceId));
 
   return (
     <div className="drawing-editor" data-testid="excalidraw-drawing-editor">
@@ -122,10 +128,14 @@ export function ExcalidrawDrawingEditor({
             }}
           />
         </label>
+        {referenceError === null ? null : (
+          <small className="editor-error">{referenceError}</small>
+        )}
         <label>
           <span>Reference ID</span>
           <input
             value={draft.referenceId ?? ""}
+            pattern="[A-Za-z][A-Za-z0-9_.:-]*"
             placeholder="fig:diagram"
             onChange={(event) => {
               updateDraft({

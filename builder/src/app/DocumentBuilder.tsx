@@ -30,9 +30,10 @@ import {
   type PageRange,
 } from "../builder/layout";
 import type { BuilderBlockPlugin, BuilderPluginRegistry } from "../builder/plugin";
+import { copyBuilderBlockForInsert } from "../builder/copyBlock";
+import { deriveReferenceTargets } from "../builder/referenceTargets";
 import { createPageAnchor, pageAnchorId } from "../canvas/pageAnchor";
 import {
-  cloneBuilderBlock,
   createBlockId,
   flattenBuilderBlocks,
   removeBuilderBlockFromTree,
@@ -303,7 +304,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
             kind: "insert",
             parentId: finalPlacement.parentId,
             index: finalPlacement.index,
-            block: cloneBuilderBlock(completedDrag.block, createBlockId()),
+            block: copyBuilderBlockForInsert(completedDrag.block, registry),
           });
           return;
         }
@@ -370,7 +371,15 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [clearDrag, isDragging, port, resolvePlacement, setCurrentPlacement, updateDocumentCopyMode]);
+  }, [
+    clearDrag,
+    isDragging,
+    port,
+    registry,
+    resolvePlacement,
+    setCurrentPlacement,
+    updateDocumentCopyMode,
+  ]);
 
   const beginDrag = useCallback(
     (drag: ActiveDrag, initialPlacement: Placement | null) => {
@@ -462,6 +471,10 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         pageRange,
       }),
     [flowBlocks, insertionPreview, layoutMode, pageRange, registry],
+  );
+  const referenceTargets = useMemo(
+    () => deriveReferenceTargets(flowBlocks, registry),
+    [flowBlocks, registry],
   );
 
   useEffect(() => {
@@ -605,6 +618,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           onPreview: previewEditorBlock,
           onCancel: closeEditor,
           onCommit: commitEditorBlock,
+          referenceTargets,
         };
   const inlineEditor =
     editingDescriptor?.presentation === "inline" && editorProps !== null
@@ -640,6 +654,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     async (file: File): Promise<void> => {
       try {
         const decoded = transport.fromString(await file.text());
+        deriveReferenceTargets(decoded.blocks, registry);
         clearDrag();
         setPendingDetach(null);
         setEditingBlock(null);
@@ -650,7 +665,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         setTransportError(error instanceof Error ? error.message : "Could not load document");
       }
     },
-    [clearDrag, port, transport],
+    [clearDrag, port, registry, transport],
   );
 
   return (

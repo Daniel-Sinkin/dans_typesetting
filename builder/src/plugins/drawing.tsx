@@ -29,6 +29,21 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
       scene: createEmptyExcalidrawScene(),
     });
   },
+  referenceTarget(block) {
+    const drawing = requireExcalidrawDrawingBlock(block);
+    return {
+      referenceId: drawing.referenceId,
+      label: "Figure",
+      title: drawing.caption,
+    };
+  },
+  copyForInsert(block, copiedBlockId) {
+    return Object.freeze({
+      ...requireExcalidrawDrawingBlock(block),
+      id: copiedBlockId,
+      referenceId: null,
+    });
+  },
   measure(block, availableWidth) {
     const drawing = requireExcalidrawDrawingBlock(block);
     if (availableWidth <= 0) {

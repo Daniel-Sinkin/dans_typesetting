@@ -10,6 +10,7 @@ import {
   requireTransportString,
   type BlockTransportCodec,
 } from "../transport/documentTransport";
+import { decodeOptionalReferenceId } from "../model/referenceId";
 
 export const imageBlockTransportCodec: BlockTransportCodec = {
   typeId: imageTypeId,
@@ -20,6 +21,7 @@ export const imageBlockTransportCodec: BlockTransportCodec = {
     return {
       source: block.source,
       caption: block.caption,
+      referenceId: block.referenceId,
       widthFraction: block.widthFraction,
       preferredPixelWidth: block.preferredPixelWidth,
       preferredPixelHeight: block.preferredPixelHeight,
@@ -32,6 +34,10 @@ export const imageBlockTransportCodec: BlockTransportCodec = {
       typeId: imageTypeId,
       source: requireTransportString(data, "source", "Figure payload"),
       caption: requireTransportString(data, "caption", "Figure payload"),
+      referenceId: decodeOptionalReferenceId(
+        data.referenceId,
+        "Figure payload.referenceId",
+      ),
       widthFraction: requireTransportNumber(data, "widthFraction", "Figure payload"),
       preferredPixelWidth: requireTransportNumber(
         data,

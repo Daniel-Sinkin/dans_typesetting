@@ -22,6 +22,22 @@ export const codeListingPlugin: BuilderBlockPlugin = {
       language: "cpp",
       code: "int main() {\n    return 0;\n}",
       caption: "A new C++ listing.",
+      referenceId: null,
+    });
+  },
+  referenceTarget(block) {
+    const listing = requireCodeListing(block);
+    return {
+      referenceId: listing.referenceId,
+      label: "Listing",
+      title: listing.caption,
+    };
+  },
+  copyForInsert(block, copiedBlockId) {
+    return Object.freeze({
+      ...requireCodeListing(block),
+      id: copiedBlockId,
+      referenceId: null,
     });
   },
   measure(block) {
