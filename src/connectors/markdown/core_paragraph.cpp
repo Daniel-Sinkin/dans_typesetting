@@ -40,7 +40,7 @@ auto write_emphasized_text(
 CoreParagraphMarkdownOutput::CoreParagraphMarkdownOutput(
     std::string& buffer,
     const CoreParagraphInlineMarkdownRenderer& inline_renderer,
-    const writers::MarkdownOutput& context
+    writers::MarkdownOutput& context
 ) noexcept
     : buffer_{buffer}, inline_renderer_{inline_renderer}, context_{context}
 {
@@ -69,7 +69,13 @@ auto CoreParagraphMarkdownOutput::write_inlines(const plugins::InlineSequence& s
     }
 }
 
-auto CoreParagraphMarkdownOutput::context() const noexcept -> const writers::MarkdownOutput&
+auto CoreParagraphMarkdownOutput::render_inlines(const plugins::InlineSequence& sequence) const
+    -> std::string
+{
+    return inline_renderer_.render(sequence, context_);
+}
+
+auto CoreParagraphMarkdownOutput::context() noexcept -> writers::MarkdownOutput&
 {
     return context_;
 }
@@ -104,7 +110,7 @@ auto CoreParagraphInlineMarkdownRenderer::supports_inline(
 }
 
 auto CoreParagraphInlineMarkdownRenderer::render(
-    const plugins::InlineSequence& sequence, const writers::MarkdownOutput& context
+    const plugins::InlineSequence& sequence, writers::MarkdownOutput& context
 ) const -> std::string
 {
     std::string buffer{};

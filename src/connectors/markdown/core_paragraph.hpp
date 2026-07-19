@@ -21,7 +21,8 @@ class CoreParagraphMarkdownOutput
     auto write_text(std::string_view text) -> void;
     auto write_inline(const plugins::InlineNode& node) -> void;
     auto write_inlines(const plugins::InlineSequence& sequence) -> void;
-    [[nodiscard]] auto context() const noexcept -> const writers::MarkdownOutput&;
+    [[nodiscard]] auto render_inlines(const plugins::InlineSequence& sequence) const -> std::string;
+    [[nodiscard]] auto context() noexcept -> writers::MarkdownOutput&;
 
   private:
     friend class CoreParagraphInlineMarkdownRenderer;
@@ -29,12 +30,12 @@ class CoreParagraphMarkdownOutput
     CoreParagraphMarkdownOutput(
         std::string& buffer,
         const CoreParagraphInlineMarkdownRenderer& inline_renderer,
-        const writers::MarkdownOutput& context
+        writers::MarkdownOutput& context
     ) noexcept;
 
     std::string& buffer_;
     const CoreParagraphInlineMarkdownRenderer& inline_renderer_;
-    const writers::MarkdownOutput& context_;
+    writers::MarkdownOutput& context_;
 };
 
 class CoreParagraphInlineMarkdownAdapter
@@ -63,7 +64,7 @@ class CoreParagraphInlineMarkdownRenderer final
         -> void;
     [[nodiscard]] auto supports_inline(std::string_view inline_type_id) const noexcept -> bool;
     [[nodiscard]] auto
-    render(const plugins::InlineSequence& sequence, const writers::MarkdownOutput& context) const
+    render(const plugins::InlineSequence& sequence, writers::MarkdownOutput& context) const
         -> std::string;
 
   private:

@@ -310,8 +310,9 @@ auto main() noexcept -> int
         expect_contains(
             rendered, "<span style=\"color: #0CA0FF\">**blue \\& bold**</span>", "colour span"
         );
+        expect_contains(rendered, "note[^1]", "footnote reference");
         expect_contains(
-            rendered, "note^[See [source](<https://example.com/note>)]", "inline footnote"
+            rendered, "[^1]: See [source](<https://example.com/note>)", "footnote definition"
         );
         expect_contains(
             rendered, "citing [[1](#dans-resource-1), [2](#dans-resource-2)]", "numeric citations"

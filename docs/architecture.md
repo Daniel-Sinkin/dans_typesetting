@@ -285,3 +285,8 @@ entries and a parallel target-descriptor pattern for referenceable blocks.
 This lets it derive links and visible numbers without importing plugin
 implementation details. See [markdown-writer.md](markdown-writer.md) for the
 profile and its explicit degradation policy.
+
+The first Jupyter writer composes a fully configured Markdown writer and adds
+only a language-neutral nbformat container. It deliberately emits no kernel
+metadata or executable cells for mixed-language thesis listings. See
+[jupyter-writer.md](jupyter-writer.md) for the policy boundary.

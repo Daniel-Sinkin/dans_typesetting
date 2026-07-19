@@ -1,4 +1,4 @@
-// src/connectors/markdown/footnote.cpp — render rich notes with Pandoc inline-footnote syntax.
+// src/connectors/markdown/footnote.cpp — render rich notes with reference-style syntax.
 #include "connectors/markdown/footnote.hpp"
 
 #include <stdexcept>
@@ -23,15 +23,17 @@ auto FootnoteMarkdownAdapter::serialize(
     {
         throw std::invalid_argument{"A footnote requires at least one inline node"};
     }
-    output.write_raw("^[");
     for (const auto& inline_node : footnote->inlines().nodes())
     {
         if (inline_node->type_id() == plugins::Footnote::k_type_id)
         {
             throw std::invalid_argument{"A footnote cannot directly contain another footnote"};
         }
-        output.write_inline(*inline_node);
     }
+    const auto content = output.render_inlines(footnote->inlines());
+    const auto number = output.context().register_footnote(content);
+    output.write_raw("[^");
+    output.write_raw(number);
     output.write_raw("]");
 }
 }  // namespace dans::document::connectors::markdown

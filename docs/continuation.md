@@ -245,12 +245,11 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Build the Jupyter writer as a notebook-container layer over the completed
-Markdown connector contracts. Notebook structure, cell metadata, and binary
-asset policy belong to that writer; semantic plugin lowering should reuse the
-tested Markdown fragments where a Markdown cell has equivalent behavior and
-remain independently registered where it does not. Theorems/definitions/
-lemmas, composite figures, external listing inclusion, and richer thesis
+Continue with one complete thesis-parity plugin slice: composite figures are
+the strongest next candidate because the audited document contains ten paired
+panels and the current figure model cannot represent them. Kernel-specific
+Jupyter cells and notebook attachments remain optional writer policies.
+Theorems/definitions/lemmas, external listing inclusion, and richer thesis
 mathematics remain independent plugin slices rather than additions to generic
 document core.
 

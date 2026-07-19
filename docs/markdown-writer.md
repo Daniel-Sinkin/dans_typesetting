@@ -9,13 +9,13 @@ claiming that one portable Markdown standard covers thesis documents:
 - CommonMark prose, headings, links, images, lists, and fenced code;
 - GFM pipe tables;
 - TeX mathematics inside `$...$` and `$$...$$` delimiters;
-- Pandoc inline footnotes using `^[...]`;
+- reference-style footnotes using `[^n]` plus document-end definitions;
 - constrained raw HTML for stable anchors, colour spans, and print page-break
   hints.
 
 The output is accepted by Pandoc's default Markdown reader. Consumers that do
-not enable math, inline-footnote, or raw-HTML extensions still retain visible
-source instead of receiving silently omitted semantic content.
+not enable math, reference-footnote, or raw-HTML extensions still retain
+visible source instead of receiving silently omitted semantic content.
 
 ## Registration boundary
 
@@ -48,7 +48,7 @@ citations consume the completed index through the Markdown output context.
 | Hyperlink | native Markdown link with a collision-safe destination |
 | Inline code | backtick fence longer than every source backtick run |
 | Colour span | constrained `<span style="color: #RRGGBB">` |
-| Footnote | Pandoc inline-footnote syntax with rich inline content |
+| Footnote | numbered reference plus a document-end rich definition |
 | Inline image | native Markdown image |
 | Figure | native image, writer-derived number, caption, and anchor |
 | Item list | itemized or automatically numbered Markdown list |

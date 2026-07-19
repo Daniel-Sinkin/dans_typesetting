@@ -74,6 +74,7 @@ class MarkdownRenderContext final
     std::vector<MarkdownSectionEntry> sections{};
     std::vector<MarkdownTargetEntry> targets{};
     std::vector<MarkdownResourceEntry> resources{};
+    std::vector<std::string> footnotes{};
 };
 
 auto escape_markdown_text(const std::string_view text) -> std::string
@@ -147,7 +148,7 @@ auto markdown_link_destination(const std::string_view destination) -> std::strin
 MarkdownOutput::MarkdownOutput(
     std::ostream& output,
     const MarkdownWriter& writer,
-    const MarkdownRenderContext& context,
+    MarkdownRenderContext& context,
     const usize section_depth
 ) noexcept
     : output_{output}, writer_{writer}, context_{context}, section_depth_{section_depth}
@@ -179,6 +180,16 @@ auto MarkdownOutput::write_anchor(const ReferenceId& reference_id) -> void
     write_raw("<a id=\"");
     write_raw(reference_id.value());
     write_raw("\"></a>\n");
+}
+
+auto MarkdownOutput::register_footnote(std::string content) -> std::string
+{
+    if (content.empty())
+    {
+        throw std::invalid_argument{"A Markdown footnote requires rendered content"};
+    }
+    context_.footnotes.push_back(std::move(content));
+    return std::to_string(context_.footnotes.size());
 }
 
 auto MarkdownOutput::target_number(const DocumentBlock& block) const -> std::string_view
@@ -354,7 +365,7 @@ auto MarkdownWriter::block_adapter_for(const std::string_view block_type_id) con
 
 auto MarkdownWriter::render(const Document& document) const -> std::string
 {
-    const auto context = prepare_context(document);
+    auto context = prepare_context(document);
     std::ostringstream buffer{};
     MarkdownOutput output{buffer, *this, context, 0};
     emit_document(document, output);
@@ -518,6 +529,7 @@ auto MarkdownWriter::emit_document(const Document& document, MarkdownOutput& out
     output.write_raw(std::to_string(document.metadata().patch));
     output.write_raw(" -->\n\n");
     emit_blocks(document.blocks(), output);
+    emit_footnotes(output);
 }
 
 auto MarkdownWriter::emit_blocks(const BlockSequence& blocks, MarkdownOutput& output) const -> void
@@ -576,5 +588,28 @@ auto MarkdownWriter::emit_table_of_contents(MarkdownOutput& output) const -> voi
         output.write_raw(")\n");
     }
     output.write_raw("\n");
+}
+
+auto MarkdownWriter::emit_footnotes(MarkdownOutput& output) const -> void
+{
+    for (usize index{}; index < output.context_.footnotes.size(); ++index)
+    {
+        auto content = output.context_.footnotes[index];
+        usize position{};
+        while ((position = content.find('\n', position)) != std::string::npos)
+        {
+            content.replace(position, 1, "\n    ");
+            position += usize{5};
+        }
+        output.write_raw("[^");
+        output.write_raw(std::to_string(index + usize{1}));
+        output.write_raw("]: ");
+        output.write_raw(content);
+        output.write_raw("\n");
+    }
+    if (!output.context_.footnotes.empty())
+    {
+        output.write_raw("\n");
+    }
 }
 }  // namespace dans::document::writers

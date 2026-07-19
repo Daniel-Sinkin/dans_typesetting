@@ -28,6 +28,7 @@ class MarkdownOutput
     auto write_blocks(const BlockSequence& blocks) -> void;
     auto write_table_of_contents() -> void;
     auto write_anchor(const ReferenceId& reference_id) -> void;
+    [[nodiscard]] auto register_footnote(std::string content) -> std::string;
 
     [[nodiscard]] auto target_number(const DocumentBlock& block) const -> std::string_view;
     [[nodiscard]] auto target_number(const ReferenceId& reference_id) const -> std::string_view;
@@ -43,13 +44,13 @@ class MarkdownOutput
     MarkdownOutput(
         std::ostream& output,
         const MarkdownWriter& writer,
-        const MarkdownRenderContext& context,
+        MarkdownRenderContext& context,
         usize section_depth
     ) noexcept;
 
     std::ostream& output_;
     const MarkdownWriter& writer_;
-    const MarkdownRenderContext& context_;
+    MarkdownRenderContext& context_;
     usize section_depth_{};
 };
 
@@ -108,6 +109,7 @@ class MarkdownWriter
     auto emit_document(const Document& document, MarkdownOutput& output) const -> void;
     auto emit_blocks(const BlockSequence& blocks, MarkdownOutput& output) const -> void;
     auto emit_table_of_contents(MarkdownOutput& output) const -> void;
+    auto emit_footnotes(MarkdownOutput& output) const -> void;
 
     std::vector<std::unique_ptr<MarkdownBlockAdapter>> block_adapters_{};
 };

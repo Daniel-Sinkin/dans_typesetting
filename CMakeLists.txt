@@ -698,6 +698,22 @@ target_link_libraries(bibliography_markdown_connector
   PRIVATE typesetter_warnings
 )
 
+# Language-neutral nbformat container over one configured authoritative
+# Markdown writer. Kernel-specific executable-cell policies remain separate.
+add_library(jupyter_writer STATIC
+  src/writers/jupyter_writer.cpp
+  src/writers/jupyter_writer.hpp
+)
+add_library(dans::jupyter_writer ALIAS jupyter_writer)
+target_link_libraries(jupyter_writer
+  PUBLIC
+    dans::document_core
+    dans::markdown_writer
+  PRIVATE
+    dans::json_support
+    typesetter_warnings
+)
+
 add_executable(document_example
   app/main.cpp
 )
@@ -852,6 +868,22 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_markdown_test COMMAND native_markdown_test)
+
+  add_executable(native_jupyter_test
+    tests/native_jupyter_test.cpp
+  )
+  target_compile_definitions(native_jupyter_test PRIVATE
+    DANS_TYPESETTING_JUPYTER_TEST_OUTPUT="${CMAKE_CURRENT_BINARY_DIR}/native-jupyter-test.ipynb"
+  )
+  target_link_libraries(native_jupyter_test PRIVATE
+    dans::code_listing_markdown_connector
+    dans::core_paragraph_markdown_connector
+    dans::document_shell_markdown_connector
+    dans::inline_code_markdown_connector
+    dans::jupyter_writer
+    typesetter_warnings
+  )
+  add_test(NAME native_jupyter_test COMMAND native_jupyter_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source
