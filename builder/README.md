@@ -37,9 +37,13 @@ advance following content. The page-range controls project at most five pages at
 
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
 live composed preview. Normal/bold/italic/bold-italic text, semantic RGB colour spans, hyperlinks,
-live cross-references, and structured inline math are editable while unsupported inline nodes remain visible as named
-read-only chips. Image editing uses the native file picker and stores a preview together with the
-requested width and detected pixel dimensions. Code listings are limited to C++ and Julia; a
+live cross-references, numbered footnotes, and structured inline math are editable while unsupported
+inline nodes remain visible as named read-only chips. Footnotes render as live superscript markers
+with hover/focus previews; their editor composes, adds, removes, and reorders a nested inline
+sequence. Markers are derived from current document traversal rather than stored in the payload,
+including when a footnote is hosted by a list item. Image editing uses the native file picker and
+stores a preview together with the requested width and detected pixel dimensions. Code listings are
+limited to C++ and Julia; a
 transparent textarea aligned over the syntax-coloured preview makes the rendered surface directly
 editable, and Tab inserts four spaces. Display and inline math share the nested expression editor:
 drag literals, operators, or a structured summation into empty slots; replace, parenthesize, park,
@@ -54,6 +58,10 @@ current document order; reference segments therefore update immediately after
 reordering. Duplicate IDs are rejected, unresolved references are shown in red,
 and plugin-aware Alt-drag copies clear target identity rather than creating an
 ambiguous duplicate.
+
+Plugin-aware copies also recursively refresh inline IDs. This matters for
+numbered inline occurrences such as footnotes: duplicating a paragraph or list
+creates a distinct note occurrence while preserving its content.
 
 An Excalidraw drawing is a semantic figure block rather than part of the surrounding note canvas.
 Choose Edit to mount a second, clipped Excalidraw instance directly inside that block. Caption,

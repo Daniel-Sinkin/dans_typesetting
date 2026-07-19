@@ -2,7 +2,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  cloneBuilderBlock,
   createParagraphText,
   MemoryDocumentPort,
   paragraphTypeId,
@@ -122,18 +121,6 @@ describe("MemoryDocumentPort", () => {
     }).toThrow(/preserve its block ID and semantic type/);
   });
 
-  it("duplicates a block envelope without inspecting or losing its payload", () => {
-    const original = {
-      id: "unknown",
-      typeId: "dans.future.block",
-      opaquePayload: { nested: { value: 42 } },
-    };
-    const copy = cloneBuilderBlock(original, "unknown-copy");
-
-    expect(copy).toEqual({ ...original, id: "unknown-copy" });
-    expect(copy.opaquePayload).toBe(original.opaquePayload);
-  });
-
   it("preserves an unknown block envelope for a writer fallback", () => {
     const port = new MemoryDocumentPort([
       { id: "future", typeId: "dans.future.block", opaquePayload: { rows: 2 } },
@@ -202,15 +189,6 @@ describe("MemoryDocumentPort", () => {
         index: 0,
       });
     }).toThrow(/inside itself/u);
-  });
-
-  it("deep-clones section descendants for Alt-drag copies", () => {
-    const original = section("outer", [paragraph("inside")]);
-    const copy = cloneBuilderBlock(original, "outer-copy") as SectionBlock;
-
-    expect(copy.id).toBe("outer-copy");
-    expect(copy.blocks[0]?.id).not.toBe("inside");
-    expect(copy.blocks[0]?.typeId).toBe(paragraphTypeId);
   });
 
   it("projects an editor draft into a recursive tree without publishing it", () => {

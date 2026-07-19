@@ -6,6 +6,7 @@ import type {
   BuilderReferenceTarget,
   BuilderReferenceTargetDescriptor,
 } from "./reference";
+import type { InlineOrdinal, NumberedInlineOccurrence } from "./numbered";
 
 export interface PaletteDescriptor {
   readonly label: string;
@@ -21,6 +22,7 @@ export interface BuilderBlockRenderContext {
   readonly documentBlocks: readonly BuilderBlock[];
   readonly sectionDepth: number;
   readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
+  readonly inlineOrdinals: ReadonlyMap<string, InlineOrdinal>;
 }
 
 export interface BuilderBlockMeasureContext {
@@ -40,6 +42,9 @@ export interface BuilderBlockAdapter {
   readonly copyForInsert?:
     | ((block: BuilderBlock, copiedBlockId: string) => BuilderBlock)
     | undefined;
+  readonly numberedInlineOccurrences?:
+    | ((block: BuilderBlock) => readonly NumberedInlineOccurrence[])
+    | undefined;
   measure(
     block: BuilderBlock,
     availableWidth: number,
@@ -54,6 +59,7 @@ export interface BuilderBlockEditorProps {
   readonly onCommit: (block: BuilderBlock) => void;
   readonly onCancel: () => void;
   readonly referenceTargets: ReadonlyMap<string, BuilderReferenceTarget>;
+  readonly inlineOrdinals: ReadonlyMap<string, InlineOrdinal>;
 }
 
 export interface BuilderBlockEditor {
@@ -77,6 +83,9 @@ export interface BuilderFallbackAdapter {
     | undefined;
   readonly copyForInsert?:
     | ((block: BuilderBlock, copiedBlockId: string) => BuilderBlock)
+    | undefined;
+  readonly numberedInlineOccurrences?:
+    | ((block: BuilderBlock) => readonly NumberedInlineOccurrence[])
     | undefined;
   measure(
     block: BuilderBlockEnvelope,

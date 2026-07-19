@@ -24,7 +24,7 @@ const canonicalFixturePath = join(
   "current-features.dans.json",
 );
 const initialBlockCount = 12;
-const initialParagraphSegmentCount = 11;
+const initialParagraphSegmentCount = 14;
 
 function assert(condition, message) {
   if (!condition) {
@@ -586,6 +586,9 @@ async function exerciseBuilder(client) {
     const hyperlinkLabel = document.querySelector("textarea[data-inline-id='sample-introduction-link-label']");
     textareaSetter.call(hyperlinkLabel, "updated link");
     hyperlinkLabel.dispatchEvent(new Event("input", { bubbles: true }));
+    const footnoteText = document.querySelector("textarea[data-inline-id='sample-introduction-footnote-text']");
+    textareaSetter.call(footnoteText, "Updated footnote with ");
+    footnoteText.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(80);
   const paragraphLive = await client.evaluate(`(() => {
@@ -599,6 +602,8 @@ async function exerciseBuilder(client) {
       hyperlink: preview.querySelector("a[href='https://www.google.com']")?.textContent === "updated link",
       styled: preview.querySelector("em")?.textContent === "Styled text",
       reference: preview.querySelector("a.inline-reference")?.textContent === "Figure 1",
+      footnote: preview.querySelector(".footnote-preview > sup > button")?.textContent.trim() === "1"
+        && preview.querySelector(".footnote-preview__popover")?.textContent.includes("Updated footnote"),
     };
   })()`);
   assert(paragraphLive.text, "Paragraph live preview did not update before save");
@@ -611,6 +616,40 @@ async function exerciseBuilder(client) {
   assert(paragraphLive.hyperlink, "Hyperlink target and label did not live-update");
   assert(paragraphLive.styled, "Core Text style did not live-update");
   assert(paragraphLive.reference, "Semantic reference numbering did not resolve live");
+  assert(paragraphLive.footnote, "Footnote numbering or nested editing did not update live");
+
+  await client.evaluate(`(() => {
+    document.querySelector(".footnote-editor__add button").click();
+  })()`);
+  await delay(80);
+  const addedFootnoteInlineId = await client.evaluate(`(() => {
+    const segments = [...document.querySelectorAll("[data-footnote-inline-id]")];
+    return segments.length === 4 ? segments.at(-1).dataset.footnoteInlineId : null;
+  })()`);
+  assert(addedFootnoteInlineId !== null, "Footnote editor did not add a nested segment");
+  await client.evaluate(`(() => {
+    const segment = document.querySelector("[data-footnote-inline-id='${addedFootnoteInlineId}']");
+    const buttons = [...segment.querySelectorAll(":scope > header button")];
+    buttons.find((button) => button.textContent.trim() === "←").click();
+  })()`);
+  await delay(80);
+  assert(
+    await client.evaluate(`[
+      ...document.querySelectorAll("[data-footnote-inline-id]")
+    ].at(-2).dataset.footnoteInlineId === '${addedFootnoteInlineId}'`),
+    "Footnote editor did not reorder a nested segment",
+  );
+  await client.evaluate(`(() => {
+    const segment = document.querySelector("[data-footnote-inline-id='${addedFootnoteInlineId}']");
+    [...segment.querySelectorAll(":scope > header button")]
+      .find((button) => button.textContent.trim() === "Remove")
+      .click();
+  })()`);
+  await delay(80);
+  assert(
+    await client.evaluate(`document.querySelector("[data-footnote-inline-id='${addedFootnoteInlineId}']") === null`),
+    "Footnote editor did not remove a nested segment",
+  );
 
   const addSegmentPoints = await client.evaluate(`(() => {
     const center = (element) => {

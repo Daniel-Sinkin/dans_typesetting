@@ -37,6 +37,10 @@ audited non-PEPS corpus. They remain useful features, but they are lower thesis
 parity priorities than tables, lists, footnotes, section references, and CUDA
 listings.
 
+The base footnote contract is now implemented in both graphical and LaTeX
+writers, including nested styled text and hyperlinks. Table-note anchoring and
+inline-code leaves remain separate parity work.
+
 ## Representative port slices
 
 Porting these slices exercises variety without copying hundreds of paragraphs:

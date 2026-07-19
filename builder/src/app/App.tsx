@@ -53,6 +53,8 @@ import { excalidrawDrawingTypeId } from "../plugins/drawingModel";
 import { createSampleExcalidrawScene } from "../plugins/drawingScene";
 import { createItemListPlugin } from "../plugins/itemListPlugin";
 import { createBuilderListItem, itemListTypeId } from "../plugins/itemListModel";
+import { footnoteInlinePlugin } from "../plugins/footnote";
+import { createFootnoteInline } from "../plugins/footnoteModel";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -61,6 +63,7 @@ const inlinePluginRegistry = new BuilderInlinePluginRegistry(
     createInlineMathPlugin(basicMathInputParser),
     hyperlinkInlinePlugin,
     referenceInlinePlugin,
+    footnoteInlinePlugin,
   ],
   opaqueInlineAdapter,
 );
@@ -146,6 +149,29 @@ const initialBlocks = [
         "sample-introduction-reference",
       ),
       createParagraphText(" for the decomposition.", "sample-introduction-reference-tail"),
+      createParagraphText(" Footnotes remain semantic", "sample-introduction-footnote-join"),
+      createFootnoteInline(
+        [
+          createParagraphText(
+            "This note has ",
+            "sample-introduction-footnote-text",
+          ),
+          createHyperlinkInline(
+            "https://example.com/footnotes",
+            [
+              createParagraphText(
+                "a clickable source",
+                "sample-introduction-footnote-link-label",
+                "italic",
+              ),
+            ],
+            "sample-introduction-footnote-link",
+          ),
+          createParagraphText(" in its inline sequence.", "sample-introduction-footnote-tail"),
+        ],
+        "sample-introduction-footnote",
+      ),
+      createParagraphText(".", "sample-introduction-footnote-period"),
     ]),
   }),
   Object.freeze({

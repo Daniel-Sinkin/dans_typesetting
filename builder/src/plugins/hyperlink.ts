@@ -9,6 +9,7 @@ import {
 } from "../model/document";
 import { HyperlinkEditor, HyperlinkPreview } from "./hyperlinkView";
 import { requireHyperlink } from "./hyperlinkSupport";
+import { copyBuilderInlineForInsert } from "../builder/copyInline";
 
 export const hyperlinkInlinePlugin: BuilderInlinePlugin = {
   typeId: hyperlinkInlineTypeId,
@@ -23,6 +24,19 @@ export const hyperlinkInlinePlugin: BuilderInlinePlugin = {
       "https://example.com",
       [createParagraphText("Example link")],
       inlineId,
+    );
+  },
+  nestedInlines(inline) {
+    return requireHyperlink(inline).labelInlines;
+  },
+  copyForInsert(inline, copiedInlineId, registry) {
+    const link = requireHyperlink(inline);
+    return createHyperlinkInline(
+      link.target,
+      link.labelInlines.map((label) =>
+        copyBuilderInlineForInsert(label, registry),
+      ),
+      copiedInlineId,
     );
   },
   plainText(inline, registry) {

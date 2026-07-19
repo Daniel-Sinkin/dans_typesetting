@@ -7,6 +7,7 @@ import {
   type BuilderBlock,
 } from "../model/document";
 import { ItemListEditor, ItemListPreview } from "./itemList";
+import { copyBuilderInlineForInsert } from "../builder/copyInline";
 import {
   createBuilderListItem,
   itemListTypeId,
@@ -34,6 +35,28 @@ export function createItemListPlugin(
         ]),
       });
     },
+    numberedInlineOccurrences(block) {
+      return requireItemListBlock(block).items.flatMap((item) =>
+        inlineRegistry.numberedOccurrences(item.inlines),
+      );
+    },
+    copyForInsert(block, copiedBlockId) {
+      const list = requireItemListBlock(block);
+      return Object.freeze({
+        ...list,
+        id: copiedBlockId,
+        items: Object.freeze(
+          list.items.map((item) =>
+            createBuilderListItem(
+              createBlockId(),
+              item.inlines.map((inline) =>
+                copyBuilderInlineForInsert(inline, inlineRegistry),
+              ),
+            ),
+          ),
+        ),
+      });
+    },
     measure(block, availableWidth) {
       const list = requireItemListBlock(block);
       const charactersPerLine = Math.max(20, Math.floor((availableWidth - 48) / 10));
@@ -52,7 +75,10 @@ export function createItemListPlugin(
         <ItemListPreview
           list={requireItemListBlock(block)}
           registry={inlineRegistry}
-          context={{ referenceTargets: context.referenceTargets }}
+          context={{
+            referenceTargets: context.referenceTargets,
+            inlineOrdinals: context.inlineOrdinals,
+          }}
         />
       );
     },

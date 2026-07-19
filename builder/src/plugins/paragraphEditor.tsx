@@ -3,6 +3,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -95,7 +96,9 @@ export function ParagraphEditor({
   inlineRegistry,
   onCommit,
   onCancel,
+  onPreview,
   referenceTargets,
+  inlineOrdinals,
 }: ParagraphEditorProps) {
   const paragraph = requireParagraph(block);
   const [inlines, setInlines] = useState<readonly BuilderInlineNode[]>(paragraph.inlines);
@@ -213,10 +216,21 @@ export function ParagraphEditor({
     setInsertionIndex(null);
   };
 
-  const draftParagraph: ParagraphBlock = Object.freeze({
-    ...paragraph,
-    inlines: Object.freeze([...inlines]),
-  });
+  const identity = useState(() => ({ id: paragraph.id, typeId: paragraph.typeId }))[0];
+  const draftParagraph = useMemo<ParagraphBlock>(
+    () =>
+      Object.freeze({
+        ...identity,
+        inlines: Object.freeze([...inlines]),
+      }),
+    [identity, inlines],
+  );
+
+  useEffect(() => {
+    if (inlines.length > 0) {
+      onPreview(draftParagraph);
+    }
+  }, [draftParagraph, inlines.length, onPreview]);
 
   return (
     <form
@@ -237,7 +251,7 @@ export function ParagraphEditor({
           <ParagraphPreview
             paragraph={draftParagraph}
             registry={inlineRegistry}
-            context={{ referenceTargets }}
+            context={{ referenceTargets, inlineOrdinals }}
           />
         </div>
       </section>
@@ -355,7 +369,7 @@ export function ParagraphEditor({
                   <InlinePayloadEditor
                     inline={inline}
                     registry={inlineRegistry}
-                    context={{ referenceTargets }}
+                    context={{ referenceTargets, inlineOrdinals }}
                     onChange={(replacement) => {
                       setInlines((currentInlines) =>
                         Object.freeze(

@@ -46,6 +46,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Display math | `dans.math.display` |
 | Hyperlink | `dans.inline.hyperlink` |
 | Semantic reference | `dans.inline.reference` |
+| Footnote | `dans.inline.footnote` |
 | Figure | `dans.image.figure` |
 | Listing | `dans.code.listing` |
 | Section | `dans.core.section` |
@@ -171,6 +172,25 @@ silently create an ambiguous reference. Unknown and unresolved references stay
 visible rather than being discarded. LaTeX retains its independent `\label`
 and `\autoref` lowering over the same semantic IDs.
 
-Footnotes are the next inline-host gate. They should reuse ordered inline
-sequences and generic writer-owned occurrence numbering before the richer table
-core is introduced.
+## Inline hosts and occurrence numbering
+
+Core Paragraph defines the ordered inline-node contract, while paragraph-like
+plugins explicitly expose the inline roots they host. Inline plugins may in
+turn expose nested inline roots. The graphical writer traverses those roots
+without learning concrete payload shapes and derives independent ordinal
+series from current document order. Reordering a block, list item, wrapper, or
+inline node therefore updates visible markers without mutating semantic data.
+
+`dans.inline.footnote` is the first consumer of this contract. It owns a
+non-empty ordered inline sequence, declares the `footnote` occurrence series,
+and stores neither a marker nor a counter. Its graphical connector supplies a
+live superscript/popover and a nested sequence editor; its LaTeX connector
+delegates the note body to the shared inline renderer and contributes only the
+`\footnote{...}` boundary. Directly nested footnotes are forbidden. Copy hooks
+recursively refresh authoring IDs so Alt-drag duplication cannot create two
+numbered occurrences with the same identity.
+
+This same writer-owned traversal is intended for future citation occurrences
+and table notes. It is separate from semantic target numbering: figures and
+equations have stable reference IDs, while a footnote is identified by where
+its inline occurrence appears.

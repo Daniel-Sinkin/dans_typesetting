@@ -22,7 +22,29 @@ Commit `17fd196` adds bounded inline Excalidraw drawing blocks.
 
 Commit `5d9a837` adds itemized/enumerated semantic lists.
 
+Commit `6411db5` adds semantic document references and writer-derived target
+numbering.
+
 ## Current verified slice
+
+The semantic inline-footnote slice adds:
+
+- `dans.inline.footnote` as a non-empty nested Core Paragraph inline host;
+- generic plugin-declared nested-inline traversal and writer-owned occurrence
+  numbering, shared by paragraphs and semantic list items;
+- live graphical superscript markers, hover/focus note previews, and nested
+  segment add/remove/reorder/payload editing;
+- canonical recursive payload transport and exact round-trip coverage;
+- native semantic data plus a LaTeX adapter that delegates note bodies to the
+  shared inline renderer;
+- plugin-aware deep copies that refresh nested inline identity;
+- malformed-content, numbering, browser interaction, native connector, and PDF
+  build coverage.
+
+Footnotes deliberately store no visible number. Direct nesting is rejected;
+more general containment policies between independent inline extensions remain
+a future capability-contract problem rather than a footnote-specific core
+special case.
 
 The semantic target/reference slice adds:
 
@@ -113,9 +135,10 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Implement inline footnotes with writer-derived occurrence numbering. Then use
-the repeated nested-content lessons from lists and footnotes for the rich table
-core and its CSV adapter.
+Use the repeated nested-content lessons from lists and footnotes for the rich
+table core and its CSV adapter. The table core should remain useful without the
+CSV extension, with import/export controls appearing only when that extension
+is registered.
 Keep plugin payload codecs beside their plugin and extend the shared fixture
 whenever a new canonical type is completed.
 
@@ -138,3 +161,7 @@ Current deliberate compromises to reassess later:
 - list editing currently uses explicit move buttons rather than pointer drag;
   the semantic command and identity boundaries are complete, but the gesture
   should converge with the rest of the builder after interaction tuning.
+- footnote nested-segment editing currently uses explicit move buttons; the
+  surrounding paragraph sequence still uses pointer dragging.
+- direct footnote nesting is rejected, but a future generic containment policy
+  should decide whether another wrapper may indirectly contain a footnote.

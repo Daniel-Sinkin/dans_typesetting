@@ -32,6 +32,7 @@ import {
 import type { BuilderBlockPlugin, BuilderPluginRegistry } from "../builder/plugin";
 import { copyBuilderBlockForInsert } from "../builder/copyBlock";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
+import { deriveInlineOrdinals } from "../builder/numbering";
 import { createPageAnchor, pageAnchorId } from "../canvas/pageAnchor";
 import {
   createBlockId,
@@ -476,6 +477,10 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     () => deriveReferenceTargets(flowBlocks, registry),
     [flowBlocks, registry],
   );
+  const inlineOrdinals = useMemo(
+    () => deriveInlineOrdinals(flowBlocks, registry),
+    [flowBlocks, registry],
+  );
 
   useEffect(() => {
     if (canvasApi === null) {
@@ -619,6 +624,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           onCancel: closeEditor,
           onCommit: commitEditorBlock,
           referenceTargets,
+          inlineOrdinals,
         };
   const inlineEditor =
     editingDescriptor?.presentation === "inline" && editorProps !== null

@@ -9,6 +9,7 @@ import {
   type ParagraphBlock,
 } from "../model/document";
 import { ParagraphEditor, ParagraphPreview } from "./paragraphEditor";
+import { copyBuilderInlineForInsert } from "../builder/copyInline";
 
 function requireParagraph(block: BuilderBlock): ParagraphBlock {
   if (!isParagraphBlock(block)) {
@@ -37,6 +38,21 @@ export function createParagraphPlugin(
         ]),
       });
     },
+    numberedInlineOccurrences(block) {
+      return inlineRegistry.numberedOccurrences(requireParagraph(block).inlines);
+    },
+    copyForInsert(block, copiedBlockId) {
+      const paragraph = requireParagraph(block);
+      return Object.freeze({
+        ...paragraph,
+        id: copiedBlockId,
+        inlines: Object.freeze(
+          paragraph.inlines.map((inline) =>
+            copyBuilderInlineForInsert(inline, inlineRegistry),
+          ),
+        ),
+      });
+    },
     measure(block, availableWidth) {
       const paragraph = requireParagraph(block);
       const approximateCharactersPerLine = Math.max(24, Math.floor(availableWidth / 10));
@@ -57,7 +73,10 @@ export function createParagraphPlugin(
         <ParagraphPreview
           paragraph={requireParagraph(block)}
           registry={inlineRegistry}
-          context={{ referenceTargets: context.referenceTargets }}
+          context={{
+            referenceTargets: context.referenceTargets,
+            inlineOrdinals: context.inlineOrdinals,
+          }}
         />
       );
     },

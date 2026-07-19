@@ -1,8 +1,10 @@
 // tests/native_inline_test.cpp — exercise semantic prose through the LaTeX connector boundary.
 #include "connectors/latex/core_paragraph.hpp"
+#include "connectors/latex/footnote.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "document.hpp"
 #include "plugins/core_paragraph.hpp"
+#include "plugins/footnote.hpp"
 #include "plugins/hyperlink.hpp"
 #include "writers/latex_writer.hpp"
 
@@ -44,6 +46,11 @@ auto render_sample() -> std::string
     paragraph.append_text("; ");
     auto& labelled = paragraph.inlines().add<Hyperlink>("www.example.com/results");
     labelled.label().add<CoreText>("label", TextStyle::bold);
+    paragraph.append_text("; note");
+    auto& footnote = paragraph.inlines().add<Footnote>();
+    footnote.append_text("See ");
+    auto& footnote_link = footnote.inlines().add<Hyperlink>("https://example.com/source");
+    footnote_link.label().add<CoreText>("source", TextStyle::italic);
 
     auto inline_renderer =
         std::make_shared<dans::document::connectors::latex::CoreParagraphInlineLatexRenderer>();
@@ -52,6 +59,9 @@ auto render_sample() -> std::string
     );
     inline_renderer->register_inline_adapter(
         std::make_unique<dans::document::connectors::latex::HyperlinkLatexAdapter>()
+    );
+    inline_renderer->register_inline_adapter(
+        std::make_unique<dans::document::connectors::latex::FootnoteLatexAdapter>()
     );
 
     dans::document::writers::LatexWriter writer;
@@ -88,6 +98,53 @@ auto expect_invalid_hyperlink_targets() -> void
         }
     }
 }
+
+auto expect_invalid_footnote_content() -> void
+{
+    using namespace dans::document;
+    using namespace dans::document::plugins;
+
+    const auto rejected = [](const bool nested)
+    {
+        Document document{Metadata{.major = 1, .minor = 0, .patch = 0}};
+        auto& paragraph = document.blocks().add<CoreParagraph>("Text");
+        auto& footnote = paragraph.inlines().add<Footnote>();
+        if (nested)
+        {
+            footnote.inlines().add<Footnote>("Nested");
+        }
+
+        auto inline_renderer =
+            std::make_shared<dans::document::connectors::latex::CoreParagraphInlineLatexRenderer>();
+        inline_renderer->register_inline_adapter(
+            std::make_unique<dans::document::connectors::latex::CoreTextLatexAdapter>()
+        );
+        inline_renderer->register_inline_adapter(
+            std::make_unique<dans::document::connectors::latex::FootnoteLatexAdapter>()
+        );
+        dans::document::writers::LatexWriter writer;
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(
+                inline_renderer
+            )
+        );
+        std::ostringstream output;
+        try
+        {
+            writer.serialize(document, output);
+        }
+        catch (const std::invalid_argument&)
+        {
+            return true;
+        }
+        return false;
+    };
+
+    if (!rejected(false) || !rejected(true))
+    {
+        throw std::runtime_error{"An empty or directly nested footnote was accepted"};
+    }
+}
 }  // namespace
 
 auto main() -> int
@@ -106,6 +163,12 @@ auto main() -> int
     expect_contains(
         rendered, "\\href{www.example.com/results}{\\textbf{label}}", "styled hyperlink label"
     );
+    expect_contains(
+        rendered,
+        R"(\footnote{See \href{https://example.com/source}{\textit{source}}})",
+        "semantic footnote"
+    );
     expect_invalid_hyperlink_targets();
+    expect_invalid_footnote_content();
     return 0;
 }

@@ -1575,6 +1575,97 @@ button {
   color: #5f3dc4;
 }
 
+.footnote-preview {
+  position: relative;
+  display: inline-block;
+  margin: 0 0.08em;
+}
+
+.footnote-preview > sup > button {
+  min-width: 1.2em;
+  padding: 0;
+  color: #862e9c;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 0.72em;
+  font-weight: 800;
+  cursor: help;
+}
+
+.footnote-preview__popover {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  display: none;
+  width: max-content;
+  max-width: 320px;
+  padding: 9px 11px;
+  gap: 8px;
+  color: #3b2141;
+  background: #fff;
+  border: 1px solid #e599f7;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(66 28 74 / 18%);
+  font-size: 12px;
+  line-height: 1.45;
+  transform: translateX(-50%);
+}
+
+.footnote-preview:hover .footnote-preview__popover,
+.footnote-preview:focus-within .footnote-preview__popover {
+  display: flex;
+}
+
+.footnote-preview__popover > b {
+  color: #9c36b5;
+}
+
+.footnote-editor,
+.footnote-editor__segments {
+  display: grid;
+  gap: 10px;
+}
+
+.footnote-editor__preview,
+.footnote-editor__add,
+.footnote-editor__segment > header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.footnote-editor__preview {
+  justify-content: space-between;
+  padding: 8px 10px;
+  color: #70217c;
+  background: #f8f0fc;
+  border: 1px solid #eebefa;
+  border-radius: 8px;
+}
+
+.footnote-editor__segment {
+  display: grid;
+  padding: 9px;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #eebefa;
+  border-radius: 8px;
+}
+
+.footnote-editor__segment > header code {
+  flex: 1;
+  overflow: hidden;
+  color: #868e96;
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+.footnote-editor__add select {
+  flex: 1;
+}
+
 .math-block-editor__reference {
   margin: 0 18px 12px;
 }

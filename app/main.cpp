@@ -3,6 +3,7 @@
 #include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/document_shell.hpp"
 #include "connectors/latex/excalidraw_drawing.hpp"
+#include "connectors/latex/footnote.hpp"
 #include "connectors/latex/hyperlink.hpp"
 #include "connectors/latex/image.hpp"
 #include "connectors/latex/item_list.hpp"
@@ -15,6 +16,7 @@
 #include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
 #include "plugins/excalidraw_drawing.hpp"
+#include "plugins/footnote.hpp"
 #include "plugins/hyperlink.hpp"
 #include "plugins/image.hpp"
 #include "plugins/item_list.hpp"
@@ -142,6 +144,12 @@ auto make_sample_document()
     auto& labelled_link =
         styled_paragraph.inlines().add<Hyperlink>("https://example.com/thesis?part=1#results");
     labelled_link.label().add<CoreText>("the results", TextStyle::bold);
+    styled_paragraph.append_text(". Footnotes share that same content contract");
+    auto& footnote = styled_paragraph.inlines().add<Footnote>();
+    footnote.append_text("A note can contain ");
+    auto& footnote_link = footnote.inlines().add<Hyperlink>("https://example.com/source");
+    footnote_link.label().add<CoreText>("a styled source", TextStyle::italic);
+    footnote.append_text(" without storing its visible number.");
     styled_paragraph.append_text(".");
 
     auto& escaping = architecture.blocks().add<Section>("Backend-owned escaping");
@@ -279,6 +287,9 @@ auto main(const int argc, char* argv[]) -> int
         );
         inline_renderer->register_inline_adapter(
             std::make_unique<dans::document::connectors::latex::HyperlinkLatexAdapter>()
+        );
+        inline_renderer->register_inline_adapter(
+            std::make_unique<dans::document::connectors::latex::FootnoteLatexAdapter>()
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::CoreParagraphLatexAdapter>(

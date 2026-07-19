@@ -8,6 +8,7 @@ import {
   requireColorSpan,
 } from "./colorSpanModel";
 import { ColorSpanEditor, ColorSpanPreview } from "./colorSpanView";
+import { copyBuilderInlineForInsert } from "../builder/copyInline";
 
 export {
   colorSpanInlineTypeId,
@@ -27,6 +28,19 @@ export const colorSpanInlinePlugin: BuilderInlinePlugin = {
   },
   createDefault(inlineId) {
     return createColorSpanInline(undefined, undefined, inlineId);
+  },
+  nestedInlines(inline) {
+    return requireColorSpan(inline).inlines;
+  },
+  copyForInsert(inline, copiedInlineId, registry) {
+    const colorSpan = requireColorSpan(inline);
+    return createColorSpanInline(
+      colorSpan.color,
+      colorSpan.inlines.map((nested) =>
+        copyBuilderInlineForInsert(nested, registry),
+      ),
+      copiedInlineId,
+    );
   },
   plainText(inline, registry) {
     const colorSpan = requireColorSpan(inline);

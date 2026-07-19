@@ -163,6 +163,16 @@ target_link_libraries(reference_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(footnote_plugin STATIC
+  src/plugins/footnote.cpp
+  src/plugins/footnote.hpp
+)
+add_library(dans::footnote_plugin ALIAS footnote_plugin)
+target_link_libraries(footnote_plugin
+  PUBLIC dans::core_paragraph
+  PRIVATE typesetter_warnings
+)
+
 add_library(hyperlink_plugin STATIC
   src/plugins/hyperlink.cpp
   src/plugins/hyperlink.hpp
@@ -302,6 +312,19 @@ target_link_libraries(reference_latex_connector
     typesetter_warnings
 )
 
+add_library(footnote_latex_connector STATIC
+  src/connectors/latex/footnote.cpp
+  src/connectors/latex/footnote.hpp
+)
+add_library(dans::footnote_latex_connector ALIAS footnote_latex_connector)
+target_link_libraries(footnote_latex_connector
+  PUBLIC
+    dans::footnote_plugin
+    dans::core_paragraph_latex_connector
+  PRIVATE
+    typesetter_warnings
+)
+
 add_library(hyperlink_latex_connector STATIC
   src/connectors/latex/hyperlink.cpp
   src/connectors/latex/hyperlink.hpp
@@ -377,6 +400,7 @@ target_link_libraries(document_example PRIVATE
   dans::core_paragraph_latex_connector
   dans::document_shell_latex_connector
   dans::excalidraw_drawing_latex_connector
+  dans::footnote_latex_connector
   dans::image_latex_connector
   dans::item_list_latex_connector
   dans::hyperlink_latex_connector
@@ -392,6 +416,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(native_inline_test PRIVATE
     dans::core_paragraph_latex_connector
+    dans::footnote_latex_connector
     dans::hyperlink_latex_connector
     typesetter_warnings
   )

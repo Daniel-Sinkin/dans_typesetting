@@ -129,6 +129,39 @@
             }
           },
           {
+            "id": "fixture-footnote",
+            "type": "dans.inline.footnote",
+            "payload": {
+              "inlines": [
+                {
+                  "id": "fixture-footnote-text",
+                  "type": "dans.core.text",
+                  "payload": {
+                    "text": "A semantic footnote with ",
+                    "style": "normal"
+                  }
+                },
+                {
+                  "id": "fixture-footnote-link",
+                  "type": "dans.inline.hyperlink",
+                  "payload": {
+                    "target": "https://example.com/source",
+                    "labelInlines": [
+                      {
+                        "id": "fixture-footnote-link-label",
+                        "type": "dans.core.text",
+                        "payload": {
+                          "text": "a source",
+                          "style": "italic"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
             "id": "fixture-unknown-inline",
             "type": "third.party.inline",
             "payload": {
