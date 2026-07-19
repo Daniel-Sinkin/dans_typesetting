@@ -50,4 +50,5 @@ so `to_string(from_string(to_string(expression)))` is byte-stable.
 Not yet covered by this slice are general function-call parsing, typed indexed
 root syntax, continued fractions, radical style policy, or mathematical
 evaluation. Those are independent extensions rather than options on these
-three core presentation nodes.
+three core presentation nodes. The relation, product, and symbol vocabulary is
+documented separately in [math-vocabulary.md](math-vocabulary.md).

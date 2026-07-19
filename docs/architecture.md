@@ -241,6 +241,14 @@ clipboard transport, and canonical persistence require no structure-specific
 mutation channel. See [math-structures.md](math-structures.md) for the native and
 graphical authoring contract.
 
+Binary math nodes similarly store a semantic operator enum rather than a glyph
+or TeX token. Relations and arrows occupy the low-precedence portion of that
+contract; distinct products occupy the multiplicative portion. Atomic symbols
+store a registered name shared by native and browser models. The graphical
+writer chooses Unicode, while the common TeX connector chooses publication
+syntax for both LaTeX and Markdown/Jupyter. See
+[math-vocabulary.md](math-vocabulary.md).
+
 ## Semantic target index
 
 Referenceable block plugins expose a small descriptor containing an optional

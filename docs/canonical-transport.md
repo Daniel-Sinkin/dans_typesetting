@@ -75,7 +75,10 @@ Fraction nodes encode recursive `numerator` and `denominator` values. Radical
 nodes encode a recursive `body` plus a nullable `degree`. Script nodes encode a
 recursive `base` plus nullable `subscript` and `superscript` values, with at
 least one script required. These kinds use the existing schema-version-1 math
-payload and are covered by exact fixture normalization.
+payload and are covered by exact fixture normalization. Binary payloads store
+semantic relation/product names, while symbol payloads store registered names
+such as `partial` or `capital_omega`; neither stores Unicode glyphs nor TeX
+commands. See [math-vocabulary.md](math-vocabulary.md).
 
 Inline source code uses `dans.code.inline` with one string-valued `code` field.
 CR and LF are rejected because multiline source belongs to the listing plugin;

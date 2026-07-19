@@ -4,12 +4,14 @@
 #include "connectors/markdown/document_shell.hpp"
 #include "connectors/markdown/figure_pair.hpp"
 #include "connectors/markdown/inline_code.hpp"
+#include "connectors/markdown/math.hpp"
 #include "document.hpp"
 #include "plugins/code_listing.hpp"
 #include "plugins/core_paragraph.hpp"
 #include "plugins/document_shell.hpp"
 #include "plugins/figure_pair.hpp"
 #include "plugins/inline_code.hpp"
+#include "plugins/math.hpp"
 #include "transport/json.hpp"
 #include "writers/jupyter_writer.hpp"
 #include "writers/markdown_writer.hpp"
@@ -58,6 +60,9 @@ auto make_markdown_writer() -> std::shared_ptr<dans::document::writers::Markdown
     inline_renderer->register_inline_adapter(
         std::make_unique<markdown::InlineCodeMarkdownAdapter>()
     );
+    inline_renderer->register_inline_adapter(
+        std::make_unique<markdown::InlineMathMarkdownAdapter>()
+    );
 
     auto writer = std::make_shared<dans::document::writers::MarkdownWriter>();
     writer->register_block_adapter(
@@ -83,6 +88,8 @@ auto make_document() -> dans::document::Document
     auto& section = document.blocks().add<Section>("Mixed-language material");
     auto& paragraph = section.blocks().add<CoreParagraph>("Call ");
     paragraph.inlines().add<InlineCode>("cudaDeviceSynchronize()");
+    paragraph.append_text(" and require ");
+    paragraph.inlines().add<Math::Inline>(Math::less_equal(Math::id_partial, Math::id_infinity));
     paragraph.append_text(" before reading timing data.");
     section.blocks().add<CodeListing>(
         CodeLanguage::cpp, "int main() { return 0; }\n", "C++ presentation source."
@@ -144,6 +151,7 @@ auto verify_notebook() -> void
         throw std::runtime_error{"Notebook source did not preserve the Markdown export exactly"};
     }
     if (!expected_markdown.str().contains("```cpp") || !expected_markdown.str().contains("```julia")
+        || !expected_markdown.str().contains(R"(${\partial} \leq {\infty}$)")
         || !expected_markdown.str().contains("*Figure 1: Paired notebook figure\\.*")
         || serialized.str().contains("kernelspec"))
     {

@@ -71,14 +71,14 @@
             "payload": {
               "expression": {
                 "kind": "binary",
-                "operator": "equals",
+                "operator": "less_equals",
                 "left": {
                   "kind": "identifier",
-                  "name": "E"
+                  "name": "N"
                 },
                 "right": {
-                  "kind": "integer",
-                  "value": "4"
+                  "kind": "symbol",
+                  "name": "infinity"
                 }
               }
             }
@@ -215,7 +215,7 @@
       "payload": {
         "expression": {
           "kind": "binary",
-          "operator": "equals",
+          "operator": "approximately_equals",
           "left": {
             "kind": "identifier",
             "name": "x"

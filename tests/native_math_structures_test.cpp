@@ -1,5 +1,6 @@
 // Verify structured fractions, radicals, and scripts in the native math model.
 #include "connectors/latex/math.hpp"
+#include "connectors/tex_math_expression.hpp"
 #include "document.hpp"
 #include "plugins/math.hpp"
 #include "writers/latex_writer.hpp"
@@ -83,10 +84,98 @@ auto test_latex() -> void
     );
 }
 
+auto test_thesis_vocabulary() -> void
+{
+    using M = Math;
+    namespace tex = dans::document::connectors::tex;
+
+    expect(
+        tex::render_expression(M::not_equal(M::id_a, M::id_b)) == R"(a \neq b)",
+        "Not-equal lowering changed"
+    );
+    expect(
+        tex::render_expression(M::less_equal(M::id_a, M::id_b)) == R"(a \leq b)",
+        "Less-equal lowering changed"
+    );
+    expect(
+        tex::render_expression(M::less_than(M::id_a, M::id_b)) == "a < b",
+        "Less-than lowering changed"
+    );
+    expect(
+        tex::render_expression(M::greater_than(M::id_a, M::id_b)) == "a > b",
+        "Greater-than lowering changed"
+    );
+    expect(
+        tex::render_expression(M::greater_equal(M::id_a, M::id_b)) == R"(a \geq b)",
+        "Greater-equal lowering changed"
+    );
+    expect(
+        tex::render_expression(M::approximately_equal(M::id_a, M::id_b)) == R"(a \approx b)",
+        "Approximate-equality lowering changed"
+    );
+    expect(
+        tex::render_expression(M::similar(M::id_a, M::id_b)) == R"(a \sim b)",
+        "Similarity lowering changed"
+    );
+    expect(
+        tex::render_expression(M::element_of(M::id_i, M::id_A)) == R"(i \in A)",
+        "Set-membership lowering changed"
+    );
+    expect(
+        tex::render_expression(M::right_arrow(M::id_a, M::id_b)) == R"(a \to b)",
+        "Right-arrow lowering changed"
+    );
+    expect(
+        tex::render_expression(M::maps_to(M::id_a, M::id_b)) == R"(a \mapsto b)",
+        "Maps-to lowering changed"
+    );
+    expect(
+        tex::render_expression(M::tensor_product(M::id_A, M::id_B)) == R"(A \otimes B)",
+        "Tensor-product lowering changed"
+    );
+    expect(
+        tex::render_expression(M::product(M::id_a, M::id_b)) == "a * b",
+        "Asterisk-product lowering changed"
+    );
+    expect(
+        tex::render_expression(M::center_dot(M::id_a, M::id_b)) == R"(a \cdot b)",
+        "Centered-dot lowering changed"
+    );
+    expect(
+        tex::render_expression(M::times(M::id_a, M::id_b)) == R"(a \times b)",
+        "Times lowering changed"
+    );
+    expect(
+        tex::render_expression(M::divide(M::id_a, M::id_b)) == "a / b", "Division lowering changed"
+    );
+    expect(
+        tex::render_expression(
+            M::sequence(
+                M::id_partial,
+                M::id_infinity,
+                M::id_ellipsis,
+                M::id_centered_ellipsis,
+                M::id_dagger,
+                M::id_transpose,
+                M::id_script_ell
+            )
+        ) == R"({\partial}{\infty}{\dots}{\cdots}{\dagger}{\top}{\ell})",
+        "Special-symbol lowering changed"
+    );
+
+    const auto relation =
+        M::less_equal(M::add(M::id_a, M::id_b), M::tensor_product(M::id_A, M::id_B));
+    expect(
+        tex::render_expression(relation) == R"(a + b \leq A \otimes B)",
+        "Mixed relation precedence changed"
+    );
+}
+
 auto run_test() -> void
 {
     test_model();
     test_latex();
+    test_thesis_vocabulary();
 }
 }  // namespace
 

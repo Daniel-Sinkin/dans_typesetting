@@ -285,9 +285,11 @@ async function exerciseBuilder(client) {
       fraction: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--fraction") !== null,
       radical: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--radical") !== null,
       script: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--script") !== null,
+      mathVocabulary: document.querySelector("[data-visual-block-id='sample-display-math']")?.textContent.includes("⊗") === true && document.querySelector("[data-visual-block-id='sample-display-math']")?.textContent.includes("λ") === true,
       codeListing: document.querySelector("[data-visual-block-id='sample-code-listing'] code")?.textContent.includes("std::println") ?? false,
       opaqueFallback: document.body.textContent.includes("dans.future.block"),
       inlineMath: document.querySelector("[data-inline-math-id='sample-introduction-inline-math'] .math-node") !== null,
+      inlineRelation: document.querySelector("[data-inline-math-id='sample-introduction-inline-math']")?.textContent.includes("≈") ?? false,
       hyperlink: document.querySelector("a[href='https://example.com/typesetting']")?.textContent.includes("clickable links") ?? false,
       styledText: document.querySelector("[data-visual-block-id='sample-introduction'] strong em")?.textContent === "Styled text",
       inlineCode: document.querySelector("[data-visual-block-id='sample-introduction'] .inline-code-content")?.textContent === "cudaDeviceSynchronize()",
@@ -323,6 +325,7 @@ async function exerciseBuilder(client) {
   assert(initial.summation, "Structured summation was not rendered");
   assert(initial.matrixGrid, "The optional matrix/vector extension was not rendered");
   assert(initial.fraction && initial.radical && initial.script, "Structured fraction, radical, or script rendering is missing");
+  assert(initial.mathVocabulary && initial.inlineRelation, "Structured symbols, products, or relations were not rendered");
   assert(initial.codeListing, "The C++ code-listing plugin was not rendered");
   assert(initial.opaqueFallback, "The opaque block fallback was not rendered");
   assert(initial.inlineMath, "Structured inline mathematics was not rendered");
@@ -1186,6 +1189,19 @@ async function exerciseBuilder(client) {
     ].every((id) => document.querySelector(\`[data-math-palette='\${id}']\`) !== null)`),
     "The core math structures did not contribute their complete editor palette",
   );
+  assert(
+    await client.evaluate(`[
+      "operator-less_equals",
+      "operator-element_of",
+      "operator-right_arrow",
+      "operator-tensor_product",
+      "symbol-theta",
+      "symbol-capital_omega",
+      "symbol-partial",
+      "symbol-dagger"
+    ].every((id) => document.querySelector(\`[data-math-palette='\${id}']\`) !== null)`),
+    "The thesis relation and symbol vocabulary did not contribute its editor palette",
+  );
   const heldNode = await client.evaluate(`(() => {
     const node = document.querySelector(".math-editor-canvas [data-math-path='left.left']");
     const bounds = node.getBoundingClientRect();
@@ -1207,6 +1223,10 @@ async function exerciseBuilder(client) {
       const bounds = element.getBoundingClientRect();
       return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
     };
+    document.querySelector("[data-math-palette='integer-9']").scrollIntoView({
+      block: "center",
+      inline: "nearest",
+    });
     const canvas = document.querySelector(".math-editor-canvas");
     return {
       start: center(document.querySelector("[data-math-palette='integer-9']")),
@@ -1365,7 +1385,7 @@ async function exerciseBuilder(client) {
   await client.evaluate(`(() => {
     const input = document.querySelector("input[data-math-slot-input='left.right']");
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    setter.call(input, "sqrt(x_2^3)/(-56.321/(a+[B,{c,-3}]))");
+    setter.call(input, "partial*sqrt(x_2^3)/(-56.321/(a+[B,{c,-3}]))<=infinity");
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
   })()`);
@@ -1373,6 +1393,9 @@ async function exerciseBuilder(client) {
     await client.evaluate(`(() => {
       const replacement = document.querySelector(".math-editor-canvas [data-math-path='left.right']");
       return replacement.textContent.includes("56.321") &&
+        replacement.textContent.includes("∂") &&
+        replacement.textContent.includes("≤") &&
+        replacement.textContent.includes("∞") &&
         replacement.querySelector(".math-node--negated") !== null &&
         replacement.querySelector(".math-node--delimited") !== null &&
         replacement.querySelector(".math-node--comma_sequence") !== null &&
@@ -1415,6 +1438,10 @@ async function exerciseBuilder(client) {
       const bounds = element.getBoundingClientRect();
       return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
     };
+    document.querySelector("[data-math-palette='matvec-matrix-2x3']").scrollIntoView({
+      block: "center",
+      inline: "nearest",
+    });
     return {
       start: center(document.querySelector("[data-math-palette='matvec-matrix-2x3']")),
       end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left']")),
@@ -1434,6 +1461,10 @@ async function exerciseBuilder(client) {
       const bounds = element.getBoundingClientRect();
       return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
     };
+    document.querySelector("[data-math-palette='integer-7']").scrollIntoView({
+      block: "center",
+      inline: "nearest",
+    });
     return {
       start: center(document.querySelector("[data-math-palette='integer-7']")),
       end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")),
@@ -1449,6 +1480,10 @@ async function exerciseBuilder(client) {
       const bounds = element.getBoundingClientRect();
       return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
     };
+    document.querySelector("[data-math-palette='structure-fraction']").scrollIntoView({
+      block: "center",
+      inline: "nearest",
+    });
     return {
       start: center(document.querySelector("[data-math-palette='structure-fraction']")),
       end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")),
@@ -1478,22 +1513,30 @@ async function exerciseBuilder(client) {
     files: [canonicalFixturePath],
   });
   await delay(250);
-  assert(
-    await client.evaluate(`(() => {
+  const canonicalLoadState = await client.evaluate(`(() => {
       const blocks = [...document.querySelectorAll("[data-block-id]")];
-      return blocks.length >= 11 &&
-        document.body.textContent.includes("Canonical document") &&
-        document.body.textContent.includes("A styled canonical paragraph") &&
-        document.body.textContent.includes("third.party.block") &&
-        document.querySelector("button[data-testid='save-document']") !== null &&
-        document.querySelector("[data-visual-block-id='fixture-equation'] .math-grid")?.children.length === 4 &&
-        document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--fraction") !== null &&
-        document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--radical") !== null &&
-        document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--script") !== null &&
-        document.querySelector("[data-visual-block-id='fixture-introduction'] .inline-citation")?.textContent === "[1, 2]" &&
-        document.querySelectorAll("[data-visual-block-id='fixture-bibliography'] [data-bibliography-entry-key]").length === 2;
-    })()`),
-    "Canonical document loading did not transactionally replace the graphical document",
+      return {
+        blockCount: blocks.length >= 11,
+        title: document.body.textContent.includes("Canonical document"),
+        paragraph: document.body.textContent.includes("A styled canonical paragraph"),
+        opaque: document.body.textContent.includes("third.party.block"),
+        save: document.querySelector("button[data-testid='save-document']") !== null,
+        grid: document.querySelector("[data-visual-block-id='fixture-equation'] .math-grid")?.children.length === 4,
+        fraction: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--fraction") !== null,
+        radical: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--radical") !== null,
+        script: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--script") !== null,
+        approximate: document.querySelector("[data-visual-block-id='fixture-equation']")?.textContent.includes("≈") === true,
+        relation: document.querySelector("[data-visual-block-id='fixture-introduction']")?.textContent.includes("N≤∞") === true,
+        citation: document.querySelector("[data-visual-block-id='fixture-introduction'] .inline-citation")?.textContent === "[1, 2]",
+        bibliography: document.querySelectorAll("[data-visual-block-id='fixture-bibliography'] [data-bibliography-entry-key]").length === 2,
+      };
+    })()`);
+  const failedCanonicalChecks = Object.entries(canonicalLoadState)
+    .filter(([, passed]) => !passed)
+    .map(([name]) => name);
+  assert(
+    failedCanonicalChecks.length === 0,
+    `Canonical document loading did not transactionally replace the graphical document: ${failedCanonicalChecks.join(", ")}`,
   );
   await screenshot(client, "canonical-document-loaded.png");
 

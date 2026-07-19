@@ -27,6 +27,7 @@ import {
   createMathScript,
   createMathSlot,
   createMathSummation,
+  createMathSymbol,
   detachMathExpressionAtPath,
   mathExpressionAtPath,
   mathExpressionHasSlots,
@@ -37,12 +38,15 @@ import {
   mathOperatorSymbol,
   mathPathKey,
   mathSequenceBranch,
+  mathSymbolGlyph,
+  mathSymbolNames,
   parseMathPath,
   replaceMathExpressionAtPath,
   type MathBinaryBranch,
   type MathBinaryOperator,
   type MathExpression,
   type MathPath,
+  type MathSymbolName,
 } from "../model/math";
 import {
   isMathDisplayBlock,
@@ -294,6 +298,7 @@ function selectionCandidatesForScope(
     case "integer":
     case "decimal":
     case "identifier":
+    case "symbol":
       return [whole];
   }
 }
@@ -409,6 +414,14 @@ function MathNode({
   }
   if (expression.kind === "identifier") {
     return <span {...sharedProps}>{selectionBadge}{expression.name}</span>;
+  }
+  if (expression.kind === "symbol") {
+    return (
+      <span {...sharedProps} className={`${sharedProps.className} math-symbol`}>
+        {selectionBadge}
+        {mathSymbolGlyph(expression.name)}
+      </span>
+    );
   }
   if (expression.kind === "summation") {
     return (
@@ -854,13 +867,35 @@ const numberPalette = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"].map(
   }),
 );
 
+const symbolPalette = mathSymbolNames.map(
+  (symbol: MathSymbolName): MathEditorPaletteItem => ({
+    id: `symbol-${symbol}`,
+    label: mathSymbolGlyph(symbol),
+    description: symbol.replaceAll("_", " "),
+    create: () => createMathSymbol(symbol),
+  }),
+);
+
 const operatorPalette = (
   [
     ["plus", "Addition"],
     ["minus", "Subtraction"],
     ["equals", "Equality"],
+    ["not_equals", "Not equal"],
+    ["less_than", "Less than"],
+    ["less_equals", "Less than or equal"],
+    ["greater_than", "Greater than"],
+    ["greater_equals", "Greater than or equal"],
+    ["approximately_equals", "Approximately equal"],
+    ["similar", "Similar"],
+    ["element_of", "Set membership"],
+    ["right_arrow", "Right arrow"],
+    ["maps_to", "Maps to"],
+    ["product", "Asterisk product"],
+    ["center_dot", "Centered-dot product"],
     ["times", "Multiplication"],
     ["divide", "Division"],
+    ["tensor_product", "Tensor product"],
   ] as const satisfies readonly (readonly [MathBinaryOperator, string])[]
 ).map(
   ([operator, description]): MathEditorPaletteItem => ({
@@ -1633,6 +1668,24 @@ export function MathExpressionEditor({
           <h3>Binary operators</h3>
           <div className="math-palette-grid math-palette-grid--operators">
             {operatorPalette.map((item) => (
+              <button
+                data-math-palette={item.id}
+                key={item.id}
+                type="button"
+                title={item.description}
+                onPointerDown={(event) => {
+                  beginPaletteDrag(item, event);
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </section>
+        <section>
+          <h3>Symbols</h3>
+          <div className="math-palette-grid math-palette-grid--symbols">
+            {symbolPalette.map((item) => (
               <button
                 data-math-palette={item.id}
                 key={item.id}

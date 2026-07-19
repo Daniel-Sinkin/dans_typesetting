@@ -122,6 +122,8 @@ auto render_representative_document() -> std::string
     prose.inlines().add<InlineCode>("value`with`ticks");
     prose.append_text(" math ");
     prose.inlines().add<Math::Inline>(M::fraction(M::id_1, M::id_2));
+    prose.append_text(" relation ");
+    prose.inlines().add<Math::Inline>(M::less_equal(M::id_partial, M::id_infinity));
     prose.append_text(" emoji ");
     prose.inlines().add<InlineImage>(ImageSource{"assets/tiny icon.png"});
     prose.append_text(" color ");
@@ -325,9 +327,12 @@ auto main() noexcept -> int
         );
         expect_contains(rendered, "``value`with`ticks``", "collision-free inline code");
         expect_contains(rendered, "$\\frac{1}{2}$", "inline structured math");
+        expect_contains(
+            rendered, R"(${\partial} \leq {\infty}$)", "structured relation and symbols"
+        );
         expect_contains(rendered, "![](<assets/tiny icon.png>)", "inline image");
         expect_contains(
-            rendered, "<span style=\"color: #0CA0FF\">**blue \\& bold**</span>", "colour span"
+            rendered, R"(<span style="color: #0CA0FF">**blue \& bold**</span>)", "colour span"
         );
         expect_contains(rendered, "note[^1]", "footnote reference");
         expect_contains(
@@ -338,7 +343,7 @@ auto main() noexcept -> int
         );
         expect_contains(rendered, "1. First item\n1. Second with `x | y`", "enumerated list");
         expect_contains(rendered, "![](<figures/sample plot.png>)", "figure image");
-        expect_contains(rendered, "*Figure 1: Runtime \\*plot\\*\\.*", "figure caption");
+        expect_contains(rendered, R"(*Figure 1: Runtime \*plot\*\.*)", "figure caption");
         expect_contains(
             rendered,
             "| ![](<figures/left panel.png>) | ![](<figures/right panel.png>) |",

@@ -14,7 +14,18 @@ auto binary_precedence(const Math::BinaryOperator operation) -> int
 {
     switch (operation)
     {
+        case Math::BinaryOperator::right_arrow:
+        case Math::BinaryOperator::maps_to:
+            return 5;
         case Math::BinaryOperator::equal:
+        case Math::BinaryOperator::not_equal:
+        case Math::BinaryOperator::less_than:
+        case Math::BinaryOperator::less_equal:
+        case Math::BinaryOperator::greater_than:
+        case Math::BinaryOperator::greater_equal:
+        case Math::BinaryOperator::approximately_equal:
+        case Math::BinaryOperator::similar:
+        case Math::BinaryOperator::element_of:
             return 10;
         case Math::BinaryOperator::add:
         case Math::BinaryOperator::subtract:
@@ -22,6 +33,8 @@ auto binary_precedence(const Math::BinaryOperator operation) -> int
         case Math::BinaryOperator::product:
         case Math::BinaryOperator::center_dot:
         case Math::BinaryOperator::times:
+        case Math::BinaryOperator::divide:
+        case Math::BinaryOperator::tensor_product:
             return 30;
     }
     throw std::logic_error{"Unknown structured-math binary operator"};
@@ -193,6 +206,27 @@ auto write_symbol(Output& output, const Math::Symbol symbol) -> void
         case Math::Symbol::nabla:
             output.write_raw("\\nabla");
             return;
+        case Math::Symbol::partial:
+            output.write_raw("\\partial");
+            return;
+        case Math::Symbol::infinity:
+            output.write_raw("\\infty");
+            return;
+        case Math::Symbol::ellipsis:
+            output.write_raw("\\dots");
+            return;
+        case Math::Symbol::centered_ellipsis:
+            output.write_raw("\\cdots");
+            return;
+        case Math::Symbol::dagger:
+            output.write_raw("\\dagger");
+            return;
+        case Math::Symbol::transpose:
+            output.write_raw("\\top");
+            return;
+        case Math::Symbol::script_ell:
+            output.write_raw("\\ell");
+            return;
         case Math::Symbol::asterisk:
             output.write_raw("*");
             return;
@@ -255,7 +289,9 @@ auto write_expression(
             write_identifier(output, expression.identifier_name());
             return;
         case Kind::symbol:
+            output.write_raw("{");
             write_symbol(output, expression.symbol_value());
+            output.write_raw("}");
             return;
         case Kind::binary:
             {
@@ -283,6 +319,36 @@ auto write_expression(
                     case BinaryOperator::equal:
                         output.write_raw(align_at_operator ? " &= " : " = ");
                         break;
+                    case BinaryOperator::not_equal:
+                        output.write_raw(align_at_operator ? " &\\neq " : " \\neq ");
+                        break;
+                    case BinaryOperator::less_than:
+                        output.write_raw(align_at_operator ? " &< " : " < ");
+                        break;
+                    case BinaryOperator::less_equal:
+                        output.write_raw(align_at_operator ? " &\\leq " : " \\leq ");
+                        break;
+                    case BinaryOperator::greater_than:
+                        output.write_raw(align_at_operator ? " &> " : " > ");
+                        break;
+                    case BinaryOperator::greater_equal:
+                        output.write_raw(align_at_operator ? " &\\geq " : " \\geq ");
+                        break;
+                    case BinaryOperator::approximately_equal:
+                        output.write_raw(align_at_operator ? " &\\approx " : " \\approx ");
+                        break;
+                    case BinaryOperator::similar:
+                        output.write_raw(align_at_operator ? " &\\sim " : " \\sim ");
+                        break;
+                    case BinaryOperator::element_of:
+                        output.write_raw(align_at_operator ? " &\\in " : " \\in ");
+                        break;
+                    case BinaryOperator::right_arrow:
+                        output.write_raw(align_at_operator ? " &\\to " : " \\to ");
+                        break;
+                    case BinaryOperator::maps_to:
+                        output.write_raw(align_at_operator ? " &\\mapsto " : " \\mapsto ");
+                        break;
                     case BinaryOperator::product:
                         output.write_raw(align_at_operator ? " &* " : " * ");
                         break;
@@ -292,9 +358,17 @@ auto write_expression(
                     case BinaryOperator::times:
                         output.write_raw(align_at_operator ? " &\\times " : " \\times ");
                         break;
+                    case BinaryOperator::divide:
+                        output.write_raw(align_at_operator ? " &/ " : " / ");
+                        break;
+                    case BinaryOperator::tensor_product:
+                        output.write_raw(align_at_operator ? " &\\otimes " : " \\otimes ");
+                        break;
                 }
                 const auto right_precedence =
-                    operation == BinaryOperator::subtract ? precedence + 1 : precedence;
+                    operation == BinaryOperator::subtract || operation == BinaryOperator::divide
+                        ? precedence + 1
+                        : precedence;
                 write_expression(binary.right, output, right_precedence);
 
                 if (needs_parentheses)

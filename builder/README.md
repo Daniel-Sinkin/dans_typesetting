@@ -67,6 +67,11 @@ so every cell accepts the same typed input and recursive drag/drop operations as
 subtree. Existing matrices still render and serialize if the optional palette contribution is not
 registered.
 
+The base math palette also exposes semantic inequalities, membership, arrows, distinct product
+operators, Greek letters, and common physics/calculus symbols. The optional input parser accepts
+ASCII spellings such as `i in A`, `a <= b`, `a otimes b`, `theta`, and `partial`; canonical data
+stores the operation or symbol name rather than the displayed glyph.
+
 Sections, images, paired-figure groups/panels, drawings, display equations, and listings may publish stable
 semantic target IDs. The graphical writer derives their visible numbers from
 current document order; reference segments therefore update immediately after

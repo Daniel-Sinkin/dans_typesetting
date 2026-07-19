@@ -929,6 +929,7 @@ if(BUILD_TESTING)
     dans::figure_pair_markdown_connector
     dans::inline_code_markdown_connector
     dans::jupyter_writer
+    dans::math_markdown_connector
     typesetter_warnings
   )
   add_test(NAME native_jupyter_test COMMAND native_jupyter_test)

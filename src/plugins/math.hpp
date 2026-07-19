@@ -73,6 +73,13 @@ class Math final
         capital_psi,
         capital_omega,
         nabla,
+        partial,
+        infinity,
+        ellipsis,
+        centered_ellipsis,
+        dagger,
+        transpose,
+        script_ell,
         asterisk,
     };
 
@@ -115,9 +122,21 @@ class Math final
         add,
         subtract,
         equal,
+        not_equal,
+        less_than,
+        less_equal,
+        greater_than,
+        greater_equal,
+        approximately_equal,
+        similar,
+        element_of,
+        right_arrow,
+        maps_to,
         product,
         center_dot,
         times,
+        divide,
+        tensor_product,
     };
 
     enum class Delimiter : u8
@@ -177,9 +196,21 @@ class Math final
     [[nodiscard]] static auto add(Math left, Math right) -> Math;
     [[nodiscard]] static auto subtract(Math left, Math right) -> Math;
     [[nodiscard]] static auto equal(Math left, Math right) -> Math;
+    [[nodiscard]] static auto not_equal(Math left, Math right) -> Math;
+    [[nodiscard]] static auto less_than(Math left, Math right) -> Math;
+    [[nodiscard]] static auto less_equal(Math left, Math right) -> Math;
+    [[nodiscard]] static auto greater_than(Math left, Math right) -> Math;
+    [[nodiscard]] static auto greater_equal(Math left, Math right) -> Math;
+    [[nodiscard]] static auto approximately_equal(Math left, Math right) -> Math;
+    [[nodiscard]] static auto similar(Math left, Math right) -> Math;
+    [[nodiscard]] static auto element_of(Math left, Math right) -> Math;
+    [[nodiscard]] static auto right_arrow(Math left, Math right) -> Math;
+    [[nodiscard]] static auto maps_to(Math left, Math right) -> Math;
     [[nodiscard]] static auto product(Math left, Math right) -> Math;
     [[nodiscard]] static auto center_dot(Math left, Math right) -> Math;
     [[nodiscard]] static auto times(Math left, Math right) -> Math;
+    [[nodiscard]] static auto divide(Math left, Math right) -> Math;
+    [[nodiscard]] static auto tensor_product(Math left, Math right) -> Math;
     [[nodiscard]] static auto fraction(Math numerator, Math denominator) -> Math;
     [[nodiscard]] static auto square_root(Math radicand) -> Math;
     [[nodiscard]] static auto nth_root(Math degree, Math radicand) -> Math;
@@ -378,6 +409,13 @@ class Math final
     static const Shortcut id_Psi;
     static const Shortcut id_Omega;
     static const Shortcut id_nabla;
+    static const Shortcut id_partial;
+    static const Shortcut id_infinity;
+    static const Shortcut id_ellipsis;
+    static const Shortcut id_centered_ellipsis;
+    static const Shortcut id_dagger;
+    static const Shortcut id_transpose;
+    static const Shortcut id_script_ell;
     // NOLINTEND(readability-identifier-naming)
 
   private:

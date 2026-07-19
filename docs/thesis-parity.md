@@ -49,11 +49,13 @@ placement before table parity is complete.
 
 The structured-math slices now cover arbitrary rectangular grids,
 square-bracketed matrices, row vectors, column vectors, stacked fractions,
-square/indexed roots, and combined scripts in native LaTeX and the graphical
+square/indexed roots, combined scripts, the high-frequency relation family,
+distinct product operators, Greek/calculus symbols, ellipses, dagger,
+transpose, and script ell in native LaTeX/Markdown/Jupyter and the graphical
 writer. Every child retains recursive editing and canonical transport. The
 audited corpus still needs parentheses matrices, block separators, arrays,
-richer operators/relations, and several specialized environments before
-mathematical parity is close.
+decorated identifiers, browser-side named operators, labeled arrows, and
+several specialized environments before mathematical parity is close.
 
 The listing contract now covers C++, CUDA, Julia, and raw source with
 independently optional captions and reference targets in native LaTeX and the
@@ -101,7 +103,7 @@ Porting these slices exercises variety without copying hundreds of paragraphs:
 2. Builder section tree and document-shell blocks.
 3. Prose styles, inline math, URLs, footnotes, and references.
 4. Rich table core, followed by CSV and Python-backed adapters.
-5. Continue structured math beyond the implemented rectangular matvec slice.
+5. Continue structured math beyond the implemented matvec and relation/symbol slices.
 6. General composite/subfigure grids beyond the implemented two-panel contract.
 7. CUDA/raw/optional-caption listings (implemented base contract).
 8. Citations and BibTeX/JSON bibliography (implemented base contract).

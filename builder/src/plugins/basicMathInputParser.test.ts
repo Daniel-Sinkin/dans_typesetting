@@ -7,7 +7,7 @@ describe("basic math input parser plugin", () => {
   it("respects equality, additive, and multiplicative precedence", () => {
     const expression = basicMathInputParser.parse("1+2-3=2*4");
 
-    expect(mathExpressionToText(expression)).toBe("1 + 2 − 3 = 2 × 4");
+    expect(mathExpressionToText(expression)).toBe("1 + 2 − 3 = 2 * 4");
     expect(expression.kind).toBe("binary");
     if (expression.kind === "binary") {
       expect(expression.operator).toBe("equals");
@@ -43,6 +43,29 @@ describe("basic math input parser plugin", () => {
     expect(mathExpressionToText(basicMathInputParser.parse("x_-3"))).toBe("x_{−3}");
     expect(() => basicMathInputParser.parse("x_1_2")).toThrow(/specified twice/u);
     expect(() => basicMathInputParser.parse("x^1^2")).toThrow(/specified twice/u);
+  });
+
+  it("parses thesis relations, product spellings, arrows, and named symbols", () => {
+    expect(
+      mathExpressionToText(
+        basicMathInputParser.parse("partial * A_i <= infinity ~= theta otimes B"),
+      ),
+    ).toBe("∂ * A_{i} ≤ ∞ ≈ θ ⊗ B");
+    expect(mathExpressionToText(basicMathInputParser.parse("i in A -> B"))).toBe(
+      "i ∈ A → B",
+    );
+    expect(mathExpressionToText(basicMathInputParser.parse("a -> b in B"))).toBe(
+      "a → b ∈ B",
+    );
+    expect(mathExpressionToText(basicMathInputParser.parse("a != b |-> c"))).toBe(
+      "a ≠ b ↦ c",
+    );
+    expect(mathExpressionToText(basicMathInputParser.parse("a cdot b times c"))).toBe(
+      "a · b × c",
+    );
+    expect(mathExpressionToText(basicMathInputParser.parse("Gamma + dagger"))).toBe(
+      "Γ + †",
+    );
   });
 
   it("reports the source position of malformed or unsupported input", () => {

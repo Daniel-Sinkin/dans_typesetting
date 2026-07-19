@@ -11,6 +11,8 @@ import {
   createMathParenthesized,
   createMathRadical,
   createMathScript,
+  createMathSymbol,
+  mathSymbolNameFromInput,
   validateMathExpression,
   type MathBinaryOperator,
   type MathExpression,
@@ -22,8 +24,21 @@ type TokenKind =
   | "plus"
   | "minus"
   | "times"
+  | "product"
+  | "center_dot"
   | "divide"
+  | "tensor_product"
   | "equals"
+  | "not_equals"
+  | "less_than"
+  | "less_equals"
+  | "greater_than"
+  | "greater_equals"
+  | "approximately_equals"
+  | "similar"
+  | "element_of"
+  | "right_arrow"
+  | "maps_to"
   | "comma"
   | "subscript"
   | "superscript"
@@ -58,11 +73,38 @@ function symbolTokenKind(symbol: string): TokenKind | null {
     case "-":
       return "minus";
     case "*":
+      return "product";
+    case "×":
       return "times";
+    case "·":
+      return "center_dot";
     case "/":
       return "divide";
     case "=":
       return "equals";
+    case "≠":
+      return "not_equals";
+    case "<":
+      return "less_than";
+    case "≤":
+      return "less_equals";
+    case ">":
+      return "greater_than";
+    case "≥":
+      return "greater_equals";
+    case "≈":
+      return "approximately_equals";
+    case "~":
+    case "∼":
+      return "similar";
+    case "∈":
+      return "element_of";
+    case "→":
+      return "right_arrow";
+    case "↦":
+      return "maps_to";
+    case "⊗":
+      return "tensor_product";
     case ",":
       return "comma";
     case "_":
@@ -86,6 +128,25 @@ function symbolTokenKind(symbol: string): TokenKind | null {
   }
 }
 
+const compoundSymbols = [
+  ["|->", "maps_to"],
+  ["->", "right_arrow"],
+  ["!=", "not_equals"],
+  ["<=", "less_equals"],
+  [">=", "greater_equals"],
+  ["~=", "approximately_equals"],
+] as const satisfies readonly (readonly [string, TokenKind])[];
+
+const keywordOperators: Readonly<Record<string, TokenKind | undefined>> = Object.freeze({
+  cdot: "center_dot",
+  in: "element_of",
+  mapsTo: "maps_to",
+  otimes: "tensor_product",
+  sim: "similar",
+  times: "times",
+  to: "right_arrow",
+});
+
 function tokenize(source: string): readonly Token[] {
   const tokens: Token[] = [];
   let offset = 0;
@@ -100,6 +161,15 @@ function tokenize(source: string): readonly Token[] {
     }
 
     const remainder = source.slice(offset);
+    const compoundSymbol = compoundSymbols.find(([symbol]) =>
+      remainder.startsWith(symbol),
+    );
+    if (compoundSymbol !== undefined) {
+      const [symbol, kind] = compoundSymbol;
+      tokens.push({ kind, text: symbol, offset });
+      offset += symbol.length;
+      continue;
+    }
     const number = /^(?:\d+(?:\.\d*)?|\.\d+)/u.exec(remainder)?.[0];
     if (number !== undefined) {
       tokens.push({ kind: "number", text: number, offset });
@@ -108,7 +178,11 @@ function tokenize(source: string): readonly Token[] {
     }
     const identifier = /^[A-Za-z]+/u.exec(remainder)?.[0];
     if (identifier !== undefined) {
-      tokens.push({ kind: "identifier", text: identifier, offset });
+      tokens.push({
+        kind: keywordOperators[identifier] ?? "identifier",
+        text: identifier,
+        offset,
+      });
       offset += identifier.length;
       continue;
     }
@@ -132,10 +206,36 @@ function binaryOperatorFor(kind: TokenKind): MathBinaryOperator | null {
       return "minus";
     case "times":
       return "times";
+    case "product":
+      return "product";
+    case "center_dot":
+      return "center_dot";
     case "divide":
       return "divide";
+    case "tensor_product":
+      return "tensor_product";
     case "equals":
       return "equals";
+    case "not_equals":
+      return "not_equals";
+    case "less_than":
+      return "less_than";
+    case "less_equals":
+      return "less_equals";
+    case "greater_than":
+      return "greater_than";
+    case "greater_equals":
+      return "greater_equals";
+    case "approximately_equals":
+      return "approximately_equals";
+    case "similar":
+      return "similar";
+    case "element_of":
+      return "element_of";
+    case "right_arrow":
+      return "right_arrow";
+    case "maps_to":
+      return "maps_to";
     default:
       return null;
   }
@@ -185,10 +285,10 @@ class BasicMathParser {
   }
 
   #parseCommaSequence(): MathExpression {
-    const items = [this.#parseEquality()];
+    const items = [this.#parseArrow()];
     while (this.#current().kind === "comma") {
       this.#advance();
-      items.push(this.#parseEquality());
+      items.push(this.#parseArrow());
     }
     const firstItem = items[0];
     if (firstItem === undefined) {
@@ -197,12 +297,37 @@ class BasicMathParser {
     return items.length === 1 ? firstItem : createMathCommaSequence(items);
   }
 
-  #parseEquality(): MathExpression {
-    let expression = this.#parseAdditive();
-    while (this.#current().kind === "equals") {
+  #parseArrow(): MathExpression {
+    let expression = this.#parseRelation();
+    while (
+      this.#current().kind === "right_arrow" ||
+      this.#current().kind === "maps_to"
+    ) {
       const operator = binaryOperatorFor(this.#advance().kind);
       if (operator === null) {
-        throw new Error("The equality token did not map to a binary operator");
+        throw new Error("An arrow token did not map to a binary operator");
+      }
+      expression = createMathBinary(operator, expression, this.#parseRelation());
+    }
+    return expression;
+  }
+
+  #parseRelation(): MathExpression {
+    let expression = this.#parseAdditive();
+    while (
+      this.#current().kind === "equals" ||
+      this.#current().kind === "not_equals" ||
+      this.#current().kind === "less_than" ||
+      this.#current().kind === "less_equals" ||
+      this.#current().kind === "greater_than" ||
+      this.#current().kind === "greater_equals" ||
+      this.#current().kind === "approximately_equals" ||
+      this.#current().kind === "similar" ||
+      this.#current().kind === "element_of"
+    ) {
+      const operator = binaryOperatorFor(this.#advance().kind);
+      if (operator === null) {
+        throw new Error("A relation token did not map to a binary operator");
       }
       expression = createMathBinary(operator, expression, this.#parseAdditive());
     }
@@ -223,7 +348,13 @@ class BasicMathParser {
 
   #parseMultiplicative(): MathExpression {
     let expression = this.#parseUnary();
-    while (this.#current().kind === "times" || this.#current().kind === "divide") {
+    while (
+      this.#current().kind === "product" ||
+      this.#current().kind === "center_dot" ||
+      this.#current().kind === "times" ||
+      this.#current().kind === "divide" ||
+      this.#current().kind === "tensor_product"
+    ) {
       const operator = binaryOperatorFor(this.#advance().kind);
       if (operator === null) {
         throw new Error("A multiplicative token did not map to a binary operator");
@@ -297,6 +428,10 @@ class BasicMathParser {
         const body = this.#parseCommaSequence();
         this.#consume("close_parenthesis", "')'");
         return createMathRadical(body);
+      }
+      const symbol = mathSymbolNameFromInput(token.text);
+      if (symbol !== null) {
+        return createMathSymbol(symbol);
       }
       return createMathIdentifier(token.text);
     }

@@ -112,6 +112,19 @@ auto make_fraction_radical_equation()
     );
 }
 
+auto make_relation_vocabulary_equation()
+{
+    using M = dans::document::plugins::Math;
+
+    return M::approximately_equal(
+        M::divide(
+            M::sequence(M::id_partial, M::id_E),
+            M::sequence(M::id_partial, M::id_theta.subscript(M::id_i))
+        ),
+        M::tensor_product(M::id_A, M::id_B)
+    );
+}
+
 auto make_sample_document()
 {
     using namespace dans::document;
@@ -308,12 +321,16 @@ auto make_sample_document()
     const ReferenceId gradient_equation_id{"eq:gradient"};
     const ReferenceId matrix_equation_id{"eq:matrix-vector"};
     const ReferenceId fraction_radical_equation_id{"eq:fraction-radical"};
+    const ReferenceId relation_vocabulary_equation_id{"eq:relation-vocabulary"};
     mathematics.blocks()
         .add<M::Display>(make_energy_equation(), energy_equation_id)
         .add_equation(make_gradient_equation(), gradient_equation_id);
     mathematics.blocks().add<M::Display>(make_matrix_vector_equation(), matrix_equation_id);
     mathematics.blocks().add<M::Display>(
         make_fraction_radical_equation(), fraction_radical_equation_id
+    );
+    mathematics.blocks().add<M::Display>(
+        make_relation_vocabulary_equation(), relation_vocabulary_equation_id
     );
 
     auto& equation_references = mathematics.blocks().add<CoreParagraph>();
@@ -325,6 +342,8 @@ auto make_sample_document()
     equation_references.inlines().add<Reference>(matrix_equation_id);
     equation_references.append_text(" and structured fractions and roots appear in ");
     equation_references.inlines().add<Reference>(fraction_radical_equation_id);
+    equation_references.append_text(", and relation/product vocabulary appears in ");
+    equation_references.inlines().add<Reference>(relation_vocabulary_equation_id);
     equation_references.append_text(".");
 
     auto& listings = document.blocks().add<Section>("Source-code listings");

@@ -177,6 +177,13 @@ DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Chi, chi);
 DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Psi, psi);
 DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Omega, omega);
 DANS_DEFINE_MATH_SYMBOL_SHORTCUT(nabla);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(partial);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(infinity);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(ellipsis);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(centered_ellipsis);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(dagger);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(transpose);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(script_ell);
 
 #undef DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT
 #undef DANS_DEFINE_MATH_SYMBOL_SHORTCUT
@@ -373,6 +380,56 @@ auto Math::equal(Math left, Math right) -> Math
     return binary(std::move(left), BinaryOperator::equal, std::move(right));
 }
 
+auto Math::not_equal(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::not_equal, std::move(right));
+}
+
+auto Math::less_than(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::less_than, std::move(right));
+}
+
+auto Math::less_equal(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::less_equal, std::move(right));
+}
+
+auto Math::greater_than(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::greater_than, std::move(right));
+}
+
+auto Math::greater_equal(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::greater_equal, std::move(right));
+}
+
+auto Math::approximately_equal(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::approximately_equal, std::move(right));
+}
+
+auto Math::similar(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::similar, std::move(right));
+}
+
+auto Math::element_of(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::element_of, std::move(right));
+}
+
+auto Math::right_arrow(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::right_arrow, std::move(right));
+}
+
+auto Math::maps_to(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::maps_to, std::move(right));
+}
+
 auto Math::product(Math left, Math right) -> Math
 {
     return binary(std::move(left), BinaryOperator::product, std::move(right));
@@ -386,6 +443,16 @@ auto Math::center_dot(Math left, Math right) -> Math
 auto Math::times(Math left, Math right) -> Math
 {
     return binary(std::move(left), BinaryOperator::times, std::move(right));
+}
+
+auto Math::divide(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::divide, std::move(right));
+}
+
+auto Math::tensor_product(Math left, Math right) -> Math
+{
+    return binary(std::move(left), BinaryOperator::tensor_product, std::move(right));
 }
 
 auto Math::fraction(Math numerator, Math denominator) -> Math

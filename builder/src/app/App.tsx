@@ -24,6 +24,7 @@ import {
   createMathRadical,
   createMathScript,
   createMathSummation,
+  createMathSymbol,
 } from "../model/math";
 import { createImagePlugin } from "../plugins/image";
 import { createImageBlock } from "../plugins/imageModel";
@@ -150,7 +151,7 @@ const initialBlocks = [
       createParagraphText(" can sit beside ", "sample-introduction-text-math-join"),
       createMathInline(
         createMathBinary(
-          "equals",
+          "approximately_equals",
           createMathIdentifier("E"),
           createMathBinary(
             "times",
@@ -338,7 +339,7 @@ const initialBlocks = [
         ),
         createMathIdentifier("N"),
           createMathBinary(
-            "times",
+            "tensor_product",
             createMathMatrix([
             [createMathInteger(2), createMathInteger(4)],
             [createMathInteger(1), createMathInteger(3)],
@@ -350,7 +351,7 @@ const initialBlocks = [
             ]),
             createMathRadical(
               createMathScript(
-                createMathIdentifier("lambda"),
+                createMathSymbol("lambda"),
                 createMathIdentifier("i"),
                 createMathInteger(2),
               ),

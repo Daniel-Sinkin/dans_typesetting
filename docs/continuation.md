@@ -54,9 +54,29 @@ the configured Markdown target rather than duplicating plugin rendering.
 Commit `9444d55` adds semantic exactly-two-panel figures across native LaTeX,
 Markdown/Jupyter, canonical transport, and graphical authoring.
 
+Commit `0d17dc2` converges ordinary-figure and code-listing captions on the
+plugin-owned Core Paragraph inline contract in canonical and graphical paths.
+
 ## Current verified slice
 
-The rich-caption convergence slice adds:
+The structured mathematical vocabulary slice adds:
+
+- the audited high-frequency inequality, ordering, approximation, membership,
+  and right-arrow relations plus maps-to and similarity;
+- distinct asterisk, centered-dot, times, slash, and tensor products;
+- browser parity for the native Greek-symbol family plus partial, infinity,
+  ordinary/centered ellipses, dagger, transpose, and script ell;
+- semantic graphical palette leaves/two-slot operators, Unicode presentation,
+  version-1 canonical/clipboard transport, and ASCII/Unicode parser spellings;
+- shared TeX lowering used by LaTeX and Markdown, with Jupyter inheriting the
+  configured Markdown math adapters;
+- native/browser sample content, fixture normalization, focused malformed and
+  idempotence tests, browser palette/parser interaction, and compiled-PDF
+  coverage.
+
+See `math-vocabulary.md` for precedence, aliases, and intentional omissions.
+
+The preceding rich-caption convergence slice adds:
 
 - plugin-owned Core Paragraph caption sequences for ordinary figures and code
   listings in the graphical/canonical model, matching their existing native
@@ -295,10 +315,11 @@ isolation and lazy loading are the intended remedies.
 ## Next work
 
 Continue with one complete thesis-parity slice. External source-file inclusion
-for listings and richer thesis mathematics are the strongest remaining gaps in
-the audited corpus. Theorems/definitions/lemmas remain a useful independent
-plugin family but were not present in that corpus. Kernel-specific Jupyter
-cells and notebook attachments remain optional writer policies.
+for listings, decorated math identifiers (`mathbb`/`mathcal`), and browser-side
+named operators are the strongest remaining gaps in the audited corpus.
+Theorems/definitions/lemmas remain a useful independent plugin family but were
+not present in that corpus. Kernel-specific Jupyter cells and notebook
+attachments remain optional writer policies.
 
 Current deliberate compromises to reassess later:
 
@@ -361,3 +382,8 @@ Current deliberate compromises to reassess later:
   spellings.
 - the shared caption editor currently uses explicit move controls rather than
   paragraph-style pointer dragging.
+- the basic math parser reserves Greek and special names such as `theta`,
+  `Gamma`, `partial`, and `dagger`; programmatic construction remains the escape
+  hatch for an ordinary identifier with the same letters.
+- relation chains are stored and rendered exactly as authored; the presentation
+  tree does not reinterpret `a < b < c` as a Boolean conjunction.

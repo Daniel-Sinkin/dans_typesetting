@@ -16,12 +16,15 @@ import {
   createMathScript,
   createMathSlot,
   createMathSummation,
+  createMathSymbol,
   detachMathExpressionAtPath,
   mathExpressionAtPath,
+  mathExpressionFromTransport,
   mathExpressionFromString,
   mathExpressionHasSlots,
   mathExpressionToString,
   mathExpressionToText,
+  mathSymbolGlyph,
   parseMathPath,
   replaceMathExpressionAtPath,
   validateMathExpression,
@@ -147,6 +150,28 @@ describe("structured math", () => {
     expect(mathExpressionToText(restored)).toBe("{A / 4, −56.321}");
   });
 
+  it("round-trips semantic relations and atomic physics symbols", () => {
+    const expression = createMathBinary(
+      "right_arrow",
+      createMathBinary(
+        "less_equals",
+        createMathSymbol("partial"),
+        createMathSymbol("infinity"),
+      ),
+      createMathBinary(
+        "tensor_product",
+        createMathSymbol("capital_psi"),
+        createMathSymbol("dagger"),
+      ),
+    );
+    const serialized = mathExpressionToString(expression);
+    const restored = mathExpressionFromString(serialized);
+
+    expect(mathExpressionToString(restored)).toBe(serialized);
+    expect(mathExpressionToText(restored)).toBe("∂ ≤ ∞ → Ψ ⊗ †");
+    expect(mathSymbolGlyph("centered_ellipsis")).toBe("⋯");
+  });
+
   it("replaces and detaches every slot of fractions, radicals, and scripts", () => {
     const expression = createMathFraction(
       createMathRadical(createMathIdentifier("x"), createMathInteger(3)),
@@ -199,5 +224,16 @@ describe("structured math", () => {
     }).toThrow(
       /unique/u,
     );
+    expect(() =>
+      mathExpressionFromTransport({ kind: "symbol", name: "raw_latex" }),
+    ).toThrow(/Unsupported serialized math symbol/u);
+    expect(() =>
+      mathExpressionFromTransport({
+        kind: "binary",
+        operator: "iff",
+        left: { kind: "integer", value: "1" },
+        right: { kind: "integer", value: "1" },
+      }),
+    ).toThrow(/Unsupported serialized binary operator/u);
   });
 });

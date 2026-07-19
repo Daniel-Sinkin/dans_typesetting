@@ -1,6 +1,86 @@
 // builder/src/model/math.ts — model and transform the constrained structured-math tree.
 
-export type MathBinaryOperator = "plus" | "minus" | "equals" | "times" | "divide";
+export type MathBinaryOperator =
+  | "plus"
+  | "minus"
+  | "equals"
+  | "not_equals"
+  | "less_than"
+  | "less_equals"
+  | "greater_than"
+  | "greater_equals"
+  | "approximately_equals"
+  | "similar"
+  | "element_of"
+  | "right_arrow"
+  | "maps_to"
+  | "product"
+  | "center_dot"
+  | "times"
+  | "divide"
+  | "tensor_product";
+
+export const mathSymbolNames = [
+  "alpha",
+  "beta",
+  "gamma",
+  "delta",
+  "epsilon",
+  "zeta",
+  "eta",
+  "theta",
+  "iota",
+  "kappa",
+  "lambda",
+  "mu",
+  "nu",
+  "xi",
+  "omicron",
+  "pi",
+  "rho",
+  "sigma",
+  "tau",
+  "upsilon",
+  "phi",
+  "chi",
+  "psi",
+  "omega",
+  "capital_alpha",
+  "capital_beta",
+  "capital_gamma",
+  "capital_delta",
+  "capital_epsilon",
+  "capital_zeta",
+  "capital_eta",
+  "capital_theta",
+  "capital_iota",
+  "capital_kappa",
+  "capital_lambda",
+  "capital_mu",
+  "capital_nu",
+  "capital_xi",
+  "capital_omicron",
+  "capital_pi",
+  "capital_rho",
+  "capital_sigma",
+  "capital_tau",
+  "capital_upsilon",
+  "capital_phi",
+  "capital_chi",
+  "capital_psi",
+  "capital_omega",
+  "nabla",
+  "partial",
+  "infinity",
+  "ellipsis",
+  "centered_ellipsis",
+  "dagger",
+  "transpose",
+  "script_ell",
+  "asterisk",
+] as const;
+
+export type MathSymbolName = (typeof mathSymbolNames)[number];
 export type MathBinaryBranch = "left" | "right";
 export type MathSummationBranch = "lower" | "upper" | "body";
 export type MathFractionBranch = "numerator" | "denominator";
@@ -39,6 +119,11 @@ export interface MathDecimal extends MathNodeBase {
 export interface MathIdentifier extends MathNodeBase {
   readonly kind: "identifier";
   readonly name: string;
+}
+
+export interface MathSymbol extends MathNodeBase {
+  readonly kind: "symbol";
+  readonly name: MathSymbolName;
 }
 
 export interface MathBinaryExpression extends MathNodeBase {
@@ -107,6 +192,7 @@ export type MathExpression =
   | MathInteger
   | MathDecimal
   | MathIdentifier
+  | MathSymbol
   | MathBinaryExpression
   | MathSummationExpression
   | MathFractionExpression
@@ -159,7 +245,112 @@ export function createMathIdentifier(
   return Object.freeze({ id, kind: "identifier", name: renderedName });
 }
 
-export function createMathLeafFromInput(value: string): MathInteger | MathDecimal | MathIdentifier {
+export function createMathSymbol(
+  name: MathSymbolName,
+  id: string = createMathNodeId(),
+): MathSymbol {
+  return Object.freeze({ id, kind: "symbol", name });
+}
+
+const mathSymbolGlyphs: Readonly<Record<MathSymbolName, string>> = Object.freeze({
+  alpha: "α",
+  beta: "β",
+  gamma: "γ",
+  delta: "δ",
+  epsilon: "ε",
+  zeta: "ζ",
+  eta: "η",
+  theta: "θ",
+  iota: "ι",
+  kappa: "κ",
+  lambda: "λ",
+  mu: "μ",
+  nu: "ν",
+  xi: "ξ",
+  omicron: "ο",
+  pi: "π",
+  rho: "ρ",
+  sigma: "σ",
+  tau: "τ",
+  upsilon: "υ",
+  phi: "φ",
+  chi: "χ",
+  psi: "ψ",
+  omega: "ω",
+  capital_alpha: "A",
+  capital_beta: "B",
+  capital_gamma: "Γ",
+  capital_delta: "Δ",
+  capital_epsilon: "E",
+  capital_zeta: "Z",
+  capital_eta: "H",
+  capital_theta: "Θ",
+  capital_iota: "I",
+  capital_kappa: "K",
+  capital_lambda: "Λ",
+  capital_mu: "M",
+  capital_nu: "N",
+  capital_xi: "Ξ",
+  capital_omicron: "O",
+  capital_pi: "Π",
+  capital_rho: "P",
+  capital_sigma: "Σ",
+  capital_tau: "T",
+  capital_upsilon: "Υ",
+  capital_phi: "Φ",
+  capital_chi: "X",
+  capital_psi: "Ψ",
+  capital_omega: "Ω",
+  nabla: "∇",
+  partial: "∂",
+  infinity: "∞",
+  ellipsis: "…",
+  centered_ellipsis: "⋯",
+  dagger: "†",
+  transpose: "⊤",
+  script_ell: "ℓ",
+  asterisk: "∗",
+});
+
+export function mathSymbolGlyph(name: MathSymbolName): string {
+  return mathSymbolGlyphs[name];
+}
+
+const lowercaseGreekSymbolNames = mathSymbolNames.slice(0, 24);
+
+export function mathSymbolNameFromInput(value: string): MathSymbolName | null {
+  if ((mathSymbolNames as readonly string[]).includes(value)) {
+    return value as MathSymbolName;
+  }
+  const lowercase = value.toLowerCase();
+  const lowercaseIndex = lowercaseGreekSymbolNames.indexOf(
+    lowercase as (typeof lowercaseGreekSymbolNames)[number],
+  );
+  const lowercaseGreek = lowercaseGreekSymbolNames[lowercaseIndex];
+  if (lowercaseGreek !== undefined && value[0]?.toUpperCase() === value[0]) {
+    return `capital_${lowercaseGreek}` as MathSymbolName;
+  }
+  switch (value) {
+    case "inf":
+      return "infinity";
+    case "dots":
+      return "ellipsis";
+    case "cdots":
+      return "centered_ellipsis";
+    case "dag":
+      return "dagger";
+    case "top":
+      return "transpose";
+    case "ell":
+      return "script_ell";
+    default:
+      return null;
+  }
+}
+
+export function createMathLeafFromInput(
+  value: string,
+): MathInteger | MathDecimal | MathIdentifier | MathSymbol {
   const renderedValue = value.trim();
   if (/^\d+$/u.test(renderedValue)) {
     return createMathInteger(renderedValue);
@@ -167,10 +358,14 @@ export function createMathLeafFromInput(value: string): MathInteger | MathDecima
   if (/^(?:\d+\.\d*|\.\d+)$/u.test(renderedValue)) {
     return createMathDecimal(renderedValue);
   }
+  const symbol = mathSymbolNameFromInput(renderedValue);
+  if (symbol !== null) {
+    return createMathSymbol(symbol);
+  }
   if (/^[A-Za-z]+$/u.test(renderedValue)) {
     return createMathIdentifier(renderedValue);
   }
-  throw new Error("A math leaf must be an unsigned decimal number or ASCII letters");
+  throw new Error("A math leaf must be an unsigned decimal number, symbol, or ASCII letters");
 }
 
 export function createMathBinary(
@@ -573,7 +768,8 @@ export function mathExpressionHasSlots(expression: MathExpression): boolean {
   if (
     expression.kind === "integer" ||
     expression.kind === "decimal" ||
-    expression.kind === "identifier"
+    expression.kind === "identifier" ||
+    expression.kind === "symbol"
   ) {
     return false;
   }
@@ -626,22 +822,62 @@ export function mathOperatorSymbol(operator: MathBinaryOperator): string {
       return "−";
     case "equals":
       return "=";
+    case "not_equals":
+      return "≠";
+    case "less_than":
+      return "<";
+    case "less_equals":
+      return "≤";
+    case "greater_than":
+      return ">";
+    case "greater_equals":
+      return "≥";
+    case "approximately_equals":
+      return "≈";
+    case "similar":
+      return "∼";
+    case "element_of":
+      return "∈";
+    case "right_arrow":
+      return "→";
+    case "maps_to":
+      return "↦";
+    case "product":
+      return "*";
+    case "center_dot":
+      return "·";
     case "times":
       return "×";
     case "divide":
       return "/";
+    case "tensor_product":
+      return "⊗";
   }
 }
 
 function mathOperatorPrecedence(operator: MathBinaryOperator): number {
   switch (operator) {
+    case "right_arrow":
+    case "maps_to":
+      return 0;
     case "equals":
+    case "not_equals":
+    case "less_than":
+    case "less_equals":
+    case "greater_than":
+    case "greater_equals":
+    case "approximately_equals":
+    case "similar":
+    case "element_of":
       return 1;
     case "plus":
     case "minus":
       return 2;
     case "times":
     case "divide":
+    case "product":
+    case "center_dot":
+    case "tensor_product":
       return 3;
   }
 }
@@ -692,7 +928,7 @@ export function mathExpressionNeedsParentheses(
     (expression.operator !== parentOperator ||
       parentOperator === "minus" ||
       parentOperator === "divide" ||
-      parentOperator === "equals");
+      mathOperatorPrecedence(parentOperator) <= 1);
   return (
     precedence < parentPrecedence ||
     (precedence === parentPrecedence && samePrecedenceNeedsGrouping)
@@ -715,6 +951,9 @@ function renderMathExpression(
   }
   if (expression.kind === "identifier") {
     return expression.name;
+  }
+  if (expression.kind === "symbol") {
+    return mathSymbolGlyph(expression.name);
   }
   if (expression.kind === "summation") {
     return `Σ_{${renderMathExpression(expression.lower, null, null)}}^{${renderMathExpression(expression.upper, null, null)}} ${renderMathExpression(expression.body, null, null)}`;
@@ -815,6 +1054,11 @@ export function validateMathExpression(expression: MathExpression): void {
           throw new Error("Builder math identifiers require ASCII letters");
         }
         return;
+      case "symbol":
+        if (!(mathSymbolNames as readonly string[]).includes(node.name)) {
+          throw new Error("Builder math symbols require a registered semantic name");
+        }
+        return;
       case "binary":
         visit(node.left, depth + 1);
         visit(node.right, depth + 1);
@@ -891,6 +1135,7 @@ type SerializedMathExpression =
   | Readonly<{ kind: "integer"; value: string }>
   | Readonly<{ kind: "decimal"; value: string }>
   | Readonly<{ kind: "identifier"; name: string }>
+  | Readonly<{ kind: "symbol"; name: MathSymbolName }>
   | Readonly<{
       kind: "binary";
       operator: MathBinaryOperator;
@@ -947,6 +1192,8 @@ function serializeMathNode(expression: MathExpression): SerializedMathExpression
       return { kind: "decimal", value: expression.value };
     case "identifier":
       return { kind: "identifier", name: expression.name };
+    case "symbol":
+      return { kind: "symbol", name: expression.name };
     case "binary":
       return {
         kind: "binary",
@@ -1054,14 +1301,34 @@ function parseSerializedMathNode(value: unknown): MathExpression {
       return createMathDecimal(requireStringField(node, "value", "Decimal"));
     case "identifier":
       return createMathIdentifier(requireStringField(node, "name", "Identifier"));
+    case "symbol": {
+      const name = requireStringField(node, "name", "Symbol");
+      if (!(mathSymbolNames as readonly string[]).includes(name)) {
+        throw new Error(`Unsupported serialized math symbol: ${name}`);
+      }
+      return createMathSymbol(name as MathSymbolName);
+    }
     case "binary": {
       const operator = requireStringField(node, "operator", "Binary expression");
       if (
         operator !== "plus" &&
         operator !== "minus" &&
         operator !== "equals" &&
+        operator !== "not_equals" &&
+        operator !== "less_than" &&
+        operator !== "less_equals" &&
+        operator !== "greater_than" &&
+        operator !== "greater_equals" &&
+        operator !== "approximately_equals" &&
+        operator !== "similar" &&
+        operator !== "element_of" &&
+        operator !== "right_arrow" &&
+        operator !== "maps_to" &&
+        operator !== "product" &&
+        operator !== "center_dot" &&
         operator !== "times" &&
-        operator !== "divide"
+        operator !== "divide" &&
+        operator !== "tensor_product"
       ) {
         throw new Error(`Unsupported serialized binary operator: ${operator}`);
       }
