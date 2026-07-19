@@ -76,9 +76,9 @@ and tests at the boundaries it implements.
 - Raw LaTeX is an explicit backend-specific escape hatch. It does not count as
   Markdown, Jupyter, graphical, or future PDF support.
 - Code-listing language is a presentation classification with four opinionated
-  values, not a compiler/parser contract. Caption and target identity are
-  independent, while every listing remains in one writer-owned numbering
-  series.
+  values, not a compiler/parser contract. Rich-caption presence and target
+  identity are independent, while every listing remains in one writer-owned
+  numbering series.
 - Inline code is a semantic single-line source leaf, not a Core Text style.
   Multiline source remains a listing, and each writer owns its code syntax.
 - Citation keys and normalized bibliography records are semantic data. Visible
@@ -111,6 +111,21 @@ for their encapsulated runtime data structures.
 
 See [canonical-transport.md](canonical-transport.md) for the normative shape and
 current compatibility policy.
+
+## Rich caption hosts
+
+Captions are plugin-owned Core Paragraph inline sequences rather than strings
+or fields on document core. Ordinary figures, paired figures, tables, and code
+listings expose their caption roots to graphical and publication writers. The
+host defines whether a caption is required, but it does not know whether a node
+is text, math, colour, code, a link, or a future extension.
+
+The graphical sequence editor is shared infrastructure for this consumption
+point; it is not part of the table plugin. Host copy hooks recursively refresh
+inline identity, and occurrence numbering traverses nested caption content just
+as it does paragraph and list content. Plain-text projection is limited to
+image alternative text and reference-picker titles. See
+[rich-captions.md](rich-captions.md).
 
 ## Semantic document shell and page policy
 

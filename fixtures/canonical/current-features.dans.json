@@ -193,7 +193,16 @@
       "type": "dans.image.figure",
       "payload": {
         "source": "/sample-domain-decomposition.svg",
-        "caption": "A canonical figure.",
+        "captionInlines": [
+          {
+            "id": "fixture-figure-caption",
+            "type": "dans.core.text",
+            "payload": {
+              "text": "A canonical figure.",
+              "style": "normal"
+            }
+          }
+        ],
         "referenceId": "fig:canonical-figure",
         "widthFraction": 0.72,
         "preferredPixelWidth": 1280,
@@ -273,7 +282,7 @@
       "payload": {
         "language": "cuda",
         "code": "__global__ void scale(float* x) { x[threadIdx.x] *= 2.0F; }",
-        "caption": null,
+        "captionInlines": null,
         "referenceId": "lst:canonical-scale"
       }
     },
@@ -283,7 +292,7 @@
       "payload": {
         "language": "raw",
         "code": "unclassified source text remains byte-preserving",
-        "caption": null,
+        "captionInlines": null,
         "referenceId": null
       }
     },

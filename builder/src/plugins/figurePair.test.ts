@@ -15,7 +15,7 @@ import {
   createFigurePanel,
   requireFigurePairBlock,
 } from "./figurePairModel";
-import { imagePlugin } from "./image";
+import { createImagePlugin } from "./image";
 import { opaqueBlockAdapter } from "./opaque";
 import {
   opaqueInlineAdapter,
@@ -27,6 +27,7 @@ const inlineRegistry = new BuilderInlinePluginRegistry(
   opaqueInlineAdapter,
 );
 const figurePairPlugin = createFigurePairPlugin(inlineRegistry);
+const imagePlugin = createImagePlugin(inlineRegistry);
 
 function samplePair() {
   return createFigurePairBlock(

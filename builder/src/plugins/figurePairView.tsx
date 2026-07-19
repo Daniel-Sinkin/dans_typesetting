@@ -24,9 +24,9 @@ import {
   type FigurePairBlock,
 } from "./figurePairModel";
 import {
+  InlineSequenceEditor,
   InlineSequencePreview,
-  TableInlineSequenceEditor,
-} from "./tableView";
+} from "./inlineSequenceView";
 
 function plainCaption(
   panel: BuilderFigurePanel,
@@ -356,7 +356,7 @@ export function FigurePairEditor({
         ))}
       </div>
 
-      <TableInlineSequenceEditor
+      <InlineSequenceEditor
         label="Group caption"
         inlines={captionInlines}
         registry={inlineRegistry}
@@ -365,7 +365,7 @@ export function FigurePairEditor({
       />
       {panels.map((panel, index) => (
         <Fragment key={`${panel.id}:caption`}>
-          <TableInlineSequenceEditor
+          <InlineSequenceEditor
             label={`Panel ${index === 0 ? "(a)" : "(b)"} caption`}
             inlines={panel.captionInlines}
             registry={inlineRegistry}

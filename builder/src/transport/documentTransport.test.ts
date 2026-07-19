@@ -6,12 +6,10 @@ import {
   createParagraphText,
   createReferenceInline,
   defaultDocumentMetadata,
-  imageTypeId,
   mathDisplayTypeId,
   MemoryDocumentPort,
   paragraphTypeId,
   type BuilderBlock,
-  type ImageBlock,
   type MathDisplayBlock,
   type ParagraphBlock,
 } from "../model/document";
@@ -21,6 +19,7 @@ import {
   createMathInteger,
 } from "../model/math";
 import { createColorSpanInline } from "../plugins/colorSpanModel";
+import { createImageBlock } from "../plugins/imageModel";
 import {
   canonicalDocumentFormat,
   CanonicalDocumentTransport,
@@ -60,16 +59,13 @@ function representativeBlocks(): readonly BuilderBlock[] {
       },
     ],
   };
-  const figure = {
-    id: "figure",
-    typeId: imageTypeId,
-    source: "/figure.png",
-    caption: "A figure",
-    referenceId: "fig:representative",
-    widthFraction: 0.7,
-    preferredPixelWidth: 1280,
-    preferredPixelHeight: 720,
-  } satisfies ImageBlock;
+  const figure = createImageBlock(
+    "figure",
+    "/figure.png",
+    [createParagraphText("A figure", "figure-caption", "bold")],
+    "fig:representative",
+    0.7,
+  );
   const equation = {
     id: "equation",
     typeId: mathDisplayTypeId,

@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  codeListingTypeId,
-  MemoryDocumentPort,
-  type CodeListingBlock,
-} from "../model/document";
+import { createParagraphText, MemoryDocumentPort } from "../model/document";
 import {
   canonicalDocumentFormat,
   canonicalDocumentSchemaVersion,
 } from "../transport/documentTransport";
 import { projectDocumentTransport } from "../transport/projectTransport";
+import {
+  codeListingTypeId,
+  createCodeListingBlock,
+  requireCodeListingBlock,
+} from "./codeListingModel";
 
 function canonicalSource(payload: unknown): string {
   return JSON.stringify({
@@ -27,16 +28,23 @@ describe("code-listing canonical transport", () => {
     ["julia", "Julia caption", null],
     ["raw", null, null],
   ] as const)(
-    "round-trips %s with independent optional caption/reference metadata",
+    "round-trips %s with independent rich caption/reference metadata",
     (language, caption, referenceId) => {
-      const block: CodeListingBlock = Object.freeze({
-        id: `listing-${language}`,
-        typeId: codeListingTypeId,
+      const block = createCodeListingBlock(
+        `listing-${language}`,
         language,
-        code: `${language} source`,
-        caption,
+        `${language} source`,
+        caption === null
+          ? null
+          : [
+              createParagraphText(
+                caption,
+                `listing-${language}-caption`,
+                "bold_italic",
+              ),
+            ],
         referenceId,
-      });
+      );
       const source = projectDocumentTransport.toString(
         new MemoryDocumentPort([block]).getSnapshot(),
       );
@@ -51,20 +59,51 @@ describe("code-listing canonical transport", () => {
     },
   );
 
-  it("accepts an omitted legacy caption as absent", () => {
-    const decoded = projectDocumentTransport.fromString(
+  it("normalizes omitted and string-based legacy captions", () => {
+    const omitted = projectDocumentTransport.fromString(
       canonicalSource({ language: "raw", code: "notes", referenceId: null }),
     );
-    expect(decoded.blocks[0]).toMatchObject({ caption: null, language: "raw" });
+    const omittedBlock = omitted.blocks[0];
+    if (omittedBlock === undefined) {
+      throw new Error("Legacy listing payload did not produce a block");
+    }
+    expect(requireCodeListingBlock(omittedBlock)).toMatchObject({
+      captionInlines: null,
+      language: "raw",
+    });
+
+    const stringCaption = projectDocumentTransport.fromString(
+      canonicalSource({
+        language: "cpp",
+        code: "int value;",
+        caption: "Legacy caption",
+        referenceId: null,
+      }),
+    );
+    const stringCaptionBlock = stringCaption.blocks[0];
+    if (stringCaptionBlock === undefined) {
+      throw new Error("Legacy listing caption did not produce a block");
+    }
+    expect(
+      requireCodeListingBlock(stringCaptionBlock).captionInlines,
+    ).toMatchObject([{ text: "Legacy caption", style: "normal" }]);
+    expect(
+      projectDocumentTransport.toString(
+        new MemoryDocumentPort(
+          stringCaption.blocks,
+          stringCaption.metadata,
+        ).getSnapshot(),
+      ),
+    ).toContain('"captionInlines"');
   });
 
-  it("rejects unknown languages and malformed optional captions", () => {
+  it("rejects unknown languages and ambiguous or malformed captions", () => {
     expect(() =>
       projectDocumentTransport.fromString(
         canonicalSource({
           language: "python",
           code: "print(1)",
-          caption: null,
+          captionInlines: null,
           referenceId: null,
         }),
       ),
@@ -74,10 +113,21 @@ describe("code-listing canonical transport", () => {
         canonicalSource({
           language: "raw",
           code: "notes",
-          caption: 42,
+          caption: "legacy",
+          captionInlines: [],
           referenceId: null,
         }),
       ),
-    ).toThrow(/caption must be a string or null/u);
+    ).toThrow(/exactly one/u);
+    expect(() =>
+      projectDocumentTransport.fromString(
+        canonicalSource({
+          language: "raw",
+          code: "notes",
+          captionInlines: 42,
+          referenceId: null,
+        }),
+      ),
+    ).toThrow(/must be an array/u);
   });
 });

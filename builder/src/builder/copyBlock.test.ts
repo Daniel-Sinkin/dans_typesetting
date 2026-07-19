@@ -3,15 +3,14 @@ import { describe, expect, it } from "vitest";
 import { BuilderPluginRegistry } from "./plugin";
 import { BuilderInlinePluginRegistry } from "./inlinePlugin";
 import { copyBuilderBlockForInsert } from "./copyBlock";
-import { imagePlugin } from "../plugins/image";
+import { createImagePlugin } from "../plugins/image";
+import { createImageBlock, type ImageBlock } from "../plugins/imageModel";
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import { sectionPlugin } from "../plugins/documentShell";
 import {
-  imageTypeId,
   createParagraphText,
   paragraphTypeId,
   sectionTypeId,
-  type ImageBlock,
   type SectionBlock,
   type ParagraphBlock,
 } from "../model/document";
@@ -34,6 +33,7 @@ const inlineRegistry = new BuilderInlinePluginRegistry(
   [paragraphTextInlinePlugin, footnoteInlinePlugin],
   opaqueInlineAdapter,
 );
+const imagePlugin = createImagePlugin(inlineRegistry);
 
 const registry = new BuilderPluginRegistry(
   [
@@ -67,16 +67,13 @@ describe("plugin-aware block copies", () => {
   });
 
   it("gives copied trees fresh block IDs and clears semantic target IDs", () => {
-    const figure: ImageBlock = Object.freeze({
-      id: "figure",
-      typeId: imageTypeId,
-      source: "/figure.png",
-      caption: "Original figure",
-      referenceId: "fig:original",
-      widthFraction: 0.7,
-      preferredPixelWidth: 1280,
-      preferredPixelHeight: 720,
-    });
+    const figure: ImageBlock = createImageBlock(
+      "figure",
+      "/figure.png",
+      [createParagraphText("Original figure", "figure-caption")],
+      "fig:original",
+      0.7,
+    );
     const source: SectionBlock = Object.freeze({
       id: "section",
       typeId: sectionTypeId,
@@ -91,6 +88,8 @@ describe("plugin-aware block copies", () => {
     const copiedSection = copied as SectionBlock;
     expect(copiedSection.blocks[0]).toMatchObject({ referenceId: null });
     expect(copiedSection.blocks[0]?.id).not.toBe(figure.id);
+    const copiedFigure = copiedSection.blocks[0] as ImageBlock;
+    expect(copiedFigure.captionInlines[0]?.id).not.toBe("figure-caption");
   });
 
   it("refreshes nested inline IDs through paragraph and footnote copy hooks", () => {

@@ -60,6 +60,12 @@ caption or cell inline is encoded through the shared `{id, type, payload}`
 registry. CSV never appears in that payload: it is an optional adapter that
 constructs or projects the semantic table contract.
 
+Ordinary figures use required `captionInlines`, while code listings use
+nullable `captionInlines`; both contain the same inline envelopes. Their browser
+codecs normalize the earlier plain `caption` string into one deterministic Core
+Text node, and an omitted legacy listing caption into `null`. New files emit
+only the rich spelling. See [rich-captions.md](rich-captions.md).
+
 Structured-math expressions are recursively encoded inside their block or
 inline plugin payload. The core `grid` node uses positive numeric `rows` and
 `columns` plus exactly `rows * columns` recursive `cells`. MatVec does not add a

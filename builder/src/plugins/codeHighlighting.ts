@@ -1,5 +1,5 @@
 // Small dependency-free syntax lexer used by listing preview and editor overlays.
-import type { CodeListingLanguage } from "../model/document";
+import type { CodeListingLanguage } from "./codeListingModel";
 
 export type CodeTokenKind =
   | "plain"

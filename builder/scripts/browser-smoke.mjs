@@ -295,12 +295,15 @@ async function exerciseBuilder(client) {
       bibliographyEntries: document.querySelectorAll("[data-visual-block-id='sample-bibliography'] [data-bibliography-entry-key]").length,
       bibliographyDoi: document.querySelector("[data-visual-block-id='sample-bibliography'] a[href='https://doi.org/10.1080/14789940801912366']") !== null,
       figureNumber: document.querySelector("[data-visual-block-id='sample-figure'] figcaption")?.textContent.includes("Figure 1:") ?? false,
+      figureCaptionMath: document.querySelector("[data-visual-block-id='sample-figure'] figcaption .math-node") !== null,
+      figureCaptionColor: document.querySelector("[data-visual-block-id='sample-figure'] figcaption .inline-color-span")?.textContent.includes("with colour") ?? false,
       figurePairPanels: document.querySelectorAll("[data-visual-block-id='sample-figure-pair'] [data-figure-panel-id]").length,
       figurePairNumber: document.querySelector("[data-visual-block-id='sample-figure-pair'] .figure-pair-content__caption")?.textContent.includes("Figure 2:") ?? false,
       figurePairMath: document.querySelectorAll("[data-visual-block-id='sample-figure-pair'] .math-node").length,
       figurePairPanelTargets: document.getElementById("dans-reference-fig%3Apaired-models%3Aleft") !== null && document.getElementById("dans-reference-fig%3Apaired-models%3Aright") !== null,
       equationNumber: document.querySelector("[data-visual-block-id='sample-display-math'] .math-equation-number")?.textContent === "(1)",
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
+      listingCaptionCode: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption .inline-code-content")?.textContent === "std::println",
       drawingPreview: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] img")?.src.startsWith("blob:") ?? false,
       drawingNumber: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] figcaption")?.textContent.includes("Figure 3:") ?? false,
       itemListPresentation: document.querySelector("[data-visual-block-id='sample-item-list'] ol")?.dataset.listPresentation ?? null,
@@ -330,6 +333,11 @@ async function exerciseBuilder(client) {
   assert(initial.bibliographyEntries === 2, "The bibliography lost normalized entries");
   assert(initial.bibliographyDoi, "A bibliography DOI was not rendered as a working link");
   assert(initial.figureNumber && initial.equationNumber && initial.listingNumber, "Live numbering is incorrect");
+  assert(
+    initial.figureCaptionMath && initial.figureCaptionColor,
+    "The ordinary figure did not render its structured rich caption",
+  );
+  assert(initial.listingCaptionCode, "The listing did not render its rich inline-code caption");
   assert(
     initial.figurePairPanels === 2 &&
       initial.figurePairNumber &&
@@ -376,7 +384,7 @@ async function exerciseBuilder(client) {
       const editor = document.querySelector(".figure-pair-editor");
       return editor !== null &&
         editor.querySelectorAll(".figure-pair-editor__panels > section").length === 2 &&
-        editor.querySelectorAll(".table-inline-editor").length === 3;
+        editor.querySelectorAll(".inline-sequence-editor").length === 3;
     })()`),
     "The paired-figure editor did not expose two panels and three rich captions",
   );
@@ -1014,17 +1022,35 @@ async function exerciseBuilder(client) {
     [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
   })()`);
   await delay(100);
+  assert(
+    await client.evaluate(`(() => {
+      const editor = document.querySelector(".image-editor");
+      return editor.querySelectorAll(".inline-sequence-editor").length === 1 &&
+        editor.querySelector(".image-editor-preview .math-node") !== null &&
+        editor.querySelector(".image-editor-preview .inline-color-span") !== null;
+    })()`),
+    "The ordinary-figure editor did not expose and preview its rich caption",
+  );
   await client.evaluate(`(() => {
     const slider = document.querySelector(".image-editor input[type='range']");
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
     setter.call(slider, "45");
     slider.dispatchEvent(new Event("input", { bubbles: true }));
+    const caption = document.querySelector("textarea[data-inline-id='sample-figure-caption-text']");
+    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    textareaSetter.call(caption, "Edited rich figure ");
+    caption.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(50);
   assert(
-    await client.evaluate(`document.querySelector(".image-editor-preview img").style.width === "45%"`),
-    "Preferred image width did not update its preview immediately",
+    await client.evaluate(`(() => {
+      const preview = document.querySelector(".image-editor-preview");
+      return preview.querySelector("img").style.width === "45%" &&
+        preview.textContent.includes("Edited rich figure");
+    })()`),
+    "Figure width or rich caption did not update its preview immediately",
   );
+  await screenshot(client, "image-editor.png");
   const documentRoot = await client.send("DOM.getDocument", { depth: -1, pierce: true });
   const fileInput = await client.send("DOM.querySelector", {
     nodeId: documentRoot.root.nodeId,
@@ -1040,8 +1066,14 @@ async function exerciseBuilder(client) {
     ...document.querySelector("[data-testid='block-editor-dialog']").querySelectorAll("button")
   ].find((button) => button.textContent.includes("Save image")).click()`);
   assert(
-    await client.evaluate(`document.querySelector("[data-visual-block-id='sample-figure'] img").src.startsWith("data:image/svg+xml")`),
-    "Selected image data was not committed to the preview",
+    await client.evaluate(`(() => {
+      const figure = document.querySelector("[data-visual-block-id='sample-figure']");
+      return figure.querySelector("img").src.startsWith("data:image/svg+xml") &&
+        figure.textContent.includes("Edited rich figure") &&
+        figure.querySelector("figcaption .math-node") !== null &&
+        figure.querySelector("figcaption .inline-color-span") !== null;
+    })()`),
+    "Selected image data or rich caption was not committed to the preview",
   );
 
   await reloadBuilder(client);
@@ -1070,9 +1102,12 @@ async function exerciseBuilder(client) {
     const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
     inputSetter.call(reference, "");
     reference.dispatchEvent(new Event("input", { bubbles: true }));
-    const caption = document.querySelector(".code-listing-editor textarea:not([data-testid])");
-    textareaSetter.call(caption, "");
+    const caption = document.querySelector("textarea[data-inline-id='sample-listing-caption-text']");
+    textareaSetter.call(caption, "Edited CUDA block containing ");
     caption.dispatchEvent(new Event("input", { bubbles: true }));
+    const inlineCode = document.querySelector("input[data-inline-code-id='sample-listing-caption-code']");
+    inputSetter.call(inlineCode, "threadIdx.x");
+    inlineCode.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(60);
   assert(
@@ -1083,9 +1118,11 @@ async function exerciseBuilder(client) {
     await client.evaluate(`(() => {
       const surface = document.querySelector(".code-editor-surface");
       return surface.querySelector("pre").textContent.startsWith("__global__    void") &&
-        surface.querySelector(".syntax-token--keyword")?.textContent === "__global__";
+        surface.querySelector(".syntax-token--keyword")?.textContent === "__global__" &&
+        document.querySelector(".code-listing-editor__preview").textContent.includes("Edited CUDA block") &&
+        document.querySelector(".code-listing-editor__preview .inline-code-content")?.textContent === "threadIdx.x";
     })()`),
-    "The directly editable listing did not update its syntax-coloured surface",
+    "The listing source or rich caption did not update its live preview",
   );
   await screenshot(client, "code-listing-editor.png");
   await client.evaluate(`[
@@ -1098,9 +1135,30 @@ async function exerciseBuilder(client) {
       return listing.textContent.includes("__global__    void scale") &&
         header.includes("Listing 1") &&
         header.includes("CUDA") &&
-        listing.querySelector("figcaption") === null;
+        listing.querySelector("figcaption")?.textContent.includes("Edited CUDA block") &&
+        listing.querySelector("figcaption .inline-code-content")?.textContent === "threadIdx.x";
     })()`),
-    "The graphical code-listing editor did not commit CUDA with optional metadata",
+    "The graphical code-listing editor did not commit CUDA and its rich caption",
+  );
+
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-code-listing']");
+    [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
+  })()`);
+  await delay(80);
+  await client.evaluate(`(() => {
+    const editor = document.querySelector(".code-listing-editor");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Remove caption")).click();
+  })()`);
+  await delay(40);
+  await client.evaluate(`(() => {
+    const editor = document.querySelector(".code-listing-editor");
+    [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Save listing")).click();
+  })()`);
+  await delay(80);
+  assert(
+    await client.evaluate(`document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption") === null`),
+    "Removing the optional rich listing caption did not commit",
   );
 
   await reloadBuilder(client);

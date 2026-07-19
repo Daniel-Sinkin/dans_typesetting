@@ -1,15 +1,17 @@
 // Shared semantic checks for the graphical code-listing connector.
+import type { BuilderBlock } from "../model/document";
 import {
   isCodeListingBlock,
-  type BuilderBlock,
+  validateCodeListingBlock,
   type CodeListingBlock,
   type CodeListingLanguage,
-} from "../model/document";
+} from "./codeListingModel";
 
 export function requireCodeListing(block: BuilderBlock): CodeListingBlock {
   if (!isCodeListingBlock(block)) {
     throw new Error(`Code-listing plugin cannot consume ${block.typeId}`);
   }
+  validateCodeListingBlock(block);
   return block;
 }
 

@@ -1,11 +1,23 @@
 import { describe, expect, it } from "vitest";
 
 import { BuilderPluginRegistry } from "./plugin";
+import { BuilderInlinePluginRegistry } from "./inlinePlugin";
 import { deriveReferenceTargets } from "./referenceTargets";
-import { imagePlugin } from "../plugins/image";
+import { createImagePlugin } from "../plugins/image";
+import type { ImageBlock } from "../plugins/imageModel";
 import { opaqueBlockAdapter } from "../plugins/opaque";
+import {
+  opaqueInlineAdapter,
+  paragraphTextInlinePlugin,
+} from "../plugins/paragraphInline";
 import { sectionPlugin } from "../plugins/documentShell";
-import type { BuilderBlock, ImageBlock, SectionBlock } from "../model/document";
+import type { BuilderBlock, SectionBlock } from "../model/document";
+
+const inlineRegistry = new BuilderInlinePluginRegistry(
+  [paragraphTextInlinePlugin],
+  opaqueInlineAdapter,
+);
+const imagePlugin = createImagePlugin(inlineRegistry);
 
 function image(id: string, referenceId: string): ImageBlock {
   return Object.freeze({

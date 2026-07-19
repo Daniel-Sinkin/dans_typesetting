@@ -8,7 +8,7 @@ and two independent optional metadata fields:
 - `language` is `cpp`, `cuda`, `julia`, or `raw`;
 - `code` is non-empty and byte-preserving apart from the canonical JSON string
   encoding;
-- `caption` is either absent or non-empty;
+- `caption` is either absent or a non-empty Core Paragraph inline sequence;
 - `referenceId` is either absent or a stable semantic target.
 
 Language is a writer hint, not a parser promise. In particular, CUDA reuses
@@ -44,21 +44,26 @@ The LaTeX connector uses `listings`. C++ and Julia select their respective
 languages, CUDA selects the project-owned CUDA extension of C++, and raw mode
 omits the `language` option. Captionless blocks explicitly advance the
 `lstlisting` counter before emitting the environment; an optional label binds
-to that step. Source containing `\end{lstlisting}` is rejected rather than
+to that step. Caption nodes are delegated to the shared inline renderer, so
+styles, inline code, mathematics, links, and other registered extensions retain
+their semantics. Source containing `\end{lstlisting}` is rejected rather than
 silently terminating the generated environment.
 
 ## Graphical authoring
 
 The editor renders a transparent textarea over a dependency-free token layer,
 so the visible code surface is the editable control. Tab replaces the current
-selection with four spaces. Language, source, caption, and reference ID update
-the transactional draft; caption and reference ID can be cleared separately.
-The preview keeps a live `Listing N · Language` header and only renders a
-caption row when a caption exists.
+selection with four spaces. Language, source, rich caption sequence, and
+reference ID update the transactional draft; caption and reference ID can be
+cleared separately. The preview keeps a live `Listing N · Language` header and
+only renders a caption row when a caption exists. Caption segments use the same
+add/remove/reorder and plugin-owned payload editors as other inline hosts.
 
-Canonical decoding accepts a missing legacy `caption` field as absent. New
-documents encode absence explicitly as `null`. Unknown languages and malformed
-optional values fail at the plugin codec boundary.
+Canonical decoding accepts a missing legacy `caption` field as absent and a
+legacy string as one deterministic Core Text segment. New documents encode
+nullable `captionInlines`. Unknown languages, ambiguous old/new spellings, and
+malformed optional values fail at the plugin codec boundary. See
+[rich-captions.md](rich-captions.md).
 
 ## Deliberate omissions
 
@@ -66,6 +71,5 @@ optional values fail at the plugin codec boundary.
 - no stored syntax-highlight tokens;
 - no arbitrary user-defined language definitions yet;
 - no line-range inclusion or external-file source adapter yet;
-- no nested rich inline sequence in captions yet;
 - no automatic escaping of a literal `\end{lstlisting}` through a different
   LaTeX environment.

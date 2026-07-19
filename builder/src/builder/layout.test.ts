@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { BuilderPluginRegistry } from "./plugin";
 import { BuilderInlinePluginRegistry } from "./inlinePlugin";
 import { computeDocumentLayout, insertionIndexAtSceneY } from "./layout";
-import { imagePlugin } from "../plugins/image";
+import { createImagePlugin } from "../plugins/image";
 import { mathPlugin } from "../plugins/mathPlugin";
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import { createParagraphPlugin } from "../plugins/paragraph";
@@ -23,6 +23,7 @@ const inlineRegistry = new BuilderInlinePluginRegistry(
   opaqueInlineAdapter,
 );
 const paragraphPlugin = createParagraphPlugin(inlineRegistry);
+const imagePlugin = createImagePlugin(inlineRegistry);
 
 const registry = new BuilderPluginRegistry(
   [

@@ -2105,8 +2105,8 @@ button {
 }
 
 .table-editor,
-.table-inline-editor,
-.table-inline-editor__segments {
+.inline-sequence-editor,
+.inline-sequence-editor__segments {
   display: grid;
   gap: 12px;
 }
@@ -2180,7 +2180,7 @@ button {
   font-weight: 750;
 }
 
-.figure-pair-editor .table-inline-editor {
+.figure-pair-editor .inline-sequence-editor {
   background: #f1f8ff;
   border-color: #a5d8ff;
 }
@@ -2199,7 +2199,7 @@ button {
 .table-editor__metadata > button,
 .table-csv-tools button,
 .table-grid-editor button,
-.table-inline-editor button {
+.inline-sequence-editor button {
   min-height: 30px;
   padding: 5px 9px;
   color: #495057;
@@ -2257,7 +2257,7 @@ button {
 .table-csv-tools small,
 .table-csv-tools > header > span,
 .table-grid-editor > header small,
-.table-inline-editor > header small {
+.inline-sequence-editor > header small {
   color: #868e96;
   font-size: 10px;
 }
@@ -2281,15 +2281,15 @@ button {
 }
 
 .table-grid-editor > header,
-.table-inline-editor > header,
-.table-inline-editor__segments > section > header {
+.inline-sequence-editor > header,
+.inline-sequence-editor__segments > section > header {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .table-grid-editor > header > div,
-.table-inline-editor > header > div:first-child {
+.inline-sequence-editor > header > div:first-child {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -2357,14 +2357,14 @@ button {
   text-overflow: ellipsis;
 }
 
-.table-inline-editor {
+.inline-sequence-editor {
   padding: 11px;
   background: #fff9f0;
   border: 1px solid #ffd8a8;
   border-radius: 9px;
 }
 
-.table-inline-editor__composed {
+.inline-sequence-editor__composed {
   flex: 1;
   min-height: 34px;
   padding: 7px 9px;
@@ -2373,7 +2373,7 @@ button {
   border-radius: 7px;
 }
 
-.table-inline-editor__segments > section {
+.inline-sequence-editor__segments > section {
   display: grid;
   padding: 9px;
   gap: 8px;
@@ -2382,8 +2382,8 @@ button {
   border-radius: 8px;
 }
 
-.table-inline-editor__segments > section > header > b,
-.table-inline-editor__add button > b {
+.inline-sequence-editor__segments > section > header > b,
+.inline-sequence-editor__add button > b {
   display: inline-grid;
   width: 25px;
   height: 25px;
@@ -2392,7 +2392,7 @@ button {
   border-radius: 6px;
 }
 
-.table-inline-editor__segments > section > header > code {
+.inline-sequence-editor__segments > section > header > code {
   flex: 1;
   overflow: hidden;
   color: #868e96;
@@ -2400,20 +2400,20 @@ button {
   text-overflow: ellipsis;
 }
 
-.table-inline-editor__add {
+.inline-sequence-editor__add {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 7px;
 }
 
-.table-inline-editor__add > span {
+.inline-sequence-editor__add > span {
   color: #9c4f00;
   font-size: 10px;
   font-weight: 800;
 }
 
-.table-inline-editor__add button {
+.inline-sequence-editor__add button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -2682,25 +2682,17 @@ button {
   box-shadow: 0 8px 26px rgb(36 42 56 / 15%);
 }
 
-.image-editor-preview__frame {
-  display: flex;
+.image-editor-preview > .image-content {
   width: 100%;
-  min-height: 230px;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 9px;
 }
 
-.image-editor-preview span {
+.image-editor-preview > span {
   margin-top: 6px;
   font-size: 12px;
   font-weight: 750;
 }
 
-.image-editor-preview small {
+.image-editor-preview > small {
   color: #868e96;
   font-size: 10px;
 }
@@ -2709,6 +2701,11 @@ button {
   align-self: flex-start;
   color: #1864ab;
   background: #e7f5ff;
+  border-color: #a5d8ff;
+}
+
+.image-editor .inline-sequence-editor {
+  background: #f1f8ff;
   border-color: #a5d8ff;
 }
 
@@ -3186,6 +3183,40 @@ button {
   border-top: 1px solid #495057;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 11px;
+}
+
+.code-listing-editor__preview {
+  padding: 12px;
+  background: #f1f3f5;
+  border: 1px solid #ced4da;
+  border-radius: 10px;
+}
+
+.code-listing-editor .inline-sequence-editor {
+  background: #e6fcf5;
+  border-color: #96f2d7;
+}
+
+.add-caption-action,
+.remove-caption-action {
+  min-height: 36px;
+  align-self: flex-start;
+  padding: 7px 11px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.add-caption-action {
+  color: #087f5b;
+  background: #e6fcf5;
+  border: 1px solid #63e6be;
+}
+
+.remove-caption-action {
+  color: #c92a2a;
+  background: #fff5f5;
+  border: 1px solid #ffc9c9;
 }
 
 .code-listing-editor__source {

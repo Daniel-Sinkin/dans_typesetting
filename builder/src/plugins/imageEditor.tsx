@@ -1,31 +1,78 @@
-// builder/src/plugins/imageEditor.tsx — select, preview, and configure a figure image.
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
-
-import type { BuilderBlockEditorProps } from "../builder/plugin";
+// Select, preview, and configure a rich semantic figure image.
 import {
-  isImageBlock,
-  type BuilderBlock,
-  type ImageBlock,
-} from "../model/document";
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
+
+import type {
+  BuilderInlinePluginRegistry,
+  BuilderInlineRenderContext,
+} from "../builder/inlinePlugin";
+import type { BuilderBlockEditorProps } from "../builder/plugin";
 import { editableReferenceIdError } from "../builder/referenceEditing";
 import { readFileAsDataUrl, readImageDimensions } from "./imageFile";
+import {
+  createImageBlock,
+  requireImageBlock,
+  type ImageBlock,
+} from "./imageModel";
+import {
+  InlineSequenceEditor,
+  InlineSequencePreview,
+} from "./inlineSequenceView";
+import { richCaptionPlainText } from "./richCaption";
 
-function requireImage(block: BuilderBlock): ImageBlock {
-  if (!isImageBlock(block)) {
-    throw new Error(`Image editor cannot consume ${block.typeId}`);
-  }
-  return block;
+export function ImagePreview({
+  image,
+  registry,
+  context,
+  ordinal,
+}: Readonly<{
+  image: ImageBlock;
+  registry: BuilderInlinePluginRegistry;
+  context: BuilderInlineRenderContext;
+  ordinal: number;
+}>) {
+  return (
+    <figure className="image-content">
+      <img
+        src={image.source}
+        alt={richCaptionPlainText(image.captionInlines, registry)}
+        style={{ width: `${String(image.widthFraction * 100)}%` }}
+      />
+      <figcaption>
+        <strong>Figure {ordinal}:</strong>{" "}
+        <InlineSequencePreview
+          inlines={image.captionInlines}
+          registry={registry}
+          context={context}
+        />
+      </figcaption>
+    </figure>
+  );
+}
+
+interface ImageEditorProps extends BuilderBlockEditorProps {
+  readonly inlineRegistry: BuilderInlinePluginRegistry;
 }
 
 export function ImageEditor({
   block,
+  inlineRegistry,
+  onPreview,
   onCommit,
   onCancel,
   referenceTargets,
-}: BuilderBlockEditorProps) {
-  const image = requireImage(block);
+  inlineOrdinals,
+  documentResources,
+  ordinal,
+}: ImageEditorProps) {
+  const image = requireImageBlock(block);
   const [source, setSource] = useState(image.source);
-  const [caption, setCaption] = useState(image.caption);
+  const [captionInlines, setCaptionInlines] = useState(image.captionInlines);
   const [referenceId, setReferenceId] = useState(image.referenceId ?? "");
   const [widthFraction, setWidthFraction] = useState(image.widthFraction);
   const [pixelWidth, setPixelWidth] = useState(image.preferredPixelWidth);
@@ -40,6 +87,35 @@ export function ImageEditor({
     image.id,
     referenceTargets,
   );
+  const valid =
+    !isReading &&
+    source.trim().length > 0 &&
+    captionInlines.length > 0 &&
+    referenceError === null;
+  const draft = useMemo<ImageBlock>(
+    () =>
+      Object.freeze({
+        id: image.id,
+        typeId: image.typeId,
+        source,
+        captionInlines: Object.freeze([...captionInlines]),
+        referenceId: referenceId.length === 0 ? null : referenceId,
+        widthFraction,
+        preferredPixelWidth: pixelWidth,
+        preferredPixelHeight: pixelHeight,
+      }),
+    [
+      captionInlines,
+      image.id,
+      image.typeId,
+      pixelHeight,
+      pixelWidth,
+      referenceId,
+      source,
+      widthFraction,
+    ],
+  );
+  const renderContext = { referenceTargets, inlineOrdinals, documentResources };
 
   useEffect(() => {
     if (openedPickerRef.current) {
@@ -48,6 +124,12 @@ export function ImageEditor({
     openedPickerRef.current = true;
     inputRef.current?.click();
   }, []);
+
+  useEffect(() => {
+    if (valid) {
+      onPreview(draft);
+    }
+  }, [draft, onPreview, valid]);
 
   const consumeSelectedFile = (file: File): void => {
     setIsReading(true);
@@ -61,7 +143,11 @@ export function ImageEditor({
         setSelectedFileName(file.name);
       })
       .catch((reason: unknown) => {
-        setError(reason instanceof Error ? reason.message : "The selected image could not be read");
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "The selected image could not be read",
+        );
       })
       .finally(() => {
         setIsReading(false);
@@ -80,17 +166,19 @@ export function ImageEditor({
       className="block-editor-form image-editor"
       onSubmit={(event) => {
         event.preventDefault();
-        onCommit(
-          Object.freeze({
-            ...image,
-            source,
-            caption,
-            referenceId: referenceId.length === 0 ? null : referenceId,
-            widthFraction,
-            preferredPixelWidth: pixelWidth,
-            preferredPixelHeight: pixelHeight,
-          }),
-        );
+        if (valid) {
+          onCommit(
+            createImageBlock(
+              draft.id,
+              draft.source,
+              draft.captionInlines,
+              draft.referenceId,
+              draft.widthFraction,
+              draft.preferredPixelWidth,
+              draft.preferredPixelHeight,
+            ),
+          );
+        }
       }}
     >
       <input
@@ -101,19 +189,18 @@ export function ImageEditor({
         accept="image/*"
         onChange={handleFileChange}
       />
-      <div className="image-editor-preview">
-        <div className="image-editor-preview__frame">
-          <img
-            src={source}
-            alt="Selected figure preview"
-            style={{ width: `${String(widthFraction * 100)}%` }}
-          />
-        </div>
+      <section className="image-editor-preview">
+        <ImagePreview
+          image={draft}
+          registry={inlineRegistry}
+          context={renderContext}
+          ordinal={ordinal ?? 0}
+        />
         <span>{selectedFileName}</span>
         <small>
           {pixelWidth} × {pixelHeight} px
         </small>
-      </div>
+      </section>
       <button
         className="choose-file-action"
         type="button"
@@ -124,16 +211,6 @@ export function ImageEditor({
         Choose another image…
       </button>
       {error === null ? null : <p className="editor-error">{error}</p>}
-      <label className="editor-field">
-        <span>Caption</span>
-        <textarea
-          rows={3}
-          value={caption}
-          onChange={(event) => {
-            setCaption(event.target.value);
-          }}
-        />
-      </label>
       {referenceError === null ? null : (
         <p className="editor-error">{referenceError}</p>
       )}
@@ -159,21 +236,20 @@ export function ImageEditor({
             setWidthFraction(Number(event.target.value) / 100);
           }}
         />
-        <small>The preview above uses this width immediately.</small>
+        <small>The figure preview uses this width immediately.</small>
       </label>
+      <InlineSequenceEditor
+        label="Figure caption"
+        inlines={captionInlines}
+        registry={inlineRegistry}
+        context={renderContext}
+        onChange={setCaptionInlines}
+      />
       <div className="editor-actions">
         <button type="button" onClick={onCancel}>
           Cancel
         </button>
-        <button
-          className="primary-action"
-          type="submit"
-          disabled={
-            isReading ||
-            caption.trim().length === 0 ||
-            referenceError !== null
-          }
-        >
+        <button className="primary-action" type="submit" disabled={!valid}>
           {isReading ? "Reading image…" : "Save image"}
         </button>
       </div>

@@ -26,7 +26,7 @@ every piece of source syntax.
 | Matrices | 24 `pmatrix`, 5 `bmatrix`, arrays and block matrices | matvec cannot remain a raw-LaTeX-only feature |
 | Figures | 84 figures, 89 assets, math/code in captions, ten paired panels | ordinary and two-panel figures now have rich captions; arbitrary panel grids remain future work |
 | Tables | 31 floating tables plus rich tabulars, spans, widths, math, code and footnotes | a plain CSV grid is only an adapter, not the table core |
-| Listings | Julia, CUDA and untyped/verbatim; many have no caption | base parity implemented; external-file inclusion and rich captions remain |
+| Listings | Julia, CUDA and untyped/verbatim; many have no caption | base parity and rich captions implemented; external-file inclusion remains |
 | References | 71 labels and 16 refs in current docs; much more in older draft | sections and all numbered blocks need a target registry |
 | Footnotes | 31, including links/style/code and table notes | footnote content needs an inline sequence and table anchors |
 | Lists | itemize, enumerate, custom labels and older description lists | semantic list/item blocks are required |
@@ -58,9 +58,10 @@ mathematical parity is close.
 The listing contract now covers C++, CUDA, Julia, and raw source with
 independently optional captions and reference targets in native LaTeX and the
 graphical writer. Captionless listings retain consistent writer-derived
-ordinals. Semantic single-line code leaves inside prose are also complete in
-native LaTeX, canonical transport, and the graphical editor. Rich inline
-captions and external-file/range inclusion remain separate parity work.
+ordinals. Captions now consume the same rich inline sequence as paragraphs in
+both native and graphical paths. Semantic single-line code leaves inside prose
+are also complete in native LaTeX, canonical transport, and the graphical
+editor. External-file/range inclusion remains separate parity work.
 
 The citation/bibliography base is now implemented in native LaTeX, canonical
 transport, and the graphical writer. It covers multi-citations, live numeric

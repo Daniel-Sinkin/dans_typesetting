@@ -1,21 +1,28 @@
 // React views used by the graphical code-listing connector.
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
-  BuilderBlockEditorProps,
-  BuilderBlockRenderContext,
-} from "../builder/plugin";
-import type {
-  CodeListingBlock,
-  CodeListingLanguage,
-} from "../model/document";
+  BuilderInlinePluginRegistry,
+  BuilderInlineRenderContext,
+} from "../builder/inlinePlugin";
+import type { BuilderBlockEditorProps } from "../builder/plugin";
+import { editableReferenceIdError } from "../builder/referenceEditing";
+import { createParagraphText } from "../model/document";
+import { insertSpacesAtSelection } from "./codeListingEditing";
+import {
+  createCodeListingBlock,
+  type CodeListingBlock,
+  type CodeListingLanguage,
+} from "./codeListingModel";
 import {
   codeListingLanguageLabel,
   requireCodeListing,
 } from "./codeListingSupport";
-import { insertSpacesAtSelection } from "./codeListingEditing";
 import { highlightCode } from "./codeHighlighting";
-import { editableReferenceIdError } from "../builder/referenceEditing";
+import {
+  InlineSequenceEditor,
+  InlineSequencePreview,
+} from "./inlineSequenceView";
 
 function HighlightedCode({
   language,
@@ -34,10 +41,12 @@ function HighlightedCode({
 
 export function CodeListingPreview({
   listing,
+  registry,
   context,
 }: Readonly<{
   listing: CodeListingBlock;
-  context: BuilderBlockRenderContext;
+  registry: BuilderInlinePluginRegistry;
+  context: BuilderInlineRenderContext & Readonly<{ ordinal: number | null }>;
 }>) {
   return (
     <figure className="code-listing-content">
@@ -52,28 +61,43 @@ export function CodeListingPreview({
           <HighlightedCode language={listing.language} code={listing.code} />
         </code>
       </pre>
-      {listing.caption === null ? null : (
+      {listing.captionInlines === null ? null : (
         <figcaption>
           <strong>
-            {context.ordinal === null ? "Listing preview:" : `Listing ${String(context.ordinal)}:`}
+            {context.ordinal === null
+              ? "Listing preview:"
+              : `Listing ${String(context.ordinal)}:`}
           </strong>{" "}
-          {listing.caption}
+          <InlineSequencePreview
+            inlines={listing.captionInlines}
+            registry={registry}
+            context={context}
+          />
         </figcaption>
       )}
     </figure>
   );
 }
 
+interface CodeListingEditorProps extends BuilderBlockEditorProps {
+  readonly inlineRegistry: BuilderInlinePluginRegistry;
+}
+
 export function CodeListingEditor({
   block,
+  inlineRegistry,
+  onPreview,
   onCommit,
   onCancel,
   referenceTargets,
-}: BuilderBlockEditorProps) {
+  inlineOrdinals,
+  documentResources,
+  ordinal,
+}: CodeListingEditorProps) {
   const listing = requireCodeListing(block);
   const [language, setLanguage] = useState<CodeListingLanguage>(listing.language);
   const [code, setCode] = useState(listing.code);
-  const [caption, setCaption] = useState(listing.caption ?? "");
+  const [captionInlines, setCaptionInlines] = useState(listing.captionInlines);
   const [referenceId, setReferenceId] = useState(listing.referenceId ?? "");
   const highlightRef = useRef<HTMLPreElement>(null);
   const referenceError = editableReferenceIdError(
@@ -81,22 +105,60 @@ export function CodeListingEditor({
     listing.id,
     referenceTargets,
   );
-  const draftListing: CodeListingBlock = Object.freeze({
-    ...listing,
-    language,
-    code,
-    caption: caption.trim().length === 0 ? null : caption,
-    referenceId: referenceId.length === 0 ? null : referenceId,
-  });
+  const valid = code.length > 0 && referenceError === null;
+  const draftListing = useMemo<CodeListingBlock>(
+    () =>
+      Object.freeze({
+        id: listing.id,
+        typeId: listing.typeId,
+        language,
+        code,
+        captionInlines:
+          captionInlines === null
+            ? null
+            : Object.freeze([...captionInlines]),
+        referenceId: referenceId.length === 0 ? null : referenceId,
+      }),
+    [captionInlines, code, language, listing.id, listing.typeId, referenceId],
+  );
+  const renderContext = {
+    referenceTargets,
+    inlineOrdinals,
+    documentResources,
+    ordinal,
+  };
+
+  useEffect(() => {
+    if (valid) {
+      onPreview(draftListing);
+    }
+  }, [draftListing, onPreview, valid]);
 
   return (
     <form
       className="block-editor-form code-listing-editor"
       onSubmit={(event) => {
         event.preventDefault();
-        onCommit(draftListing);
+        if (valid) {
+          onCommit(
+            createCodeListingBlock(
+              draftListing.id,
+              draftListing.language,
+              draftListing.code,
+              draftListing.captionInlines,
+              draftListing.referenceId,
+            ),
+          );
+        }
       }}
     >
+      <section className="code-listing-editor__preview">
+        <CodeListingPreview
+          listing={draftListing}
+          registry={inlineRegistry}
+          context={renderContext}
+        />
+      </section>
       <label className="editor-field">
         <span>Language</span>
         <select
@@ -171,33 +233,50 @@ export function CodeListingEditor({
               );
               setCode(insertion.value);
               globalThis.requestAnimationFrame(() => {
-                textarea.setSelectionRange(insertion.selectionStart, insertion.selectionEnd);
+                textarea.setSelectionRange(
+                  insertion.selectionStart,
+                  insertion.selectionEnd,
+                );
               });
             }}
           />
         </div>
       </label>
-      <label className="editor-field">
-        <span>Caption · optional</span>
-        <textarea
-          rows={2}
-          value={caption}
-          onChange={(event) => {
-            setCaption(event.target.value);
+      {captionInlines === null ? (
+        <button
+          className="add-caption-action"
+          type="button"
+          onClick={() => {
+            setCaptionInlines([createParagraphText("A new listing caption.")]);
           }}
-        />
-      </label>
+        >
+          Add rich caption
+        </button>
+      ) : (
+        <>
+          <InlineSequenceEditor
+            label="Listing caption"
+            inlines={captionInlines}
+            registry={inlineRegistry}
+            context={renderContext}
+            onChange={setCaptionInlines}
+          />
+          <button
+            className="danger-action remove-caption-action"
+            type="button"
+            onClick={() => {
+              setCaptionInlines(null);
+            }}
+          >
+            Remove caption
+          </button>
+        </>
+      )}
       <div className="editor-actions">
         <button type="button" onClick={onCancel}>
           Cancel
         </button>
-        <button
-          className="primary-action"
-          type="submit"
-          disabled={
-            code.length === 0 || referenceError !== null
-          }
-        >
+        <button className="primary-action" type="submit" disabled={!valid}>
           Save listing
         </button>
       </div>

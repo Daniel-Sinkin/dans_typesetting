@@ -7,8 +7,6 @@ import {
   createMathInline,
   createHyperlinkInline,
   createReferenceInline,
-  codeListingTypeId,
-  imageTypeId,
   MemoryDocumentPort,
   mathDisplayTypeId,
   paragraphTypeId,
@@ -27,13 +25,15 @@ import {
   createMathScript,
   createMathSummation,
 } from "../model/math";
-import { imagePlugin } from "../plugins/image";
+import { createImagePlugin } from "../plugins/image";
+import { createImageBlock } from "../plugins/imageModel";
 import { createFigurePairPlugin } from "../plugins/figurePair";
 import {
   createFigurePairBlock,
   createFigurePanel,
 } from "../plugins/figurePairModel";
-import { codeListingPlugin } from "../plugins/codeListing";
+import { createCodeListingPlugin } from "../plugins/codeListing";
+import { createCodeListingBlock } from "../plugins/codeListingModel";
 import { createMathPlugin } from "../plugins/mathPlugin";
 import { createInlineMathPlugin } from "../plugins/mathInline";
 import { hyperlinkInlinePlugin } from "../plugins/hyperlink";
@@ -227,16 +227,40 @@ const initialBlocks = [
       ),
     ]),
   }),
-  Object.freeze({
-    id: "sample-figure",
-    typeId: imageTypeId,
-    source: "/sample-domain-decomposition.svg",
-    caption: "A browser-rendered, captioned, referenceable image block.",
-    referenceId: "fig:domain-decomposition",
-    widthFraction: 0.72,
-    preferredPixelWidth: 1280,
-    preferredPixelHeight: 720,
-  }),
+  createImageBlock(
+    "sample-figure",
+    "/sample-domain-decomposition.svg",
+    [
+      createParagraphText(
+        "A browser-rendered figure with ",
+        "sample-figure-caption-text",
+        "bold",
+      ),
+      createMathInline(
+        createMathScript(
+          createMathIdentifier("J"),
+          createMathInteger(2),
+          null,
+        ),
+        "sample-figure-caption-math",
+      ),
+      createColorSpanInline(
+        { red: 38, green: 96, blue: 168 },
+        [
+          createParagraphText(
+            " with colour",
+            "sample-figure-caption-color-text",
+          ),
+        ],
+        "sample-figure-caption-color",
+      ),
+      createParagraphText(
+        " in its rich caption.",
+        "sample-figure-caption-tail",
+      ),
+    ],
+    "fig:domain-decomposition",
+  ),
   createFigurePairBlock(
     "sample-figure-pair",
     createFigurePanel(
@@ -338,11 +362,10 @@ const initialBlocks = [
     ),
     referenceId: "eq:sample-summation",
   }),
-  Object.freeze({
-    id: "sample-code-listing",
-    typeId: codeListingTypeId,
-    language: "cpp",
-    code: [
+  createCodeListingBlock(
+    "sample-code-listing",
+    "cpp",
+    [
       "#include <print>",
       "",
       "int main() {",
@@ -350,9 +373,16 @@ const initialBlocks = [
       "    return 0;",
       "}",
     ].join("\n"),
-    caption: "A selectable C++ source-code block.",
-    referenceId: "lst:hello-typesetter",
-  }),
+    [
+      createParagraphText(
+        "A selectable C++ block containing ",
+        "sample-listing-caption-text",
+      ),
+      createInlineCode("std::println", "sample-listing-caption-code"),
+      createParagraphText(".", "sample-listing-caption-tail"),
+    ],
+    "lst:hello-typesetter",
+  ),
   Object.freeze({
     id: "sample-item-list",
     typeId: itemListTypeId,
@@ -500,10 +530,10 @@ const documentPort = new MemoryDocumentPort(initialBlocks);
 const pluginRegistry = new BuilderPluginRegistry(
   [
     createParagraphPlugin(inlinePluginRegistry),
-    imagePlugin,
+    createImagePlugin(inlinePluginRegistry),
     createFigurePairPlugin(inlinePluginRegistry),
     createMathPlugin(basicMathInputParser, [mathMatVecEditorExtension]),
-    codeListingPlugin,
+    createCodeListingPlugin(inlinePluginRegistry),
     titlePagePlugin,
     tableOfContentsPlugin,
     pageBreakPlugin,

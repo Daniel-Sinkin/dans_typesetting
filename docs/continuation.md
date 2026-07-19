@@ -51,9 +51,30 @@ Commit `ab1c3a6` adds the semantic Markdown presentation writer.
 Commit `a192545` adds the Jupyter notebook presentation writer by composing
 the configured Markdown target rather than duplicating plugin rendering.
 
+Commit `9444d55` adds semantic exactly-two-panel figures across native LaTeX,
+Markdown/Jupyter, canonical transport, and graphical authoring.
+
 ## Current verified slice
 
-The paired-figure slice adds:
+The rich-caption convergence slice adds:
+
+- plugin-owned Core Paragraph caption sequences for ordinary figures and code
+  listings in the graphical/canonical model, matching their existing native
+  LaTeX and Markdown contracts;
+- styled text, inline code, structured math, colour, links, references,
+  citations, footnotes, and opaque extensions through one registry contract;
+- one reusable inline-sequence preview/editor extracted from the table plugin
+  and shared by figures, paired figures, tables, and listings;
+- live figure image/width/caption editing plus live syntax-coloured listing and
+  independently optional rich-caption editing;
+- plugin-aware deep copies, caption occurrence traversal, accessible plain-text
+  projection, and backward normalization of legacy string captions;
+- exact canonical idempotence, malformed/ambiguous payload rejection, expanded
+  model tests, and real Chrome edit/preview/commit/remove coverage.
+
+See `rich-captions.md` for the host contract and compatibility policy.
+
+The preceding paired-figure slice adds:
 
 - `dans.image.figure_pair` as an exactly two-panel semantic figure rather than
   a generic layout grid;
@@ -320,8 +341,6 @@ Current deliberate compromises to reassess later:
   collide with writer-owned matrix column separators.
 - every listing participates in numbering even when its caption is absent; the
   graphical header exposes that number while LaTeX keeps it visually hidden.
-- graphical listing captions are still plain strings even though native
-  captions consume the Core Paragraph inline contract.
 - paired figures deliberately require exactly two equal-width panels; general
   grids, unequal panel widths, and vertical panel composition belong to a
   separate extension rather than weakening this small contract.
@@ -330,6 +349,15 @@ Current deliberate compromises to reassess later:
 - copying a paired figure gives the group a fresh target derived from the new
   block identity and clears both optional panel targets to prevent duplicate
   references.
-- the graphical paired-figure editor currently reuses the table inline editor
-  component; its contract is generic, but the component name and some CSS are
-  still table-oriented.
+- rich-caption hosts require at least one inline node but permit an empty Core
+  Text leaf as transient authoring data; writers still receive an explicit node
+  rather than silently treating it as an absent caption.
+- ordinary figure and code-listing payload validation now belongs to those
+  plugins instead of the generic document container; constructors, codecs,
+  adapters, and editors are the enforced boundaries, while the core preserves
+  unknown block envelopes without learning plugin implementation details.
+- legacy string captions normalize to deterministic block-derived inline IDs;
+  new files always emit the rich form and reject payloads containing both
+  spellings.
+- the shared caption editor currently uses explicit move controls rather than
+  paragraph-style pointer dragging.

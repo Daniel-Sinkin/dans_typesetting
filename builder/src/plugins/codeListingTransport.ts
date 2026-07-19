@@ -1,16 +1,19 @@
 // Canonical transport codec owned by the code-listing plugin.
+import { createParagraphText, type BuilderBlock } from "../model/document";
+import { decodeOptionalReferenceId } from "../model/referenceId";
 import {
-  codeListingTypeId,
-  isCodeListingBlock,
-  type BuilderBlock,
-  type CodeListingLanguage,
-} from "../model/document";
-import {
+  requireTransportArray,
   requireTransportRecord,
   requireTransportString,
   type BlockTransportCodec,
+  type DocumentTransportRegistry,
 } from "../transport/documentTransport";
-import { decodeOptionalReferenceId } from "../model/referenceId";
+import {
+  codeListingTypeId,
+  createCodeListingBlock,
+  type CodeListingLanguage,
+} from "./codeListingModel";
+import { requireCodeListing } from "./codeListingSupport";
 
 function requireLanguage(value: string): CodeListingLanguage {
   if (
@@ -24,43 +27,77 @@ function requireLanguage(value: string): CodeListingLanguage {
   return value;
 }
 
-function decodeOptionalCaption(value: unknown): string | null {
-  if (value === undefined || value === null) {
+function decodeCaption(
+  blockId: string,
+  data: Readonly<Record<string, unknown>>,
+  registry: DocumentTransportRegistry,
+) {
+  const hasRichCaption = "captionInlines" in data;
+  const hasLegacyCaption = "caption" in data;
+  if (hasRichCaption && hasLegacyCaption) {
+    throw new Error(
+      "Code-listing payload requires exactly one of captionInlines or legacy caption",
+    );
+  }
+  if (!hasRichCaption && !hasLegacyCaption) {
     return null;
   }
-  if (typeof value !== "string") {
-    throw new Error("Code-listing payload.caption must be a string or null");
+  if (hasRichCaption) {
+    if (data.captionInlines === null) {
+      return null;
+    }
+    return requireTransportArray(
+      data,
+      "captionInlines",
+      "Code-listing payload",
+    ).map((inline, index) =>
+      registry.decodeInline(
+        inline,
+        `Code-listing caption inline ${String(index)}`,
+      ),
+    );
   }
-  return value;
+  if (data.caption === null || data.caption === undefined) {
+    return null;
+  }
+  const caption = requireTransportString(
+    data,
+    "caption",
+    "Code-listing payload",
+  );
+  if (caption.trim().length === 0) {
+    throw new Error("Legacy code-listing payload.caption must not be empty");
+  }
+  return [createParagraphText(caption, `${blockId}:caption:legacy-text`)];
 }
 
 export const codeListingBlockTransportCodec: BlockTransportCodec = {
   typeId: codeListingTypeId,
-  encode(block) {
-    if (!isCodeListingBlock(block)) {
-      throw new Error(`Code-listing codec cannot encode ${block.typeId}`);
-    }
+  encode(block, registry) {
+    const listing = requireCodeListing(block);
     return {
-      language: block.language,
-      code: block.code,
-      caption: block.caption,
-      referenceId: block.referenceId,
+      language: listing.language,
+      code: listing.code,
+      captionInlines:
+        listing.captionInlines === null
+          ? null
+          : listing.captionInlines.map((inline) => registry.encodeInline(inline)),
+      referenceId: listing.referenceId,
     };
   },
-  decode(id, payload): BuilderBlock {
+  decode(id, payload, registry): BuilderBlock {
     const data = requireTransportRecord(payload, "Code-listing payload");
-    return Object.freeze({
+    return createCodeListingBlock(
       id,
-      typeId: codeListingTypeId,
-      language: requireLanguage(
+      requireLanguage(
         requireTransportString(data, "language", "Code-listing payload"),
       ),
-      code: requireTransportString(data, "code", "Code-listing payload"),
-      caption: decodeOptionalCaption(data.caption),
-      referenceId: decodeOptionalReferenceId(
+      requireTransportString(data, "code", "Code-listing payload"),
+      decodeCaption(id, data, registry),
+      decodeOptionalReferenceId(
         data.referenceId,
         "Code-listing payload.referenceId",
       ),
-    });
+    );
   },
 };
