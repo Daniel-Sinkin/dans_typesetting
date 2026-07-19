@@ -5,10 +5,12 @@
 #include "plugins/core_paragraph.hpp"
 #include "reference_id.hpp"
 
+#include <concepts>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace dans::document::plugins
@@ -24,10 +26,88 @@ class Math final
     {
         alpha,
         beta,
+        gamma,
+        delta,
+        epsilon,
+        zeta,
+        eta,
         theta,
+        iota,
+        kappa,
+        lambda,
+        mu,
+        nu,
+        xi,
+        omicron,
+        pi,
+        rho,
+        sigma,
+        tau,
+        upsilon,
+        phi,
+        chi,
         psi,
+        omega,
+        capital_alpha,
+        capital_beta,
+        capital_gamma,
+        capital_delta,
+        capital_epsilon,
+        capital_zeta,
+        capital_eta,
+        capital_theta,
+        capital_iota,
+        capital_kappa,
+        capital_lambda,
+        capital_mu,
+        capital_nu,
+        capital_xi,
+        capital_omicron,
+        capital_pi,
+        capital_rho,
+        capital_sigma,
+        capital_tau,
+        capital_upsilon,
+        capital_phi,
+        capital_chi,
+        capital_psi,
+        capital_omega,
         nabla,
         asterisk,
+    };
+
+    class Shortcut final
+    {
+      public:
+        constexpr explicit Shortcut(i64 value) noexcept : kind_{Kind::integer}, integer_{value}
+        {
+        }
+
+        constexpr explicit Shortcut(std::string_view name) noexcept
+            : kind_{Kind::identifier}, identifier_{name}
+        {
+        }
+
+        constexpr explicit Shortcut(Symbol symbol) noexcept : kind_{Kind::symbol}, symbol_{symbol}
+        {
+        }
+
+        [[nodiscard]] operator Math() const;
+        [[nodiscard]] auto subscript(Math expression) const -> Math;
+        [[nodiscard]] auto superscript(Math expression) const -> Math;
+
+      private:
+        enum class Kind : u8
+        {
+            integer,
+            identifier,
+            symbol,
+        };
+
+        Kind kind_{};
+        i64 integer_{};
+        std::string_view identifier_{};
+        Symbol symbol_{};
     };
 
     enum class BinaryOperator : u8
@@ -71,6 +151,7 @@ class Math final
         binary,
         script,
         sequence,
+        comma_separated,
         function,
         delimited,
         inner_product,
@@ -86,6 +167,7 @@ class Math final
 
     [[nodiscard]] static auto integer(i64 value) -> Math;
     [[nodiscard]] static auto identifier(std::string_view name) -> Math;
+    [[nodiscard]] static auto ident(std::string_view name) -> Math;
     [[nodiscard]] static auto symbol(Symbol symbol) -> Math;
     [[nodiscard]] static auto binary(Math left, BinaryOperator operation, Math right) -> Math;
     [[nodiscard]] static auto add(Math left, Math right) -> Math;
@@ -95,6 +177,23 @@ class Math final
     [[nodiscard]] static auto center_dot(Math left, Math right) -> Math;
     [[nodiscard]] static auto times(Math left, Math right) -> Math;
     [[nodiscard]] static auto sequence() -> Math;
+    template <typename... Expressions>
+        requires(sizeof...(Expressions) > 0 && (std::convertible_to<Expressions &&, Math> && ...))
+    [[nodiscard]] static auto sequence(Expressions&&... expressions) -> Math
+    {
+        auto result = sequence();
+        (result.append(static_cast<Math>(std::forward<Expressions>(expressions))), ...);
+        return result;
+    }
+    [[nodiscard]] static auto csv() -> Math;
+    template <typename... Expressions>
+        requires(sizeof...(Expressions) > 0 && (std::convertible_to<Expressions &&, Math> && ...))
+    [[nodiscard]] static auto csv(Expressions&&... expressions) -> Math
+    {
+        auto result = csv();
+        (result.append(static_cast<Math>(std::forward<Expressions>(expressions))), ...);
+        return result;
+    }
     [[nodiscard]] static auto
     function(std::string_view name, Delimiter delimiter = Delimiter::parentheses) -> Math;
     [[nodiscard]] static auto
@@ -143,6 +242,124 @@ class Math final
     [[nodiscard]] auto explicit_alignment_points() const -> usize;
 
     auto validate() const -> void;
+
+    // Common leaves are lightweight factories. Each conversion creates a new
+    // owning expression, so scripts can be chained without sharing AST state.
+    static const Shortcut id_0;
+    static const Shortcut id_1;
+    static const Shortcut id_2;
+    static const Shortcut id_3;
+    static const Shortcut id_4;
+    static const Shortcut id_5;
+    static const Shortcut id_6;
+    static const Shortcut id_7;
+    static const Shortcut id_8;
+    static const Shortcut id_9;
+
+    static const Shortcut id_a;
+    static const Shortcut id_b;
+    static const Shortcut id_c;
+    static const Shortcut id_d;
+    static const Shortcut id_e;
+    static const Shortcut id_f;
+    static const Shortcut id_g;
+    static const Shortcut id_h;
+    static const Shortcut id_i;
+    static const Shortcut id_j;
+    static const Shortcut id_k;
+    static const Shortcut id_l;
+    static const Shortcut id_m;
+    static const Shortcut id_n;
+    static const Shortcut id_o;
+    static const Shortcut id_p;
+    static const Shortcut id_q;
+    static const Shortcut id_r;
+    static const Shortcut id_s;
+    static const Shortcut id_t;
+    static const Shortcut id_u;
+    static const Shortcut id_v;
+    static const Shortcut id_w;
+    static const Shortcut id_x;
+    static const Shortcut id_y;
+    static const Shortcut id_z;
+
+    static const Shortcut id_A;
+    static const Shortcut id_B;
+    static const Shortcut id_C;
+    static const Shortcut id_D;
+    static const Shortcut id_E;
+    static const Shortcut id_F;
+    static const Shortcut id_G;
+    static const Shortcut id_H;
+    static const Shortcut id_I;
+    static const Shortcut id_J;
+    static const Shortcut id_K;
+    static const Shortcut id_L;
+    static const Shortcut id_M;
+    static const Shortcut id_N;
+    static const Shortcut id_O;
+    static const Shortcut id_P;
+    static const Shortcut id_Q;
+    static const Shortcut id_R;
+    static const Shortcut id_S;
+    static const Shortcut id_T;
+    static const Shortcut id_U;
+    static const Shortcut id_V;
+    static const Shortcut id_W;
+    static const Shortcut id_X;
+    static const Shortcut id_Y;
+    static const Shortcut id_Z;
+
+    static const Shortcut id_alpha;
+    static const Shortcut id_beta;
+    static const Shortcut id_gamma;
+    static const Shortcut id_delta;
+    static const Shortcut id_epsilon;
+    static const Shortcut id_zeta;
+    static const Shortcut id_eta;
+    static const Shortcut id_theta;
+    static const Shortcut id_iota;
+    static const Shortcut id_kappa;
+    static const Shortcut id_lambda;
+    static const Shortcut id_mu;
+    static const Shortcut id_nu;
+    static const Shortcut id_xi;
+    static const Shortcut id_omicron;
+    static const Shortcut id_pi;
+    static const Shortcut id_rho;
+    static const Shortcut id_sigma;
+    static const Shortcut id_tau;
+    static const Shortcut id_upsilon;
+    static const Shortcut id_phi;
+    static const Shortcut id_chi;
+    static const Shortcut id_psi;
+    static const Shortcut id_omega;
+
+    static const Shortcut id_Alpha;
+    static const Shortcut id_Beta;
+    static const Shortcut id_Gamma;
+    static const Shortcut id_Delta;
+    static const Shortcut id_Epsilon;
+    static const Shortcut id_Zeta;
+    static const Shortcut id_Eta;
+    static const Shortcut id_Theta;
+    static const Shortcut id_Iota;
+    static const Shortcut id_Kappa;
+    static const Shortcut id_Lambda;
+    static const Shortcut id_Mu;
+    static const Shortcut id_Nu;
+    static const Shortcut id_Xi;
+    static const Shortcut id_Omicron;
+    static const Shortcut id_Pi;
+    static const Shortcut id_Rho;
+    static const Shortcut id_Sigma;
+    static const Shortcut id_Tau;
+    static const Shortcut id_Upsilon;
+    static const Shortcut id_Phi;
+    static const Shortcut id_Chi;
+    static const Shortcut id_Psi;
+    static const Shortcut id_Omega;
+    static const Shortcut id_nabla;
 
   private:
     struct Node;

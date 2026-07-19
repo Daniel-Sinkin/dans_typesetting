@@ -5,7 +5,6 @@
 
 #include <concepts>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -19,14 +18,6 @@ struct Metadata
     u16 major{};
     u16 minor{};
     u32 patch{};
-};
-
-struct Preamble
-{
-    std::string title{};
-    std::string author{};
-    std::string date{};
-    bool toc_enabled{true};
 };
 
 // The document core's semantic primitive. A block participates in document
@@ -94,16 +85,11 @@ class Document
     [[nodiscard]] auto metadata() noexcept -> Metadata&;
     [[nodiscard]] auto metadata() const noexcept -> const Metadata&;
 
-    auto set_preamble(Preamble preamble) -> void;
-    auto clear_preamble() noexcept -> void;
-    [[nodiscard]] auto preamble() const noexcept -> const std::optional<Preamble>&;
-
     [[nodiscard]] auto blocks() noexcept -> BlockSequence&;
     [[nodiscard]] auto blocks() const noexcept -> const BlockSequence&;
 
   private:
     Metadata metadata_{};
-    std::optional<Preamble> preamble_{};
     BlockSequence blocks_{};
 };
 }  // namespace dans::document

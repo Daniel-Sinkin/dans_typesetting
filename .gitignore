@@ -28,6 +28,11 @@ Makefile
 install_manifest.txt
 _deps/
 
+# Web builder output and dependencies
+builder/dist/
+builder/node_modules/
+builder/test-results/
+
 # Editor and tooling caches
 .cache/
 .DS_Store

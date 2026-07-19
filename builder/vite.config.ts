@@ -1,0 +1,13 @@
+// builder/vite.config.ts — configure the graphical builder and its unit tests.
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [react()],
+  define: {
+    "process.env.IS_PREACT": JSON.stringify("false"),
+  },
+  test: {
+    environment: "jsdom",
+  },
+});

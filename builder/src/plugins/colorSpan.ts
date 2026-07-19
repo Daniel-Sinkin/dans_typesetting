@@ -1,0 +1,47 @@
+// Graphical connector for the semantic ColorSpan inline extension.
+import { createElement } from "react";
+
+import type { BuilderInlinePlugin } from "../builder/inlinePlugin";
+import {
+  colorSpanInlineTypeId,
+  createColorSpanInline,
+  requireColorSpan,
+} from "./colorSpanModel";
+import { ColorSpanEditor, ColorSpanPreview } from "./colorSpanView";
+
+export {
+  colorSpanInlineTypeId,
+  createColorSpanInline,
+  isColorSpanInline,
+  type BuilderRgbColor,
+  type ColorSpanInline,
+} from "./colorSpanModel";
+
+export const colorSpanInlinePlugin: BuilderInlinePlugin = {
+  typeId: colorSpanInlineTypeId,
+  palette: {
+    label: "Colour span",
+    description: "A semantic RGB wrapper around inline content",
+    glyph: "A",
+    accentColor: "#2660a8",
+  },
+  createDefault(inlineId) {
+    return createColorSpanInline(undefined, undefined, inlineId);
+  },
+  plainText(inline, registry) {
+    const colorSpan = requireColorSpan(inline);
+    return colorSpan.inlines
+      .map((nestedInline) =>
+        registry.adapterForInline(nestedInline).plainText(nestedInline, registry),
+      )
+      .join("");
+  },
+  renderPreview(inline, registry) {
+    return createElement(ColorSpanPreview, { inline, registry });
+  },
+  editor: {
+    render(props) {
+      return createElement(ColorSpanEditor, props);
+    },
+  },
+};

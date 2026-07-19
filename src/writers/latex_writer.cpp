@@ -224,27 +224,24 @@ auto LatexWriter::emit_document(const Document& document, LatexOutput& output) c
     output.write_raw("\\usepackage{graphicx}\n");
     output.write_raw("\\usepackage{microtype}\n");
     output.write_raw("\\usepackage{xcolor}\n");
+    output.write_raw("\\usepackage{listings}\n");
+    output.write_raw(
+        "\\lstdefinelanguage{Julia}{%\n"
+        "  morekeywords={baremodule,begin,break,catch,const,continue,do,else,elseif,end,export,"
+        "finally,for,function,global,if,import,let,local,macro,module,quote,return,struct,"
+        "try,using,while},%\n"
+        "  sensitive=true,%\n"
+        "  morecomment=[l]{\\#},%\n"
+        "  morestring=[b]{\\\"}%\n"
+        "}\n"
+    );
+    output.write_raw(
+        "\\lstset{basicstyle=\\ttfamily\\small,breaklines=true,columns=fullflexible,"
+        "keepspaces=true,showstringspaces=false}\n"
+    );
     output.write_raw("\\usepackage[hidelinks]{hyperref}\n\n");
 
-    if (const auto& preamble = document.preamble(); preamble.has_value())
-    {
-        write_text_command(output, "title", preamble->title);
-        write_text_command(output, "author", preamble->author);
-        write_text_command(output, "date", preamble->date);
-        output.write_raw("\n");
-    }
-
     output.write_raw("\\begin{document}\n");
-    if (const auto& preamble = document.preamble(); preamble.has_value())
-    {
-        output.write_raw("\\maketitle\n");
-        if (preamble->toc_enabled)
-        {
-            output.write_raw("\\tableofcontents\n\\clearpage\n");
-        }
-        output.write_raw("\n");
-    }
-
     emit_blocks(document.blocks(), output);
     output.write_raw("\\end{document}\n");
 }

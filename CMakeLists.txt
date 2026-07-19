@@ -147,6 +147,16 @@ target_link_libraries(image_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(code_listing_plugin STATIC
+  src/plugins/code_listing.cpp
+  src/plugins/code_listing.hpp
+)
+add_library(dans::code_listing_plugin ALIAS code_listing_plugin)
+target_link_libraries(code_listing_plugin
+  PUBLIC dans::core_paragraph
+  PRIVATE typesetter_warnings
+)
+
 # Opinionated LaTeX document writer and separate connector modules.
 add_library(latex_writer STATIC
   src/writers/latex_writer.cpp
@@ -236,10 +246,24 @@ target_link_libraries(image_latex_connector
     typesetter_warnings
 )
 
+add_library(code_listing_latex_connector STATIC
+  src/connectors/latex/code_listing.cpp
+  src/connectors/latex/code_listing.hpp
+)
+add_library(dans::code_listing_latex_connector ALIAS code_listing_latex_connector)
+target_link_libraries(code_listing_latex_connector
+  PUBLIC
+    dans::code_listing_plugin
+    dans::core_paragraph_latex_connector
+  PRIVATE
+    typesetter_warnings
+)
+
 add_executable(document_example
   app/main.cpp
 )
 target_link_libraries(document_example PRIVATE
+  dans::code_listing_latex_connector
   dans::color_span_latex_connector
   dans::core_paragraph_latex_connector
   dans::image_latex_connector
@@ -249,8 +273,8 @@ target_link_libraries(document_example PRIVATE
   typesetter_warnings
 )
 
-# Build the example object model into LaTeX, then let latexmk perform however
-# many LuaLaTeX passes the table of contents requires.
+# Build the example object model into LaTeX, then compile the generated source
+# with LuaLaTeX.
 find_program(TYPESETTING_LATEXMK_EXECUTABLE NAMES latexmk REQUIRED)
 find_program(TYPESETTING_LUALATEX_EXECUTABLE NAMES lualatex REQUIRED)
 
@@ -303,7 +327,6 @@ add_custom_command(
     "${CMAKE_CURRENT_BINARY_DIR}/sample-document.fls"
     "${CMAKE_CURRENT_BINARY_DIR}/sample-document.log"
     "${CMAKE_CURRENT_BINARY_DIR}/sample-document.out"
-    "${CMAKE_CURRENT_BINARY_DIR}/sample-document.toc"
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   COMMENT "Compiling the generated LaTeX document"
   VERBATIM

@@ -1,3 +1,4 @@
+#include "connectors/latex/code_listing.hpp"
 #include "connectors/latex/color_span.hpp"
 #include "connectors/latex/core_paragraph.hpp"
 #include "connectors/latex/image.hpp"
@@ -5,6 +6,7 @@
 #include "connectors/latex/math.hpp"
 #include "connectors/latex/reference.hpp"
 #include "document.hpp"
+#include "plugins/code_listing.hpp"
 #include "plugins/color_span.hpp"
 #include "plugins/core_paragraph.hpp"
 #include "plugins/image.hpp"
@@ -14,11 +16,12 @@
 #include "reference_id.hpp"
 #include "writers/latex_writer.hpp"
 
+#include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <iostream>
 #include <memory>
+#include <print>
 #include <string_view>
 #include <utility>
 
@@ -27,18 +30,15 @@ namespace
 auto make_energy_equation()
 {
     using M = dans::document::plugins::Math;
-    using S = M::Symbol;
 
     return M::equal(
-        M::function("E").argument(M::symbol(S::theta)),
-        M::summation()
-            .lower(M::identifier("i"))
-            .body(
-                M::inner_product()
-                    .term(M::symbol(S::psi).subscript(M::symbol(S::theta)))
-                    .term(M::identifier("H").subscript(M::identifier("i")))
-                    .term(M::symbol(S::psi).subscript(M::symbol(S::theta)))
-            )
+        M::function("E").argument(M::id_theta),
+        M::summation().lower(M::id_i).body(
+            M::inner_product()
+                .term(M::id_psi.subscript(M::id_theta))
+                .term(M::id_H.subscript(M::id_i))
+                .term(M::id_psi.subscript(M::id_theta))
+        )
     );
 }
 
@@ -48,30 +48,20 @@ auto make_gradient_equation()
     using D = M::Delimiter;
     using S = M::Symbol;
 
-    const auto local_energy = [] { return M::identifier("E").subscript(M::identifier("loc")); };
+    const auto local_energy = [] { return M::id_E.subscript(M::ident("loc")); };
     const auto conjugate_log_derivative = []
-    {
-        return M::identifier("O")
-            .subscript(M::symbol(S::theta))
-            .superscript(M::symbol(S::asterisk));
-    };
+    { return M::id_O.subscript(M::id_theta).superscript(M::symbol(S::asterisk)); };
     const auto expectation = [](M expression)
     { return M::delimited(D::angle).body(std::move(expression)); };
 
     auto covariance = M::subtract(
-        expectation(M::sequence().append(local_energy()).append(conjugate_log_derivative())),
-        M::sequence()
-            .append(expectation(local_energy()))
-            .append(expectation(conjugate_log_derivative()))
+        expectation(M::sequence(local_energy(), conjugate_log_derivative())),
+        M::sequence(expectation(local_energy()), expectation(conjugate_log_derivative()))
     );
 
     return M::equal(
-        M::sequence()
-            .append(M::symbol(S::nabla).subscript(M::symbol(S::theta)))
-            .append(M::identifier("E")),
-        M::sequence()
-            .append(M::integer(2))
-            .append(M::named_operator("Re").argument(std::move(covariance)))
+        M::sequence(M::id_nabla.subscript(M::id_theta), M::id_E),
+        M::sequence(M::id_2, M::named_operator("Re").argument(std::move(covariance)))
     );
 }
 
@@ -81,17 +71,7 @@ auto make_sample_document()
     using namespace dans::document::plugins;
 
     using M = dans::document::plugins::Math;
-    using S = M::Symbol;
-
     Document document{Metadata{.major = 0, .minor = 1, .patch = 0}};
-    document.set_preamble(
-        Preamble{
-            .title = "Document Core Experiment",
-            .author = "Daniel",
-            .date = "18 July 2026",
-            .toc_enabled = true,
-        }
-    );
 
     const auto par_writer = [&](BlockSequence& blocks, std::string_view text)
     { blocks.add<CoreParagraph>(text); };
@@ -120,14 +100,12 @@ auto make_sample_document()
     auto& inline_extensions = architecture.blocks().add<Section>("Inline composition");
     auto& inline_paragraph = inline_extensions.blocks().add<CoreParagraph>();
     inline_paragraph.append_text("A paragraph can combine ordinary text, inline math such as ");
-    inline_paragraph.inlines().add<Math::Inline>(
-        M::identifier("x").subscript(M::identifier("i")).superscript(M::integer(2))
-    );
+    inline_paragraph.inlines().add<Math::Inline>(M::id_x.subscript(M::id_i).superscript(M::id_2));
     inline_paragraph.append_text(", and ");
     auto& color_span =
         inline_paragraph.inlines().add<ColorSpan>(RgbColor{.red = 38, .green = 96, .blue = 168});
     color_span.inlines().add<CoreText>("a coloured span containing both text and ");
-    color_span.inlines().add<Math::Inline>(M::add(M::symbol(S::alpha), M::symbol(S::beta)));
+    color_span.inlines().add<Math::Inline>(M::add(M::id_alpha, M::id_beta));
     inline_paragraph.append_text(", a tiny inline image ");
     inline_paragraph.inlines().add<InlineImage>(
         ImageSource{"sample-image.pdf"}, InlineImageHeight{1.1}
@@ -157,7 +135,7 @@ auto make_sample_document()
         PixelExtent{1280, 720}
     );
     figure.caption().add<CoreText>(" Captions share the inline contract, including ");
-    figure.caption().add<Math::Inline>(M::add(M::symbol(S::alpha), M::symbol(S::beta)));
+    figure.caption().add<Math::Inline>(M::id_A.subscript(M::csv(M::id_4, M::id_3)));
     figure.caption().add<CoreText>(".");
 
     auto& figure_reference = media.blocks().add<CoreParagraph>();
@@ -186,6 +164,20 @@ auto make_sample_document()
     equation_references.inlines().add<Reference>(gradient_equation_id);
     equation_references.append_text(".");
 
+    auto& listings = document.blocks().add<Section>("Source-code listings");
+    listings.blocks().add<CodeListing>(
+        CodeLanguage::cpp,
+        "#include <print>\n\nint main()\n{\n    std::println(\"Hello Typesetter!\");\n}\n",
+        ReferenceId{"lst:hello-typesetter"},
+        "A selectable and referenceable C++ source-code listing."
+    );
+    listings.blocks().add<CodeListing>(
+        CodeLanguage::julia,
+        "function energy(x)\n    return sum(abs2, x)\nend\n",
+        ReferenceId{"lst:julia-energy"},
+        "The same semantic listing block configured for Julia."
+    );
+
     auto& latex_escape = document.blocks().add<Section>("LaTeX escape hatch");
     par_writer(
         latex_escape.blocks(),
@@ -203,7 +195,7 @@ auto main(const int argc, char* argv[]) -> int
 {
     if (argc > 2)
     {
-        std::cerr << "Usage: document_example [output.tex]\n";
+        std::println(stderr, "Usage: document_example [output.tex]");
         return EXIT_FAILURE;
     }
 
@@ -212,7 +204,7 @@ auto main(const int argc, char* argv[]) -> int
 
     try
     {
-        std::cout << "Hello Typesetter!\n";
+        std::println("Hello Typesetter!");
         const auto document = make_sample_document();
         dans::document::writers::LatexWriter writer;
         auto inline_renderer =
@@ -247,14 +239,19 @@ auto main(const int argc, char* argv[]) -> int
             std::make_unique<dans::document::connectors::latex::FigureLatexAdapter>(inline_renderer)
         );
         writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::CodeListingLatexAdapter>(
+                inline_renderer
+            )
+        );
+        writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::LatexBlockAdapter>()
         );
         writer.write_file(document, output_path);
-        std::cout << "Wrote LaTeX document: " << output_path.string() << '\n';
+        std::println("Wrote LaTeX document: {}", output_path.string());
     }
     catch (const std::exception& error)
     {
-        std::cerr << "Failed to serialize document: " << error.what() << '\n';
+        std::println(stderr, "Failed to serialize document: {}", error.what());
         return EXIT_FAILURE;
     }
 

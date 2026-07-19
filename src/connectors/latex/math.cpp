@@ -51,11 +51,143 @@ auto write_symbol(Output& output, const Math::Symbol symbol) -> void
         case Math::Symbol::beta:
             output.write_raw("\\beta");
             return;
+        case Math::Symbol::gamma:
+            output.write_raw("\\gamma");
+            return;
+        case Math::Symbol::delta:
+            output.write_raw("\\delta");
+            return;
+        case Math::Symbol::epsilon:
+            output.write_raw("\\epsilon");
+            return;
+        case Math::Symbol::zeta:
+            output.write_raw("\\zeta");
+            return;
+        case Math::Symbol::eta:
+            output.write_raw("\\eta");
+            return;
         case Math::Symbol::theta:
             output.write_raw("\\theta");
             return;
+        case Math::Symbol::iota:
+            output.write_raw("\\iota");
+            return;
+        case Math::Symbol::kappa:
+            output.write_raw("\\kappa");
+            return;
+        case Math::Symbol::lambda:
+            output.write_raw("\\lambda");
+            return;
+        case Math::Symbol::mu:
+            output.write_raw("\\mu");
+            return;
+        case Math::Symbol::nu:
+            output.write_raw("\\nu");
+            return;
+        case Math::Symbol::xi:
+            output.write_raw("\\xi");
+            return;
+        case Math::Symbol::omicron:
+            output.write_raw("o");
+            return;
+        case Math::Symbol::pi:
+            output.write_raw("\\pi");
+            return;
+        case Math::Symbol::rho:
+            output.write_raw("\\rho");
+            return;
+        case Math::Symbol::sigma:
+            output.write_raw("\\sigma");
+            return;
+        case Math::Symbol::tau:
+            output.write_raw("\\tau");
+            return;
+        case Math::Symbol::upsilon:
+            output.write_raw("\\upsilon");
+            return;
+        case Math::Symbol::phi:
+            output.write_raw("\\phi");
+            return;
+        case Math::Symbol::chi:
+            output.write_raw("\\chi");
+            return;
         case Math::Symbol::psi:
             output.write_raw("\\psi");
+            return;
+        case Math::Symbol::omega:
+            output.write_raw("\\omega");
+            return;
+        case Math::Symbol::capital_alpha:
+            output.write_raw("A");
+            return;
+        case Math::Symbol::capital_beta:
+            output.write_raw("B");
+            return;
+        case Math::Symbol::capital_gamma:
+            output.write_raw("\\Gamma");
+            return;
+        case Math::Symbol::capital_delta:
+            output.write_raw("\\Delta");
+            return;
+        case Math::Symbol::capital_epsilon:
+            output.write_raw("E");
+            return;
+        case Math::Symbol::capital_zeta:
+            output.write_raw("Z");
+            return;
+        case Math::Symbol::capital_eta:
+            output.write_raw("H");
+            return;
+        case Math::Symbol::capital_theta:
+            output.write_raw("\\Theta");
+            return;
+        case Math::Symbol::capital_iota:
+            output.write_raw("I");
+            return;
+        case Math::Symbol::capital_kappa:
+            output.write_raw("K");
+            return;
+        case Math::Symbol::capital_lambda:
+            output.write_raw("\\Lambda");
+            return;
+        case Math::Symbol::capital_mu:
+            output.write_raw("M");
+            return;
+        case Math::Symbol::capital_nu:
+            output.write_raw("N");
+            return;
+        case Math::Symbol::capital_xi:
+            output.write_raw("\\Xi");
+            return;
+        case Math::Symbol::capital_omicron:
+            output.write_raw("O");
+            return;
+        case Math::Symbol::capital_pi:
+            output.write_raw("\\Pi");
+            return;
+        case Math::Symbol::capital_rho:
+            output.write_raw("P");
+            return;
+        case Math::Symbol::capital_sigma:
+            output.write_raw("\\Sigma");
+            return;
+        case Math::Symbol::capital_tau:
+            output.write_raw("T");
+            return;
+        case Math::Symbol::capital_upsilon:
+            output.write_raw("\\Upsilon");
+            return;
+        case Math::Symbol::capital_phi:
+            output.write_raw("\\Phi");
+            return;
+        case Math::Symbol::capital_chi:
+            output.write_raw("X");
+            return;
+        case Math::Symbol::capital_psi:
+            output.write_raw("\\Psi");
+            return;
+        case Math::Symbol::capital_omega:
+            output.write_raw("\\Omega");
             return;
         case Math::Symbol::nabla:
             output.write_raw("\\nabla");
@@ -202,6 +334,20 @@ auto write_expression(
                 if (needs_parentheses)
                 {
                     output.write_raw("\\right)");
+                }
+                return;
+            }
+        case Kind::comma_separated:
+            {
+                bool first = true;
+                for (const auto& item : expression.items())
+                {
+                    if (!first)
+                    {
+                        output.write_raw(", ");
+                    }
+                    write_expression(item, output);
+                    first = false;
                 }
                 return;
             }

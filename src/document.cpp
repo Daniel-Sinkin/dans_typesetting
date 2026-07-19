@@ -1,7 +1,6 @@
 #include "document.hpp"
 
 #include <stdexcept>
-#include <utility>
 
 namespace dans::document
 {
@@ -50,21 +49,6 @@ auto Document::metadata() noexcept -> Metadata&
 auto Document::metadata() const noexcept -> const Metadata&
 {
     return metadata_;
-}
-
-auto Document::set_preamble(Preamble preamble) -> void
-{
-    preamble_ = std::move(preamble);
-}
-
-auto Document::clear_preamble() noexcept -> void
-{
-    preamble_.reset();
-}
-
-auto Document::preamble() const noexcept -> const std::optional<Preamble>&
-{
-    return preamble_;
 }
 
 auto Document::blocks() noexcept -> BlockSequence&

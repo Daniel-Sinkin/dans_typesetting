@@ -37,6 +37,151 @@ auto is_valid_name(const std::string_view name) noexcept -> bool
 
 namespace dans::document::plugins
 {
+#define DANS_DEFINE_MATH_INTEGER_SHORTCUT(name)                                                    \
+    const Math::Shortcut Math::id_##name                                                           \
+    {                                                                                              \
+        i64                                                                                        \
+        {                                                                                          \
+            name                                                                                   \
+        }                                                                                          \
+    }
+#define DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(name)                                                 \
+    const Math::Shortcut Math::id_##name                                                           \
+    {                                                                                              \
+        #name                                                                                      \
+    }
+#define DANS_DEFINE_MATH_SYMBOL_SHORTCUT(name)                                                     \
+    const Math::Shortcut Math::id_##name                                                           \
+    {                                                                                              \
+        Math::Symbol::name                                                                         \
+    }
+#define DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(name, symbol_name)                                \
+    const Math::Shortcut Math::id_##name                                                           \
+    {                                                                                              \
+        Math::Symbol::capital_##symbol_name                                                        \
+    }
+
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(0);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(1);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(2);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(3);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(4);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(5);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(6);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(7);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(8);
+DANS_DEFINE_MATH_INTEGER_SHORTCUT(9);
+
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(a);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(b);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(c);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(d);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(e);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(f);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(g);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(h);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(i);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(j);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(k);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(l);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(m);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(n);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(o);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(p);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(q);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(r);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(s);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(t);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(u);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(v);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(w);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(x);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(y);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(z);
+
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(A);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(B);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(C);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(D);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(E);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(F);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(G);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(H);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(I);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(J);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(K);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(L);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(M);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(N);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(O);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(P);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(Q);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(R);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(S);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(T);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(U);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(V);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(W);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(X);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(Y);
+DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT(Z);
+
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(alpha);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(beta);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(gamma);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(delta);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(epsilon);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(zeta);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(eta);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(theta);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(iota);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(kappa);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(lambda);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(mu);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(nu);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(xi);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(omicron);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(pi);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(rho);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(sigma);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(tau);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(upsilon);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(phi);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(chi);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(psi);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(omega);
+
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Alpha, alpha);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Beta, beta);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Gamma, gamma);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Delta, delta);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Epsilon, epsilon);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Zeta, zeta);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Eta, eta);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Theta, theta);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Iota, iota);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Kappa, kappa);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Lambda, lambda);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Mu, mu);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Nu, nu);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Xi, xi);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Omicron, omicron);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Pi, pi);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Rho, rho);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Sigma, sigma);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Tau, tau);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Upsilon, upsilon);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Phi, phi);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Chi, chi);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Psi, psi);
+DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT(Omega, omega);
+DANS_DEFINE_MATH_SYMBOL_SHORTCUT(nabla);
+
+#undef DANS_DEFINE_MATH_CAPITAL_SYMBOL_SHORTCUT
+#undef DANS_DEFINE_MATH_SYMBOL_SHORTCUT
+#undef DANS_DEFINE_MATH_IDENTIFIER_SHORTCUT
+#undef DANS_DEFINE_MATH_INTEGER_SHORTCUT
+
 struct Math::Node
 {
     struct Integer
@@ -62,6 +207,11 @@ struct Math::Node
     };
 
     struct Sequence
+    {
+        std::vector<Math> items{};
+    };
+
+    struct CommaSeparated
     {
         std::vector<Math> items{};
     };
@@ -99,6 +249,7 @@ struct Math::Node
         BinaryExpression,
         Script,
         Sequence,
+        CommaSeparated,
         Function,
         Delimited,
         InnerProduct,
@@ -154,6 +305,11 @@ auto Math::identifier(const std::string_view name) -> Math
     return Math{std::make_unique<Node>(Node::Identifier{.name = std::string{name}})};
 }
 
+auto Math::ident(const std::string_view name) -> Math
+{
+    return identifier(name);
+}
+
 auto Math::symbol(const Math::Symbol symbol) -> Math
 {
     return Math{std::make_unique<Node>(Node::Symbol{.value = symbol})};
@@ -204,6 +360,11 @@ auto Math::sequence() -> Math
     return Math{std::make_unique<Node>(Node::Sequence{})};
 }
 
+auto Math::csv() -> Math
+{
+    return Math{std::make_unique<Node>(Node::CommaSeparated{})};
+}
+
 auto Math::function(const std::string_view name, const Math::Delimiter delimiter) -> Math
 {
     if (!is_valid_name(name))
@@ -251,13 +412,18 @@ auto Math::summation() -> Math
 
 auto Math::append(Math expression) & -> Math&
 {
-    auto* sequence_node = std::get_if<Node::Sequence>(&node().value);
-    if (sequence_node == nullptr)
+    if (auto* sequence_node = std::get_if<Node::Sequence>(&node().value); sequence_node != nullptr)
     {
-        throw std::logic_error{"append() is valid only for a math sequence"};
+        sequence_node->items.push_back(std::move(expression));
+        return *this;
     }
-    sequence_node->items.push_back(std::move(expression));
-    return *this;
+    if (auto* comma_separated_node = std::get_if<Node::CommaSeparated>(&node().value);
+        comma_separated_node != nullptr)
+    {
+        comma_separated_node->items.push_back(std::move(expression));
+        return *this;
+    }
+    throw std::logic_error{"append() is valid only for a sequence or comma-separated list"};
 }
 
 auto Math::append(Math expression) && -> Math&&
@@ -420,6 +586,34 @@ auto Math::align_at_operator() && -> Math&&
     return std::move(*this);
 }
 
+Math::Shortcut::operator Math() const
+{
+    switch (kind_)
+    {
+        case Kind::integer:
+            return Math::integer(integer_);
+        case Kind::identifier:
+            return Math::identifier(identifier_);
+        case Kind::symbol:
+            return Math::symbol(symbol_);
+    }
+    throw std::logic_error{"Unknown math shortcut kind"};
+}
+
+auto Math::Shortcut::subscript(Math expression) const -> Math
+{
+    auto value = static_cast<Math>(*this);
+    value.subscript(std::move(expression));
+    return value;
+}
+
+auto Math::Shortcut::superscript(Math expression) const -> Math
+{
+    auto value = static_cast<Math>(*this);
+    value.superscript(std::move(expression));
+    return value;
+}
+
 auto Math::kind() const -> Kind
 {
     return std::visit(
@@ -449,6 +643,10 @@ auto Math::kind() const -> Kind
             else if constexpr (std::is_same_v<Value, Node::Sequence>)
             {
                 return Kind::sequence;
+            }
+            else if constexpr (std::is_same_v<Value, Node::CommaSeparated>)
+            {
+                return Kind::comma_separated;
             }
             else if constexpr (std::is_same_v<Value, Node::Function>)
             {
@@ -521,7 +719,14 @@ auto Math::items() const -> std::span<const Math>
     {
         return inner_product_node->terms;
     }
-    throw std::logic_error{"items() is valid only for sequence or inner-product expressions"};
+    if (const auto* comma_separated_node = std::get_if<Node::CommaSeparated>(&node().value);
+        comma_separated_node != nullptr)
+    {
+        return comma_separated_node->items;
+    }
+    throw std::logic_error{
+        "items() is valid only for sequence, comma-separated, or inner-product expressions"
+    };
 }
 
 auto Math::function_name() const -> std::string_view
@@ -600,6 +805,7 @@ auto Math::explicit_alignment_points() const -> usize
                 return count;
             }
         case Kind::sequence:
+        case Kind::comma_separated:
         case Kind::inner_product:
             {
                 usize count{};
@@ -668,6 +874,16 @@ auto Math::validate() const -> void
             if (items().size() < usize{2})
             {
                 throw std::logic_error{"A math sequence requires at least two items"};
+            }
+            for (const auto& expression : items())
+            {
+                expression.validate();
+            }
+            return;
+        case Kind::comma_separated:
+            if (items().size() < usize{2})
+            {
+                throw std::logic_error{"A comma-separated expression requires at least two items"};
             }
             for (const auto& expression : items())
             {
