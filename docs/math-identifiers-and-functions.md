@@ -2,7 +2,8 @@
 
 Structured math distinguishes an identifier's semantic spelling from its
 presentation alphabet. An identifier is still one atomic leaf, but it now owns
-one of three styles: ordinary italic, blackboard bold, or calligraphic. Styles
+one of four styles: ordinary italic, upright roman, blackboard bold, or
+calligraphic. Styles
 do not wrap arbitrary expression trees. This keeps validation small and avoids
 pretending that `mathbb` or `mathcal` is meaningful for every nested structure.
 
@@ -16,6 +17,7 @@ auto statement = M::element_of(
     M::blackboard("R")
 );
 auto ordinary = M::function("f").argument(M::blackboard("C"));
+auto implementation_name = M::upright("cores");
 ```
 
 `function` and `named_operator` are recursive presentation nodes. Both own a
@@ -25,8 +27,8 @@ LaTeX `\operatorname`, and default to square brackets. A comma-sequence
 argument represents multiple visible arguments without introducing a second
 function-specific collection contract.
 
-The TeX connector lowers blackboard and calligraphic identifiers through
-`\mathbb` and `\mathcal`. The LaTeX writer owns the required `amsfonts`
+The TeX connector lowers upright, blackboard, and calligraphic identifiers
+through `\mathrm`, `\mathbb`, and `\mathcal`. The LaTeX writer owns the required `amsfonts`
 package. Markdown reuses the same TeX math connector and Jupyter composes the
 configured Markdown writer, so all three publication paths share spelling.
 
@@ -46,10 +48,11 @@ The basic parser accepts:
 | --- | --- |
 | `bb(R)` | blackboard-bold `R` |
 | `cal(H)` | calligraphic `H` |
+| `rm(cores)` | upright `cores` |
 | `f(x)` or `f[x]` | ordinary function application |
 | `op(spectrum, cal(H))` | upright named operator with a square-delimited argument |
 
-The graphical palette supplies placeholder blackboard/calligraphic `A` leaves,
+The graphical palette supplies placeholder upright/blackboard/calligraphic `A` leaves,
 an ordinary `f(x)` structure, and a named `op[x]` structure. Typed parser input
 is the current way to choose their concrete names.
 
@@ -61,8 +64,11 @@ only decorated leaves emit `style`. Function payloads record `name`,
 version-1 vocabulary extension, and normalized clipboard serialization remains
 byte-stable.
 
-This slice intentionally does not add bold, roman, sans-serif, or fraktur
+This slice intentionally does not add bold, sans-serif, or fraktur
 alphabets; arbitrary TeX commands; mathematical evaluation; overload/type
 semantics; or a separately typed multi-argument function node. Calligraphic
 lowercase output is permitted but publication fonts may render it less
 distinctively than uppercase mathematical symbols.
+
+Human-readable annotations are a distinct leaf rather than an identifier
+style; see [math-annotations.md](math-annotations.md).

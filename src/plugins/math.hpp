@@ -25,6 +25,7 @@ class Math final
     enum class IdentifierStyle : u8
     {
         italic,
+        upright,
         blackboard,
         calligraphic,
     };
@@ -174,6 +175,7 @@ class Math final
     {
         integer,
         identifier,
+        text,
         symbol,
         binary,
         script,
@@ -185,6 +187,7 @@ class Math final
         delimited,
         inner_product,
         summation,
+        underbrace,
         grid,
     };
 
@@ -202,6 +205,8 @@ class Math final
         -> Math;
     [[nodiscard]] static auto blackboard(std::string_view name) -> Math;
     [[nodiscard]] static auto calligraphic(std::string_view name) -> Math;
+    [[nodiscard]] static auto upright(std::string_view name) -> Math;
+    [[nodiscard]] static auto text(std::string_view value) -> Math;
     [[nodiscard]] static auto symbol(Symbol symbol) -> Math;
     [[nodiscard]] static auto binary(Math left, BinaryOperator operation, Math right) -> Math;
     [[nodiscard]] static auto add(Math left, Math right) -> Math;
@@ -250,6 +255,7 @@ class Math final
     [[nodiscard]] static auto delimited(Delimiter delimiter) -> Math;
     [[nodiscard]] static auto inner_product() -> Math;
     [[nodiscard]] static auto summation() -> Math;
+    [[nodiscard]] static auto underbrace(Math body, Math annotation) -> Math;
     [[nodiscard]] static auto grid(usize rows, usize columns, std::vector<Math> cells) -> Math;
 
     auto append(Math expression) & -> Math&;
@@ -275,6 +281,7 @@ class Math final
     [[nodiscard]] auto integer_value() const -> i64;
     [[nodiscard]] auto identifier_name() const -> std::string_view;
     [[nodiscard]] auto identifier_style() const -> IdentifierStyle;
+    [[nodiscard]] auto text_value() const -> std::string_view;
     [[nodiscard]] auto symbol_value() const -> Symbol;
     [[nodiscard]] auto binary_expression() const -> const BinaryExpression&;
     [[nodiscard]] auto script_base() const -> const Math&;
@@ -294,6 +301,8 @@ class Math final
     [[nodiscard]] auto summation_lower() const -> const Math*;
     [[nodiscard]] auto summation_upper() const -> const Math*;
     [[nodiscard]] auto summation_body() const -> const Math*;
+    [[nodiscard]] auto underbrace_body() const -> const Math&;
+    [[nodiscard]] auto underbrace_annotation() const -> const Math&;
     [[nodiscard]] auto grid_rows() const -> usize;
     [[nodiscard]] auto grid_columns() const -> usize;
     [[nodiscard]] auto grid_cells() const -> std::span<const Math>;

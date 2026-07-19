@@ -60,25 +60,29 @@ plugin-owned Core Paragraph inline contract in canonical and graphical paths.
 Commit `57a271b` expands the structured relation, product, arrow, Greek, and
 physics-symbol vocabulary across native and graphical writers.
 
-## Current verified slice
+Commit `58c48ed` adds decorated identifiers and ordinary/named mathematical
+function applications across native and graphical writers.
 
-The decorated-identifier and mathematical-function slice adds:
+## Current implementation slice
 
-- atomic italic, blackboard, and calligraphic identifier styles with shared
-  native/browser validation and publication lowering;
-- recursive ordinary function and upright named-operator nodes with explicit
-  delimiter policy and one argument consumption point;
-- optional parser spellings `bb(...)`, `cal(...)`, ordinary calls, and
-  `op(name, expression)` plus graphical palette templates;
-- ordinary nested selection, replacement, thresholded detach, parking,
-  clipboard, canonical transport, and malformed-payload coverage;
-- native LaTeX/Markdown/Jupyter samples and browser canonical-fixture/smoke
-  coverage.
+The structured math-annotation slice adds:
 
-See `math-identifiers-and-functions.md` for the exact contract and deliberate
-limits.
+- atomic upright identifiers and constrained single-line math text;
+- recursive underbraces with ordinary body/annotation math paths;
+- TeX-owned escaping and lowering shared by LaTeX, Markdown, and Jupyter;
+- `rm(...)`, `text(...)`, and `underbrace(...)` parser forms plus graphical
+  palette/preview support;
+- canonical and clipboard idempotence, malformed-input coverage, native
+  samples, and real-browser fixture/interaction assertions.
+
+See `math-annotations.md` for the exact contract and deliberate limits.
 
 ## Preceding verified slice
+
+The decorated-identifier and mathematical-function slice adds atomic italic,
+blackboard, and calligraphic styles; recursive ordinary/named functions;
+parser and palette forms; nested editor operations; canonical transport; and
+native publication coverage. See `math-identifiers-and-functions.md`.
 
 The structured mathematical vocabulary slice adds:
 
@@ -335,12 +339,13 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Continue with one complete thesis-parity slice. External source-file inclusion
-for listings, additional matrix/array presentation, labeled arrows, and large
-operators are the strongest remaining gaps in the audited corpus.
-Theorems/definitions/lemmas remain a useful independent plugin family but were
-not present in that corpus. Kernel-specific Jupyter cells and notebook
-attachments remain optional writer policies.
+Continue with one complete thesis-parity slice. The focused follow-up audit now
+prioritizes optional figure targets, lossless native decimal/negation parity,
+multiline display groups, recursive math colour, and caption-optional tables.
+External source-file listing inclusion is not pressure from the current corpus.
+See `thesis-next-slices.md` for representative source locations and the full
+ranked list. Kernel-specific Jupyter cells and notebook attachments remain
+optional writer policies.
 
 Current deliberate compromises to reassess later:
 
@@ -408,9 +413,12 @@ Current deliberate compromises to reassess later:
   hatch for an ordinary identifier with the same letters.
 - relation chains are stored and rendered exactly as authored; the presentation
   tree does not reinterpret `a < b < c` as a Boolean conjunction.
-- blackboard and calligraphic styles apply only to atomic ASCII identifiers;
-  the browser uses Unicode mathematical alphabets for preview while publication
-  writers choose their own font commands.
+- upright, blackboard, and calligraphic styles apply only to atomic ASCII
+  identifiers; the browser uses semantic CSS/Unicode presentation while
+  publication writers choose their own font commands.
 - a function owns one recursive argument node; multiple visible arguments are
   currently a comma sequence, and its name is replaced with the whole function
   rather than dragged as an independently selectable child.
+- math text is deliberately a single-line leaf rather than a nested Core
+  Paragraph, and the graphical underbrace is a scalable SVG approximation of
+  publication typography.

@@ -257,6 +257,13 @@ italic/upright spelling and delimiter syntax. This preserves graphical
 recursive editing without introducing evaluation semantics. See
 [math-identifiers-and-functions.md](math-identifiers-and-functions.md).
 
+Semantic math text is a constrained prose leaf rather than a paragraph or raw
+TeX escape hatch. An underbrace is a recursive presentation node with ordinary
+`body` and `annotation` consumption points. Upright identifiers, text, and
+underbraces therefore remain backend-neutral while the TeX connector owns
+`\mathrm`, `\text`, escaping, and `\underbrace` syntax. See
+[math-annotations.md](math-annotations.md).
+
 ## Semantic target index
 
 Referenceable block plugins expose a small descriptor containing an optional

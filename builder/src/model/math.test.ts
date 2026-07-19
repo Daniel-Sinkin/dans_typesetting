@@ -20,6 +20,8 @@ import {
   createMathSummation,
   createMathSymbol,
   createMathStyledIdentifier,
+  createMathText,
+  createMathUnderbrace,
   detachMathExpressionAtPath,
   mathExpressionAtPath,
   mathExpressionFromTransport,
@@ -114,6 +116,7 @@ describe("structured math", () => {
     ]);
     expect(parseMathPath("item:-1")).toBeNull();
     expect(parseMathPath("left.argument")).toEqual(["left", "argument"]);
+    expect(parseMathPath("body.annotation")).toEqual(["body", "annotation"]);
   });
 
   it("accepts unsigned decimals and ASCII identifiers as direct leaf input", () => {
@@ -205,6 +208,42 @@ describe("structured math", () => {
     expect(mathExpressionToText(detached.detached)).toBe("ℂ");
   });
 
+  it("round-trips upright identifiers, semantic text, and recursive underbraces", () => {
+    const expression = createMathUnderbrace(
+      createMathBinary(
+        "center_dot",
+        createMathStyledIdentifier("cores", "upright"),
+        createMathInteger(2),
+      ),
+      createMathText("FMA & SIMD"),
+      "underbrace-root",
+    );
+    const serialized = mathExpressionToString(expression);
+    const restored = mathExpressionFromString(serialized);
+
+    expect(mathExpressionToString(restored)).toBe(serialized);
+    expect(mathExpressionToText(restored)).toBe(
+      "underbrace(cores · 2, FMA & SIMD)",
+    );
+    expect(mathIdentifierText(createMathStyledIdentifier("cores", "upright"))).toBe(
+      "cores",
+    );
+    expect(mathExpressionAtPath(expression, ["annotation"])?.kind).toBe("text");
+
+    const detached = detachMathExpressionAtPath(expression, ["body"]);
+    expect(mathExpressionToText(detached.expression)).toBe(
+      "underbrace(□, FMA & SIMD)",
+    );
+    const restoredBody = replaceMathExpressionAtPath(
+      detached.expression,
+      ["body"],
+      detached.detached,
+    );
+    expect(mathExpressionToText(restoredBody)).toBe(
+      "underbrace(cores · 2, FMA & SIMD)",
+    );
+  });
+
   it("replaces and detaches every slot of fractions, radicals, and scripts", () => {
     const expression = createMathFraction(
       createMathRadical(createMathIdentifier("x"), createMathInteger(3)),
@@ -293,5 +332,16 @@ describe("structured math", () => {
         argument: { kind: "identifier", name: "x" },
       }),
     ).toThrow(/namedOperator must be a boolean/u);
+    expect(() => createMathText("")).toThrow(/non-empty/u);
+    expect(() => createMathText("two\nlines")).toThrow(/control/u);
+    expect(() =>
+      mathExpressionFromTransport({ kind: "text", value: "tab\ttext" }),
+    ).toThrow(/control/u);
+    expect(() =>
+      mathExpressionFromTransport({
+        kind: "underbrace",
+        body: { kind: "integer", value: "1" },
+      }),
+    ).toThrow(/must be an object/u);
   });
 });

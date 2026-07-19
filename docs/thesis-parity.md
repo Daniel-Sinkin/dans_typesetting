@@ -17,6 +17,9 @@ the newer documentation tree.
 The counts below are an implementation inventory, not a promise to reproduce
 every piece of source syntax.
 
+The post-implementation priority audit is maintained in
+[thesis-next-slices.md](thesis-next-slices.md).
+
 | Area | Representative evidence | Current implication |
 | --- | --- | --- |
 | Shell | title/author/date, ToC, lists of figures/tables/listings, page breaks; older draft has abstract and appendices | semantic shell blocks and generators are required |
@@ -53,7 +56,10 @@ square/indexed roots, combined scripts, the high-frequency relation family,
 distinct product operators, Greek/calculus symbols, ellipses, dagger,
 transpose, and script ell in native LaTeX/Markdown/Jupyter and the graphical
 writer. Blackboard/calligraphic identifiers plus ordinary and named function
-application now share native and graphical contracts as well. Every child
+application now share native and graphical contracts as well. Upright atomic
+names, constrained math text, and recursive underbraces cover the audited
+`\mathrm`, `\text`, and `\underbrace` pressure without admitting raw LaTeX.
+Every child
 retains recursive editing and canonical transport. The audited corpus still
 needs parentheses matrices, block separators, arrays, labeled arrows, large
 operators, and several specialized environments before mathematical parity is

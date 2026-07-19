@@ -218,14 +218,21 @@
           "kind": "binary",
           "operator": "approximately_equals",
           "left": {
-            "kind": "function",
-            "name": "spectrum",
-            "namedOperator": true,
-            "delimiter": "brackets",
-            "argument": {
-              "kind": "identifier",
-              "name": "H",
-              "style": "calligraphic"
+            "kind": "underbrace",
+            "body": {
+              "kind": "function",
+              "name": "spectrum",
+              "namedOperator": true,
+              "delimiter": "brackets",
+              "argument": {
+                "kind": "identifier",
+                "name": "H",
+                "style": "calligraphic"
+              }
+            },
+            "annotation": {
+              "kind": "text",
+              "value": "spectral support"
             }
           },
           "right": {
@@ -360,7 +367,8 @@
                 "payload": {
                   "expression": {
                     "kind": "identifier",
-                    "name": "E"
+                    "name": "E",
+                    "style": "upright"
                   }
                 }
               }

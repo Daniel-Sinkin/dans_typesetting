@@ -15,6 +15,8 @@ import {
   createMathScript,
   createMathSymbol,
   createMathStyledIdentifier,
+  createMathText,
+  createMathUnderbrace,
   mathSymbolNameFromInput,
   validateMathExpression,
   type MathBinaryOperator,
@@ -24,6 +26,7 @@ import {
 type TokenKind =
   | "number"
   | "identifier"
+  | "string"
   | "plus"
   | "minus"
   | "times"
@@ -160,6 +163,43 @@ function tokenize(source: string): readonly Token[] {
     }
     if (/\s/u.test(character)) {
       offset += 1;
+      continue;
+    }
+
+    if (character === '"') {
+      const startOffset = offset;
+      let value = "";
+      offset += 1;
+      let closed = false;
+      while (offset < source.length) {
+        const quotedCharacter = source[offset];
+        if (quotedCharacter === undefined) {
+          break;
+        }
+        if (quotedCharacter === '"') {
+          offset += 1;
+          closed = true;
+          break;
+        }
+        if (quotedCharacter === "\n" || quotedCharacter === "\r") {
+          throw new MathInputParseError("Math text cannot span lines", offset);
+        }
+        if (quotedCharacter === "\\") {
+          const escapedCharacter = source[offset + 1];
+          if (escapedCharacter !== '"' && escapedCharacter !== "\\") {
+            throw new MathInputParseError("Math text supports only \\\" and \\\\ escapes", offset);
+          }
+          value += escapedCharacter;
+          offset += 2;
+          continue;
+        }
+        value += quotedCharacter;
+        offset += 1;
+      }
+      if (!closed) {
+        throw new MathInputParseError("Unterminated math text", startOffset);
+      }
+      tokens.push({ kind: "string", text: value, offset: startOffset });
       continue;
     }
 
@@ -427,7 +467,7 @@ class BasicMathParser {
     if (token.kind === "identifier") {
       this.#advance();
       if (
-        (token.text === "bb" || token.text === "cal") &&
+        (token.text === "bb" || token.text === "cal" || token.text === "rm") &&
         this.#current().kind === "open_parenthesis"
       ) {
         this.#advance();
@@ -435,8 +475,30 @@ class BasicMathParser {
         this.#consume("close_parenthesis", "')'");
         return createMathStyledIdentifier(
           identifier.text,
-          token.text === "bb" ? "blackboard" : "calligraphic",
+          token.text === "bb"
+            ? "blackboard"
+            : token.text === "cal"
+              ? "calligraphic"
+              : "upright",
         );
+      }
+      if (token.text === "text" && this.#current().kind === "open_parenthesis") {
+        this.#advance();
+        const value = this.#current();
+        if (value.kind !== "string" && value.kind !== "identifier") {
+          throw new MathInputParseError("Expected quoted math text", value.offset);
+        }
+        this.#advance();
+        this.#consume("close_parenthesis", "')'");
+        return createMathText(value.text);
+      }
+      if (token.text === "underbrace" && this.#current().kind === "open_parenthesis") {
+        this.#advance();
+        const body = this.#parseArrow();
+        this.#consume("comma", "',' after the underbrace body");
+        const annotation = this.#parseCommaSequence();
+        this.#consume("close_parenthesis", "')'");
+        return createMathUnderbrace(body, annotation);
       }
       if (token.text === "op" && this.#current().kind === "open_parenthesis") {
         this.#advance();

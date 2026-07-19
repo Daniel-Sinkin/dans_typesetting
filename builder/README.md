@@ -73,9 +73,11 @@ ASCII spellings such as `i in A`, `a <= b`, `a otimes b`, `theta`, and `partial`
 stores the operation or symbol name rather than the displayed glyph.
 
 Decorated identifiers and function applications use the same recursive math
-tree. The palette exposes blackboard/calligraphic placeholder leaves plus
-ordinary and named function templates. The optional parser accepts `bb(R)`,
-`cal(H)`, `f(x)`, `f[x]`, and `op(spectrum, cal(H))`; canonical payloads store
+tree. The palette exposes upright/blackboard/calligraphic placeholder leaves,
+single-line annotation text, an underbrace, and ordinary/named function
+templates. The optional parser accepts `bb(R)`, `cal(H)`, `rm(cores)`,
+`text("FMA width")`, `underbrace(x, text("label"))`, `f(x)`, `f[x]`, and
+`op(spectrum, cal(H))`; canonical payloads store
 the ASCII name, presentation style, delimiter, and recursive argument rather
 than the Unicode preview or TeX spelling.
 

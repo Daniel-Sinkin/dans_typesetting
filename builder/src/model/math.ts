@@ -20,10 +20,10 @@ export type MathBinaryOperator =
   | "divide"
   | "tensor_product";
 
-export type MathIdentifierStyle = "italic" | "blackboard" | "calligraphic";
+export type MathIdentifierStyle = "italic" | "upright" | "blackboard" | "calligraphic";
 export type MathFunctionDelimiter = "parentheses" | "brackets" | "angle";
 
-const mathIdentifierStyles = ["italic", "blackboard", "calligraphic"] as const;
+const mathIdentifierStyles = ["italic", "upright", "blackboard", "calligraphic"] as const;
 const mathFunctionDelimiters = ["parentheses", "brackets", "angle"] as const;
 
 function isMathIdentifierStyle(value: unknown): value is MathIdentifierStyle {
@@ -107,6 +107,7 @@ export type MathFractionBranch = "numerator" | "denominator";
 export type MathRadicalBranch = "body" | "degree";
 export type MathScriptBranch = "base" | "subscript" | "superscript";
 export type MathFunctionBranch = "argument";
+export type MathUnderbraceBranch = "body" | "annotation";
 export type MathSequenceBranch = `item:${number}`;
 export type MathGridBranch = `cell:${number}`;
 export type MathBranch =
@@ -116,6 +117,7 @@ export type MathBranch =
   | MathRadicalBranch
   | MathScriptBranch
   | MathFunctionBranch
+  | MathUnderbraceBranch
   | MathSequenceBranch
   | MathGridBranch;
 export type MathPath = readonly MathBranch[];
@@ -144,6 +146,11 @@ export interface MathIdentifier extends MathNodeBase {
   readonly style: MathIdentifierStyle;
 }
 
+export interface MathText extends MathNodeBase {
+  readonly kind: "text";
+  readonly value: string;
+}
+
 export interface MathSymbol extends MathNodeBase {
   readonly kind: "symbol";
   readonly name: MathSymbolName;
@@ -155,6 +162,12 @@ export interface MathFunctionExpression extends MathNodeBase {
   readonly namedOperator: boolean;
   readonly delimiter: MathFunctionDelimiter;
   readonly argument: MathExpression;
+}
+
+export interface MathUnderbraceExpression extends MathNodeBase {
+  readonly kind: "underbrace";
+  readonly body: MathExpression;
+  readonly annotation: MathExpression;
 }
 
 export interface MathBinaryExpression extends MathNodeBase {
@@ -223,8 +236,10 @@ export type MathExpression =
   | MathInteger
   | MathDecimal
   | MathIdentifier
+  | MathText
   | MathSymbol
   | MathFunctionExpression
+  | MathUnderbraceExpression
   | MathBinaryExpression
   | MathSummationExpression
   | MathFractionExpression
@@ -288,8 +303,34 @@ export function createMathStyledIdentifier(
   return Object.freeze({ id, kind: "identifier", name: renderedName, style });
 }
 
+function isValidMathText(value: string): boolean {
+  if (value.length === 0) {
+    return false;
+  }
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint !== undefined && (codePoint < 0x20 || codePoint === 0x7f)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function createMathText(
+  value: string,
+  id: string = createMathNodeId(),
+): MathText {
+  if (!isValidMathText(value)) {
+    throw new Error("Math text must be non-empty and contain no ASCII control characters");
+  }
+  return Object.freeze({ id, kind: "text", value });
+}
+
 const mathematicalAlphabetExceptions: Readonly<
-  Record<Exclude<MathIdentifierStyle, "italic">, Readonly<Record<string, number>>>
+  Record<
+    Exclude<MathIdentifierStyle, "italic" | "upright">,
+    Readonly<Record<string, number>>
+  >
 > = Object.freeze({
   blackboard: Object.freeze({
     C: 0x2102,
@@ -317,7 +358,7 @@ const mathematicalAlphabetExceptions: Readonly<
 
 function styledIdentifierCharacter(
   character: string,
-  style: Exclude<MathIdentifierStyle, "italic">,
+  style: Exclude<MathIdentifierStyle, "italic" | "upright">,
 ): string {
   const exception = mathematicalAlphabetExceptions[style][character];
   if (exception !== undefined) {
@@ -343,7 +384,7 @@ function styledIdentifierCharacter(
 
 export function mathIdentifierText(identifier: MathIdentifier): string {
   const style = identifier.style;
-  if (style === "italic") {
+  if (style === "italic" || style === "upright") {
     return identifier.name;
   }
   return Array.from(identifier.name)
@@ -389,6 +430,14 @@ export function createMathNamedOperator(
   id: string = createMathNodeId(),
 ): MathFunctionExpression {
   return createMathFunction(name, argument, delimiter, true, id);
+}
+
+export function createMathUnderbrace(
+  body: MathExpression = createMathSlot(),
+  annotation: MathExpression = createMathSlot(),
+  id: string = createMathNodeId(),
+): MathUnderbraceExpression {
+  return Object.freeze({ id, kind: "underbrace", body, annotation });
 }
 
 const mathSymbolGlyphs: Readonly<Record<MathSymbolName, string>> = Object.freeze({
@@ -652,6 +701,7 @@ export function parseMathPath(path: string): MathPath | null {
     branch === "subscript" ||
     branch === "superscript" ||
     branch === "argument" ||
+    branch === "annotation" ||
     /^item:(?:0|[1-9]\d*)$/u.test(branch) ||
     /^cell:(?:0|[1-9]\d*)$/u.test(branch);
   if (!branches.every(isMathBranch)) {
@@ -707,6 +757,12 @@ function mathChildAtBranch(
   }
   if (expression.kind === "function") {
     return branch === "argument" ? expression.argument : null;
+  }
+  if (expression.kind === "underbrace") {
+    if (branch === "body") {
+      return expression.body;
+    }
+    return branch === "annotation" ? expression.annotation : null;
   }
   if (expression.kind === "parenthesized") {
     return branch === "body" ? expression.body : null;
@@ -842,6 +898,20 @@ export function replaceMathExpressionAtPath(
       expression.id,
     );
   }
+  if (
+    expression.kind === "underbrace" &&
+    (branch === "body" || branch === "annotation")
+  ) {
+    return createMathUnderbrace(
+      branch === "body"
+        ? replaceMathExpressionAtPath(expression.body, remainingPath, replacement)
+        : expression.body,
+      branch === "annotation"
+        ? replaceMathExpressionAtPath(expression.annotation, remainingPath, replacement)
+        : expression.annotation,
+      expression.id,
+    );
+  }
   if (expression.kind === "parenthesized" && branch === "body") {
     return createMathParenthesized(
       replaceMathExpressionAtPath(expression.body, remainingPath, replacement),
@@ -921,12 +991,19 @@ export function mathExpressionHasSlots(expression: MathExpression): boolean {
     expression.kind === "integer" ||
     expression.kind === "decimal" ||
     expression.kind === "identifier" ||
+    expression.kind === "text" ||
     expression.kind === "symbol"
   ) {
     return false;
   }
   if (expression.kind === "function") {
     return mathExpressionHasSlots(expression.argument);
+  }
+  if (expression.kind === "underbrace") {
+    return (
+      mathExpressionHasSlots(expression.body) ||
+      mathExpressionHasSlots(expression.annotation)
+    );
   }
   if (expression.kind === "summation") {
     return (
@@ -1107,6 +1184,9 @@ function renderMathExpression(
   if (expression.kind === "identifier") {
     return mathIdentifierText(expression);
   }
+  if (expression.kind === "text") {
+    return expression.value;
+  }
   if (expression.kind === "symbol") {
     return mathSymbolGlyph(expression.name);
   }
@@ -1118,6 +1198,9 @@ function renderMathExpression(
     };
     const [open, close] = delimiters[expression.delimiter];
     return `${expression.name}${open}${renderMathExpression(expression.argument, null, null)}${close}`;
+  }
+  if (expression.kind === "underbrace") {
+    return `underbrace(${renderMathExpression(expression.body, null, null)}, ${renderMathExpression(expression.annotation, null, null)})`;
   }
   if (expression.kind === "summation") {
     return `Σ_{${renderMathExpression(expression.lower, null, null)}}^{${renderMathExpression(expression.upper, null, null)}} ${renderMathExpression(expression.body, null, null)}`;
@@ -1221,6 +1304,13 @@ export function validateMathExpression(expression: MathExpression): void {
           throw new Error("Builder math identifiers require a supported presentation style");
         }
         return;
+      case "text":
+        if (!isValidMathText(node.value)) {
+          throw new Error(
+            "Builder math text must be non-empty and contain no ASCII control characters",
+          );
+        }
+        return;
       case "symbol":
         if (!(mathSymbolNames as readonly string[]).includes(node.name)) {
           throw new Error("Builder math symbols require a registered semantic name");
@@ -1234,6 +1324,10 @@ export function validateMathExpression(expression: MathExpression): void {
           throw new Error("Builder math functions require a supported delimiter");
         }
         visit(node.argument, depth + 1);
+        return;
+      case "underbrace":
+        visit(node.body, depth + 1);
+        visit(node.annotation, depth + 1);
         return;
       case "binary":
         visit(node.left, depth + 1);
@@ -1315,6 +1409,7 @@ type SerializedMathExpression =
       name: string;
       style?: Exclude<MathIdentifierStyle, "italic">;
     }>
+  | Readonly<{ kind: "text"; value: string }>
   | Readonly<{ kind: "symbol"; name: MathSymbolName }>
   | Readonly<{
       kind: "function";
@@ -1322,6 +1417,11 @@ type SerializedMathExpression =
       namedOperator: boolean;
       delimiter: MathFunctionDelimiter;
       argument: SerializedMathExpression;
+    }>
+  | Readonly<{
+      kind: "underbrace";
+      body: SerializedMathExpression;
+      annotation: SerializedMathExpression;
     }>
   | Readonly<{
       kind: "binary";
@@ -1381,6 +1481,8 @@ function serializeMathNode(expression: MathExpression): SerializedMathExpression
       return expression.style === "italic"
         ? { kind: "identifier", name: expression.name }
         : { kind: "identifier", name: expression.name, style: expression.style };
+    case "text":
+      return { kind: "text", value: expression.value };
     case "symbol":
       return { kind: "symbol", name: expression.name };
     case "function":
@@ -1390,6 +1492,12 @@ function serializeMathNode(expression: MathExpression): SerializedMathExpression
         namedOperator: expression.namedOperator,
         delimiter: expression.delimiter,
         argument: serializeMathNode(expression.argument),
+      };
+    case "underbrace":
+      return {
+        kind: "underbrace",
+        body: serializeMathNode(expression.body),
+        annotation: serializeMathNode(expression.annotation),
       };
     case "binary":
       return {
@@ -1516,6 +1624,8 @@ function parseSerializedMathNode(value: unknown): MathExpression {
       }
       return createMathStyledIdentifier(name, style);
     }
+    case "text":
+      return createMathText(requireStringField(node, "value", "Math text"));
     case "symbol": {
       const name = requireStringField(node, "name", "Symbol");
       if (!(mathSymbolNames as readonly string[]).includes(name)) {
@@ -1535,6 +1645,11 @@ function parseSerializedMathNode(value: unknown): MathExpression {
         requireBooleanField(node, "namedOperator", "Function"),
       );
     }
+    case "underbrace":
+      return createMathUnderbrace(
+        parseSerializedMathNode(node.body),
+        parseSerializedMathNode(node.annotation),
+      );
     case "binary": {
       const operator = requireStringField(node, "operator", "Binary expression");
       if (

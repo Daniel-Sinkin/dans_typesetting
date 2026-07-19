@@ -59,6 +59,11 @@ auto write_identifier(
             output.write_raw(name);
             output.write_raw("}");
             return;
+        case Math::IdentifierStyle::upright:
+            output.write_raw("\\mathrm{");
+            output.write_raw(name);
+            output.write_raw("}");
+            return;
         case Math::IdentifierStyle::blackboard:
             output.write_raw("\\mathbb{");
             output.write_raw(name);
@@ -71,6 +76,52 @@ auto write_identifier(
             return;
     }
     throw std::logic_error{"Unknown math identifier style"};
+}
+
+template <typename Output>
+auto write_math_text(Output& output, const std::string_view value) -> void
+{
+    output.write_raw("\\text{");
+    for (const char character : value)
+    {
+        switch (character)
+        {
+            case '\\':
+                output.write_raw("\\textbackslash{}");
+                break;
+            case '{':
+                output.write_raw("\\{");
+                break;
+            case '}':
+                output.write_raw("\\}");
+                break;
+            case '$':
+                output.write_raw("\\$");
+                break;
+            case '&':
+                output.write_raw("\\&");
+                break;
+            case '#':
+                output.write_raw("\\#");
+                break;
+            case '%':
+                output.write_raw("\\%");
+                break;
+            case '_':
+                output.write_raw("\\_");
+                break;
+            case '~':
+                output.write_raw("\\textasciitilde{}");
+                break;
+            case '^':
+                output.write_raw("\\textasciicircum{}");
+                break;
+            default:
+                output.write_raw(std::string_view{&character, 1});
+                break;
+        }
+    }
+    output.write_raw("}");
 }
 
 template <typename Output>
@@ -307,6 +358,9 @@ auto write_expression(
         case Kind::identifier:
             write_identifier(output, expression.identifier_name(), expression.identifier_style());
             return;
+        case Kind::text:
+            write_math_text(output, expression.text_value());
+            return;
         case Kind::symbol:
             output.write_raw("{");
             write_symbol(output, expression.symbol_value());
@@ -519,6 +573,13 @@ auto write_expression(
             }
             output.write_raw(" ");
             write_expression(*expression.summation_body(), output, 30);
+            return;
+        case Kind::underbrace:
+            output.write_raw("\\underbrace{");
+            write_expression(expression.underbrace_body(), output);
+            output.write_raw("}_{");
+            write_expression(expression.underbrace_annotation(), output);
+            output.write_raw("}");
             return;
         case Kind::grid:
             output.write_raw("\\begin{matrix}");

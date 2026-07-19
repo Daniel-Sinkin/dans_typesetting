@@ -70,6 +70,30 @@ auto test_model() -> void
         calligraphic.identifier_style() == M::IdentifierStyle::calligraphic,
         "A calligraphic identifier lost its presentation style"
     );
+    auto upright = M::upright("SIMD32");
+    expect(
+        upright.identifier_style() == M::IdentifierStyle::upright,
+        "An upright identifier lost its presentation style"
+    );
+    auto annotation = M::underbrace(M::id_2, M::text("FMA & SIMD"));
+    expect(annotation.kind() == M::Kind::underbrace, "An underbrace lost its expression kind");
+    expect(annotation.underbrace_body().integer_value() == 2, "An underbrace lost its body");
+    expect(
+        annotation.underbrace_annotation().text_value() == "FMA & SIMD",
+        "An underbrace lost its annotation"
+    );
+    annotation.validate();
+
+    bool rejected_control_text{};
+    try
+    {
+        static_cast<void>(M::text("line\nbreak"));
+    }
+    catch (const std::invalid_argument&)
+    {
+        rejected_control_text = true;
+    }
+    expect(rejected_control_text, "Math text accepted a line break");
 
     make_expression().validate();
 }
@@ -194,6 +218,17 @@ auto test_thesis_vocabulary() -> void
         tex::render_expression(M::function("f").argument(M::blackboard("C")))
             == R"(f\!\left(\mathbb{C}\right))",
         "Ordinary function application lowering changed"
+    );
+    expect(
+        tex::render_expression(
+            M::underbrace(M::center_dot(M::upright("cores"), M::id_2), M::text("FMA & SIMD"))
+        ) == R"(\underbrace{\mathrm{cores} \cdot 2}_{\text{FMA \& SIMD}})",
+        "Upright identifier, math text, or underbrace lowering changed"
+    );
+    expect(
+        tex::render_expression(M::text(R"(\{}$&#%_~^)"))
+            == R"(\text{\textbackslash{}\{\}\$\&\#\%\_\textasciitilde{}\textasciicircum{}})",
+        "Math-text escaping changed"
     );
 }
 

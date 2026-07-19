@@ -53,4 +53,5 @@ these three core presentation nodes. Ordinary and named function calls are
 documented in
 [math-identifiers-and-functions.md](math-identifiers-and-functions.md); the
 relation, product, and symbol vocabulary is documented separately in
-[math-vocabulary.md](math-vocabulary.md).
+[math-vocabulary.md](math-vocabulary.md), and constrained semantic annotation
+nodes are documented in [math-annotations.md](math-annotations.md).

@@ -27,6 +27,8 @@ import {
   createMathSummation,
   createMathSymbol,
   createMathStyledIdentifier,
+  createMathText,
+  createMathUnderbrace,
 } from "../model/math";
 import { createImagePlugin } from "../plugins/image";
 import { createImageBlock } from "../plugins/imageModel";
@@ -339,9 +341,12 @@ const initialBlocks = [
           createMathIdentifier("i"),
           createMathInteger(1),
         ),
-        createMathNamedOperator(
-          "dim",
-          createMathStyledIdentifier("H", "calligraphic"),
+        createMathUnderbrace(
+          createMathNamedOperator(
+            "dim",
+            createMathStyledIdentifier("H", "calligraphic"),
+          ),
+          createMathText("space dimension"),
         ),
         createMathBinary(
           "tensor_product",

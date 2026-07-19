@@ -34,6 +34,19 @@ auto is_valid_name(const std::string_view name) noexcept -> bool
         [](const char character) { return is_ascii_letter(character) || is_ascii_digit(character); }
     );
 }
+
+auto is_valid_math_text(const std::string_view value) noexcept -> bool
+{
+    return !value.empty()
+           && std::ranges::none_of(
+               value,
+               [](const char character)
+               {
+                   const auto byte = static_cast<unsigned char>(character);
+                   return byte < 0x20u || byte == 0x7fu;
+               }
+           );
+}
 }  // namespace
 
 namespace dans::document::plugins
@@ -203,6 +216,11 @@ struct Math::Node
         Math::IdentifierStyle style{};
     };
 
+    struct Text
+    {
+        std::string value{};
+    };
+
     struct Symbol
     {
         Math::Symbol value{};
@@ -263,6 +281,12 @@ struct Math::Node
         std::optional<Math> body{};
     };
 
+    struct Underbrace
+    {
+        Math body;
+        Math annotation;
+    };
+
     struct Grid
     {
         usize rows{};
@@ -273,6 +297,7 @@ struct Math::Node
     using Value = std::variant<
         Integer,
         Identifier,
+        Text,
         Symbol,
         BinaryExpression,
         Script,
@@ -284,6 +309,7 @@ struct Math::Node
         Delimited,
         InnerProduct,
         Summation,
+        Underbrace,
         Grid>;
 
     template <typename ValueType>
@@ -351,6 +377,7 @@ auto Math::styled_identifier(const std::string_view name, const IdentifierStyle 
     switch (style)
     {
         case IdentifierStyle::italic:
+        case IdentifierStyle::upright:
         case IdentifierStyle::blackboard:
         case IdentifierStyle::calligraphic:
             break;
@@ -376,6 +403,22 @@ auto Math::blackboard(const std::string_view name) -> Math
 auto Math::calligraphic(const std::string_view name) -> Math
 {
     return styled_identifier(name, IdentifierStyle::calligraphic);
+}
+
+auto Math::upright(const std::string_view name) -> Math
+{
+    return styled_identifier(name, IdentifierStyle::upright);
+}
+
+auto Math::text(const std::string_view value) -> Math
+{
+    if (!is_valid_math_text(value))
+    {
+        throw std::invalid_argument{
+            "Math text must be non-empty and contain no control characters"
+        };
+    }
+    return Math{std::make_unique<Node>(Node::Text{.value = std::string{value}})};
 }
 
 auto Math::symbol(const Math::Symbol symbol) -> Math
@@ -560,6 +603,14 @@ auto Math::inner_product() -> Math
 auto Math::summation() -> Math
 {
     return Math{std::make_unique<Node>(Node::Summation{})};
+}
+
+auto Math::underbrace(Math body, Math annotation) -> Math
+{
+    return Math{std::make_unique<Node>(Node::Underbrace{
+        .body = std::move(body),
+        .annotation = std::move(annotation),
+    })};
 }
 
 auto Math::grid(const usize rows, const usize columns, std::vector<Math> cells) -> Math
@@ -797,6 +848,10 @@ auto Math::kind() const -> Kind
             {
                 return Kind::identifier;
             }
+            else if constexpr (std::is_same_v<Value, Node::Text>)
+            {
+                return Kind::text;
+            }
             else if constexpr (std::is_same_v<Value, Node::Symbol>)
             {
                 return Kind::symbol;
@@ -841,6 +896,10 @@ auto Math::kind() const -> Kind
             {
                 return Kind::summation;
             }
+            else if constexpr (std::is_same_v<Value, Node::Underbrace>)
+            {
+                return Kind::underbrace;
+            }
             else
             {
                 static_assert(std::is_same_v<Value, Node::Grid>);
@@ -864,6 +923,11 @@ auto Math::identifier_name() const -> std::string_view
 auto Math::identifier_style() const -> Math::IdentifierStyle
 {
     return std::get<Node::Identifier>(node().value).style;
+}
+
+auto Math::text_value() const -> std::string_view
+{
+    return std::get<Node::Text>(node().value).value;
 }
 
 auto Math::symbol_value() const -> Math::Symbol
@@ -986,6 +1050,16 @@ auto Math::summation_body() const -> const Math*
     return value.has_value() ? &*value : nullptr;
 }
 
+auto Math::underbrace_body() const -> const Math&
+{
+    return std::get<Node::Underbrace>(node().value).body;
+}
+
+auto Math::underbrace_annotation() const -> const Math&
+{
+    return std::get<Node::Underbrace>(node().value).annotation;
+}
+
 auto Math::grid_rows() const -> usize
 {
     return std::get<Node::Grid>(node().value).rows;
@@ -1007,6 +1081,7 @@ auto Math::explicit_alignment_points() const -> usize
     {
         case Kind::integer:
         case Kind::identifier:
+        case Kind::text:
         case Kind::symbol:
             return 0;
         case Kind::binary:
@@ -1068,6 +1143,9 @@ auto Math::explicit_alignment_points() const -> usize
                 }
                 return count;
             }
+        case Kind::underbrace:
+            return underbrace_body().explicit_alignment_points()
+                   + underbrace_annotation().explicit_alignment_points();
         case Kind::grid:
             {
                 usize count{};
@@ -1088,6 +1166,14 @@ auto Math::validate() const -> void
         case Kind::integer:
         case Kind::identifier:
         case Kind::symbol:
+            return;
+        case Kind::text:
+            if (!is_valid_math_text(text_value()))
+            {
+                throw std::logic_error{
+                    "Math text must be non-empty and contain no control characters"
+                };
+            }
             return;
         case Kind::binary:
             binary_expression().left.validate();
@@ -1177,6 +1263,10 @@ auto Math::validate() const -> void
                 expression->validate();
             }
             summation_body()->validate();
+            return;
+        case Kind::underbrace:
+            underbrace_body().validate();
+            underbrace_annotation().validate();
             return;
         case Kind::grid:
             for (const auto& expression : grid_cells())

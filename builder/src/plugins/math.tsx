@@ -31,6 +31,8 @@ import {
   createMathSummation,
   createMathSymbol,
   createMathStyledIdentifier,
+  createMathText,
+  createMathUnderbrace,
   detachMathExpressionAtPath,
   mathExpressionAtPath,
   mathExpressionHasSlots,
@@ -261,6 +263,20 @@ function selectionCandidatesForScope(
           lockedSelection,
         ),
       ];
+    case "underbrace":
+      return [
+        whole,
+        makeSelectionCandidate(
+          { kind: "node", path: [...scopePath, "body"] },
+          2,
+          lockedSelection,
+        ),
+        makeSelectionCandidate(
+          { kind: "node", path: [...scopePath, "annotation"] },
+          3,
+          lockedSelection,
+        ),
+      ];
     case "parenthesized":
     case "delimited":
       return [
@@ -311,6 +327,7 @@ function selectionCandidatesForScope(
     case "integer":
     case "decimal":
     case "identifier":
+    case "text":
     case "symbol":
       return [whole];
   }
@@ -436,6 +453,14 @@ function MathNode({
       </span>
     );
   }
+  if (expression.kind === "text") {
+    return (
+      <span {...sharedProps} className={`${sharedProps.className} math-text`}>
+        {selectionBadge}
+        {expression.value}
+      </span>
+    );
+  }
   if (expression.kind === "symbol") {
     return (
       <span {...sharedProps} className={`${sharedProps.className} math-symbol`}>
@@ -475,6 +500,52 @@ function MathNode({
           onHoverSelection={onHoverSelection}
         />
         <span className="math-parenthesis math-parenthesis--close">{close}</span>
+      </span>
+    );
+  }
+  if (expression.kind === "underbrace") {
+    return (
+      <span {...sharedProps} className={`${sharedProps.className} math-underbrace`}>
+        {selectionBadge}
+        <span className="math-underbrace__body">
+          <MathNode
+            expression={expression.body}
+            path={[...path, "body"]}
+            parentOperator={null}
+            parentBranch={null}
+            selectedPathKey={selectedPathKey}
+            onBeginDrag={onBeginDrag}
+            onHoverPath={onHoverPath}
+            renderSlot={renderSlot}
+            renderNodeEditor={renderNodeEditor}
+            selectionCandidates={selectionCandidates}
+            onHoverSelection={onHoverSelection}
+          />
+        </span>
+        <svg
+          className="math-underbrace__glyph"
+          viewBox="0 0 100 12"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M0 0 C3 0 3 6 9 6 H44 Q49 6 50 12 Q51 6 56 6 H91 C97 6 97 0 100 0" />
+        </svg>
+        <span className="math-underbrace__annotation">
+          <MathNode
+            expression={expression.annotation}
+            path={[...path, "annotation"]}
+            parentOperator={null}
+            parentBranch={null}
+            selectedPathKey={selectedPathKey}
+            onBeginDrag={onBeginDrag}
+            onHoverPath={onHoverPath}
+            renderSlot={renderSlot}
+            renderNodeEditor={renderNodeEditor}
+            selectionCandidates={selectionCandidates}
+            onHoverSelection={onHoverSelection}
+          />
+        </span>
       </span>
     );
   }
@@ -933,6 +1004,12 @@ const symbolPalette = mathSymbolNames.map(
 
 const identifierStylePalette: readonly MathEditorPaletteItem[] = [
   {
+    id: "identifier-upright",
+    label: "A",
+    description: "Upright identifier placeholder",
+    create: () => createMathStyledIdentifier("A", "upright"),
+  },
+  {
     id: "identifier-blackboard",
     label: "𝔸",
     description: "Blackboard-bold identifier placeholder",
@@ -978,6 +1055,12 @@ const operatorPalette = (
 
 const structurePalette: readonly MathEditorPaletteItem[] = [
   {
+    id: "structure-text",
+    label: "text",
+    description: "Single-line semantic math annotation",
+    create: () => createMathText("text"),
+  },
+  {
     id: "structure-function",
     label: "f(x)",
     description: "Ordinary function with an argument slot",
@@ -988,6 +1071,12 @@ const structurePalette: readonly MathEditorPaletteItem[] = [
     label: "op[x]",
     description: "Named operator with an argument slot",
     create: () => createMathNamedOperator("op"),
+  },
+  {
+    id: "structure-underbrace",
+    label: "⏟",
+    description: "Underbrace with body and annotation slots",
+    create: () => createMathUnderbrace(),
   },
   {
     id: "structure-summation",

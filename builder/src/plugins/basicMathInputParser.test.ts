@@ -85,6 +85,37 @@ describe("basic math input parser plugin", () => {
     );
   });
 
+  it("parses upright identifiers, quoted math text, and recursive underbraces", () => {
+    const expression = basicMathInputParser.parse(
+      'underbrace(rm(cores) cdot 2, text("FMA & SIMD"))',
+    );
+
+    expect(mathExpressionToText(expression)).toBe(
+      "underbrace(cores · 2, FMA & SIMD)",
+    );
+    expect(
+      mathExpressionToText(
+        basicMathInputParser.parse(`text(${JSON.stringify('quoted "term" and \\ path')})`),
+      ),
+    ).toBe('quoted "term" and \\ path');
+    expect(mathExpressionToText(basicMathInputParser.parse("text(FMA)"))).toBe("FMA");
+  });
+
+  it("rejects malformed math text and incomplete underbraces with positions", () => {
+    expect(() => basicMathInputParser.parse('text("unterminated)')).toThrow(
+      /Unterminated math text/u,
+    );
+    expect(() => basicMathInputParser.parse('text("bad\\nescape")')).toThrow(
+      /supports only/u,
+    );
+    expect(() => basicMathInputParser.parse('text("two\nlines")')).toThrow(
+      /cannot span lines/u,
+    );
+    expect(() => basicMathInputParser.parse("underbrace(x)")).toThrow(
+      /after the underbrace body/u,
+    );
+  });
+
   it("reports the source position of malformed or unsupported input", () => {
     expect(() => basicMathInputParser.parse("(1+2]")).toThrow(MathInputParseError);
     expect(() => basicMathInputParser.parse("x@")).toThrow(/character 2/u);

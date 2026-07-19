@@ -81,11 +81,16 @@ such as `partial` or `capital_omega`; neither stores Unicode glyphs nor TeX
 commands. See [math-vocabulary.md](math-vocabulary.md).
 
 Identifier payloads keep the original `{kind: "identifier", name}` spelling
-for ordinary italic symbols and add `style` only for `blackboard` or
-`calligraphic` leaves. Function payloads own an ASCII `name`, Boolean
+for ordinary italic symbols and add `style` only for `upright`, `blackboard`,
+or `calligraphic` leaves. Function payloads own an ASCII `name`, Boolean
 `namedOperator`, one of the registered delimiter names, and one recursive
 `argument`. IDs remain editor-local and are regenerated on decode. See
 [math-identifiers-and-functions.md](math-identifiers-and-functions.md).
+
+Math-text payloads store one validated `value`. Underbrace payloads own
+recursive `body` and `annotation` expressions. They extend the same version-1
+math vocabulary and never store the TeX commands used by a publication writer.
+See [math-annotations.md](math-annotations.md).
 
 Inline source code uses `dans.code.inline` with one string-valued `code` field.
 CR and LF are rejected because multiline source belongs to the listing plugin;
