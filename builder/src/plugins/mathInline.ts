@@ -3,6 +3,7 @@ import { createElement } from "react";
 
 import type { BuilderInlinePlugin } from "../builder/inlinePlugin";
 import type { MathInputParserPlugin } from "../math/inputParser";
+import type { MathEditorExtension } from "../math/editorExtension";
 import {
   createMathInline,
   mathInlineTypeId,
@@ -13,6 +14,7 @@ import { requireInlineMath } from "./mathInlineSupport";
 
 export function createInlineMathPlugin(
   inputParser?: MathInputParserPlugin,
+  editorExtensions: readonly MathEditorExtension[] = [],
 ): BuilderInlinePlugin {
   return {
     typeId: mathInlineTypeId,
@@ -33,7 +35,11 @@ export function createInlineMathPlugin(
     },
     editor: {
       render(props) {
-        return createElement(InlineMathEditor, { ...props, inputParser });
+        return createElement(InlineMathEditor, {
+          ...props,
+          inputParser,
+          editorExtensions,
+        });
       },
     },
   };

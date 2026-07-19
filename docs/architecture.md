@@ -182,6 +182,28 @@ other structured cell nodes instead of silently destroying them. Both native
 and browser parsers handle quoted commas, escaped quotes, embedded newlines,
 CRLF, and rectangularity checks.
 
+## Structured-math grid and MatVec boundary
+
+Structured mathematics is a presentation tree, not an evaluation AST. Its core
+now includes one rectangular `grid` primitive whose cells are ordinary recursive
+math expressions. A grid records row and column counts but no brackets, physical
+cell dimensions, matrix algebra semantics, or backend syntax. Writers therefore
+have one small two-dimensional layout contract to implement.
+
+`Math::MatVec` is an optional native authoring extension that composes this grid
+with square delimiters. It supplies rectangular matrices plus row- and
+column-vector helpers without adding a matrix-specific expression kind. The
+browser equivalent contributes optional palette constructors to the math editor;
+the base preview, drag/drop, selection, parking, clipboard, and canonical codecs
+only consume the resulting delimiter and grid primitives. Removing the editor
+extension hides those constructors but does not make an existing matrix document
+unreadable.
+
+Grid cells reject display-alignment points because a LaTeX `&` inside a matrix
+cell would collide with the grid's own column separator. Row/column spans,
+determinants, cases, and matrix evaluation remain separate future extensions.
+See [math-matvec.md](math-matvec.md) for the concrete contract.
+
 ## Semantic target index
 
 Referenceable block plugins expose a small descriptor containing an optional

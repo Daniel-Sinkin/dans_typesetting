@@ -4,7 +4,12 @@ export type MathBinaryOperator = "plus" | "minus" | "equals" | "times" | "divide
 export type MathBinaryBranch = "left" | "right";
 export type MathSummationBranch = "lower" | "upper" | "body";
 export type MathSequenceBranch = `item:${number}`;
-export type MathBranch = MathBinaryBranch | MathSummationBranch | MathSequenceBranch;
+export type MathGridBranch = `cell:${number}`;
+export type MathBranch =
+  | MathBinaryBranch
+  | MathSummationBranch
+  | MathSequenceBranch
+  | MathGridBranch;
 export type MathPath = readonly MathBranch[];
 
 interface MathNodeBase {
@@ -65,6 +70,13 @@ export interface MathCommaSequence extends MathNodeBase {
   readonly items: readonly MathExpression[];
 }
 
+export interface MathGridExpression extends MathNodeBase {
+  readonly kind: "grid";
+  readonly rows: number;
+  readonly columns: number;
+  readonly cells: readonly MathExpression[];
+}
+
 export type MathExpression =
   | MathSlot
   | MathInteger
@@ -75,7 +87,8 @@ export type MathExpression =
   | MathParenthesizedExpression
   | MathDelimitedExpression
   | MathNegatedExpression
-  | MathCommaSequence;
+  | MathCommaSequence
+  | MathGridExpression;
 
 function createMathNodeId(): string {
   return globalThis.crypto.randomUUID();
@@ -182,6 +195,37 @@ export function createMathCommaSequence(
   return Object.freeze({ id, kind: "comma_sequence", items: Object.freeze([...items]) });
 }
 
+export function createMathGrid(
+  rows: number,
+  columns: number,
+  cells?: readonly MathExpression[],
+  id: string = createMathNodeId(),
+): MathGridExpression {
+  const cellCount = rows * columns;
+  if (
+    !Number.isSafeInteger(rows) ||
+    !Number.isSafeInteger(columns) ||
+    rows <= 0 ||
+    columns <= 0 ||
+    !Number.isSafeInteger(cellCount)
+  ) {
+    throw new Error("A math grid requires positive safe-integer dimensions");
+  }
+  const ownedCells = cells === undefined
+    ? Array.from({ length: cellCount }, () => createMathSlot())
+    : [...cells];
+  if (ownedCells.length !== cellCount) {
+    throw new Error("A math grid requires exactly rows times columns cells");
+  }
+  return Object.freeze({
+    id,
+    kind: "grid",
+    rows,
+    columns,
+    cells: Object.freeze(ownedCells),
+  });
+}
+
 export function mathPathKey(path: MathPath): string {
   return path.length === 0 ? "root" : path.join(".");
 }
@@ -191,6 +235,13 @@ export function mathSequenceBranch(index: number): MathSequenceBranch {
     throw new Error("A math sequence branch requires a non-negative integer index");
   }
   return `item:${String(index)}` as MathSequenceBranch;
+}
+
+export function mathGridBranch(index: number): MathGridBranch {
+  if (!Number.isInteger(index) || index < 0) {
+    throw new Error("A math grid branch requires a non-negative integer index");
+  }
+  return `cell:${String(index)}` as MathGridBranch;
 }
 
 export function parseMathPath(path: string): MathPath | null {
@@ -204,7 +255,8 @@ export function parseMathPath(path: string): MathPath | null {
     branch === "lower" ||
     branch === "upper" ||
     branch === "body" ||
-    /^item:(?:0|[1-9]\d*)$/u.test(branch);
+    /^item:(?:0|[1-9]\d*)$/u.test(branch) ||
+    /^cell:(?:0|[1-9]\d*)$/u.test(branch);
   if (!branches.every(isMathBranch)) {
     return null;
   }
@@ -244,6 +296,10 @@ function mathChildAtBranch(
   if (expression.kind === "comma_sequence" && branch.startsWith("item:")) {
     const index = Number.parseInt(branch.slice("item:".length), 10);
     return expression.items[index] ?? null;
+  }
+  if (expression.kind === "grid" && branch.startsWith("cell:")) {
+    const index = Number.parseInt(branch.slice("cell:".length), 10);
+    return expression.cells[index] ?? null;
   }
   return null;
 }
@@ -338,6 +394,22 @@ export function replaceMathExpressionAtPath(
       expression.id,
     );
   }
+  if (expression.kind === "grid" && branch.startsWith("cell:")) {
+    const index = Number.parseInt(branch.slice("cell:".length), 10);
+    if (expression.cells[index] === undefined) {
+      throw new Error(`Math path '${mathPathKey(path)}' does not exist`);
+    }
+    return createMathGrid(
+      expression.rows,
+      expression.columns,
+      expression.cells.map((cell, cellIndex) =>
+        cellIndex === index
+          ? replaceMathExpressionAtPath(cell, remainingPath, replacement)
+          : cell,
+      ),
+      expression.id,
+    );
+  }
   throw new Error(`Math path '${mathPathKey(path)}' does not exist`);
 }
 
@@ -386,6 +458,9 @@ export function mathExpressionHasSlots(expression: MathExpression): boolean {
   }
   if (expression.kind === "comma_sequence") {
     return expression.items.some(mathExpressionHasSlots);
+  }
+  if (expression.kind === "grid") {
+    return expression.cells.some(mathExpressionHasSlots);
   }
   return mathExpressionHasSlots(expression.left) || mathExpressionHasSlots(expression.right);
 }
@@ -512,6 +587,15 @@ function renderMathExpression(
       .map((item) => renderMathExpression(item, null, null))
       .join(", ");
   }
+  if (expression.kind === "grid") {
+    const renderedRows = Array.from({ length: expression.rows }, (_, row) =>
+      expression.cells
+        .slice(row * expression.columns, (row + 1) * expression.columns)
+        .map((cell) => renderMathExpression(cell, null, null))
+        .join(", "),
+    );
+    return renderedRows.join("; ");
+  }
 
   const rendered = `${renderMathExpression(expression.left, expression.operator, "left")} ${mathOperatorSymbol(expression.operator)} ${renderMathExpression(expression.right, expression.operator, "right")}`;
   if (parentOperator === null) {
@@ -581,6 +665,21 @@ export function validateMathExpression(expression: MathExpression): void {
           visit(item, depth + 1);
         });
         return;
+      case "grid":
+        if (
+          !Number.isSafeInteger(node.rows) ||
+          !Number.isSafeInteger(node.columns) ||
+          !Number.isSafeInteger(node.rows * node.columns) ||
+          node.rows <= 0 ||
+          node.columns <= 0 ||
+          node.cells.length !== node.rows * node.columns
+        ) {
+          throw new Error("Builder math grids require positive rectangular dimensions");
+        }
+        node.cells.forEach((cell) => {
+          visit(cell, depth + 1);
+        });
+        return;
     }
   };
 
@@ -620,6 +719,12 @@ type SerializedMathExpression =
   | Readonly<{
       kind: "comma_sequence";
       items: readonly SerializedMathExpression[];
+    }>
+  | Readonly<{
+      kind: "grid";
+      rows: number;
+      columns: number;
+      cells: readonly SerializedMathExpression[];
     }>;
 
 function serializeMathNode(expression: MathExpression): SerializedMathExpression {
@@ -661,6 +766,13 @@ function serializeMathNode(expression: MathExpression): SerializedMathExpression
         kind: "comma_sequence",
         items: expression.items.map(serializeMathNode),
       };
+    case "grid":
+      return {
+        kind: "grid",
+        rows: expression.rows,
+        columns: expression.columns,
+        cells: expression.cells.map(serializeMathNode),
+      };
   }
 }
 
@@ -683,6 +795,18 @@ function requireStringField(
   const fieldValue = value[field];
   if (typeof fieldValue !== "string") {
     throw new Error(`${context}.${field} must be a string`);
+  }
+  return fieldValue;
+}
+
+function requireNumberField(
+  value: Record<string, unknown>,
+  field: string,
+  context: string,
+): number {
+  const fieldValue = value[field];
+  if (typeof fieldValue !== "number") {
+    throw new Error(`${context}.${field} must be a number`);
   }
   return fieldValue;
 }
@@ -738,6 +862,16 @@ function parseSerializedMathNode(value: unknown): MathExpression {
         throw new Error("Comma-separated expression.items must be an array");
       }
       return createMathCommaSequence(node.items.map(parseSerializedMathNode));
+    }
+    case "grid": {
+      if (!Array.isArray(node.cells)) {
+        throw new Error("Grid expression.cells must be an array");
+      }
+      return createMathGrid(
+        requireNumberField(node, "rows", "Grid expression"),
+        requireNumberField(node, "columns", "Grid expression"),
+        node.cells.map(parseSerializedMathNode),
+      );
     }
     default:
       throw new Error(`Unsupported serialized math node kind: ${kind}`);

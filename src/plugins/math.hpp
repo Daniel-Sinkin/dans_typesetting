@@ -142,6 +142,7 @@ class Math final
     struct DisplayLine;
     class Display;
     class Inline;
+    class MatVec;
 
     enum class Kind : u8
     {
@@ -156,6 +157,7 @@ class Math final
         delimited,
         inner_product,
         summation,
+        grid,
     };
 
     ~Math();
@@ -201,6 +203,7 @@ class Math final
     [[nodiscard]] static auto delimited(Delimiter delimiter) -> Math;
     [[nodiscard]] static auto inner_product() -> Math;
     [[nodiscard]] static auto summation() -> Math;
+    [[nodiscard]] static auto grid(usize rows, usize columns, std::vector<Math> cells) -> Math;
 
     auto append(Math expression) & -> Math&;
     auto append(Math expression) && -> Math&&;
@@ -239,6 +242,9 @@ class Math final
     [[nodiscard]] auto summation_lower() const -> const Math*;
     [[nodiscard]] auto summation_upper() const -> const Math*;
     [[nodiscard]] auto summation_body() const -> const Math*;
+    [[nodiscard]] auto grid_rows() const -> usize;
+    [[nodiscard]] auto grid_columns() const -> usize;
+    [[nodiscard]] auto grid_cells() const -> std::span<const Math>;
     [[nodiscard]] auto explicit_alignment_points() const -> usize;
 
     auto validate() const -> void;

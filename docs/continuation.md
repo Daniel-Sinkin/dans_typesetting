@@ -28,9 +28,30 @@ numbering.
 Commit `6bd1dfa` adds semantic inline footnotes and generic inline occurrence
 numbering.
 
+Commit `39e89eb` adds semantic rich tables and the optional plain-text CSV
+capability.
+
 ## Current verified slice
 
-The rich-table and optional-CSV slice adds:
+The structured-math grid and MatVec slice adds:
+
+- a rectangular, recursively nested core math-grid primitive in native and
+  browser models;
+- `Math::MatVec` as a separate native authoring module that composes grids and
+  square delimiters into matrices, row vectors, and column vectors;
+- a registered graphical editor extension contributing square, rectangular,
+  row-vector, and column-vector drag sources;
+- ordinary cell-level selection, typed insertion, drag/drop, detach, parking,
+  and clipboard behavior through existing math mechanics;
+- canonical recursive grid transport plus exact round-trip coverage;
+- LaTeX `matrix` lowering, a referenced native sample equation, compiled PDF
+  coverage, malformed-shape tests, and real browser pointer interaction.
+
+The semantic constructor accepts arbitrary positive rectangular dimensions.
+The first graphical palette exposes fixed `2x2`, `2x3`, `1x3`, and `3x1`
+templates; an arbitrary dimension picker is future authoring policy.
+
+The preceding rich-table and optional-CSV slice adds:
 
 - `dans.table` with stable rectangular rows/cells, inline-rich caption and cell
   content, header role, column alignment, and optional target identity;
@@ -158,8 +179,8 @@ isolation and lazy loading are the intended remedies.
 
 ## Next work
 
-Expand structured mathematics with the matrix/vector extension, then add the
-missing CUDA/raw listing modes and optional captions. Keep the table and inline
+Add the missing CUDA/raw listing modes and optional captions, then continue
+structured mathematics with scripts, fractions, and roots. Keep the table and inline
 contracts stable while adding those independent capabilities.
 Keep plugin payload codecs beside their plugin and extend the shared fixture
 whenever a new canonical type is completed.
@@ -198,3 +219,8 @@ Current deliberate compromises to reassess later:
   `\footnote` inside `tabular`;
 - table row/column and nested-segment movement currently uses explicit controls
   rather than drag gestures.
+- MatVec intentionally lowers to a core grid plus delimiter instead of adding a
+  matrix-specific expression kind; the graphical extension currently exposes
+  four fixed templates and no arbitrary dimension picker.
+- grid cells reject explicit display-alignment points because those would
+  collide with writer-owned matrix column separators.

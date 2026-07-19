@@ -1,5 +1,6 @@
 // builder/src/plugins/mathPlugin.tsx — register structured-math preview and editing.
 import type { BuilderBlockPlugin } from "../builder/plugin";
+import type { MathEditorExtension } from "../math/editorExtension";
 import type { MathInputParserPlugin } from "../math/inputParser";
 import { createMathSlot, mathExpressionToText } from "../model/math";
 import {
@@ -19,6 +20,7 @@ function requireDisplayMath(block: BuilderBlock): MathDisplayBlock {
 
 export function createMathPlugin(
   inputParser?: MathInputParserPlugin,
+  editorExtensions: readonly MathEditorExtension[] = [],
 ): BuilderBlockPlugin {
   return {
     typeId: mathDisplayTypeId,
@@ -73,7 +75,13 @@ export function createMathPlugin(
         return `Edit structured equation · ${requireDisplayMath(block).id}`;
       },
       render(props) {
-        return <MathEditor {...props} inputParser={inputParser} />;
+        return (
+          <MathEditor
+            {...props}
+            inputParser={inputParser}
+            editorExtensions={editorExtensions}
+          />
+        );
       },
     },
   };

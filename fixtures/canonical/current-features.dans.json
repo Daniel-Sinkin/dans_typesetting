@@ -195,8 +195,31 @@
             "name": "x"
           },
           "right": {
-            "kind": "decimal",
-            "value": "3.2"
+            "kind": "delimited",
+            "delimiter": "brackets",
+            "body": {
+              "kind": "grid",
+              "rows": 2,
+              "columns": 2,
+              "cells": [
+                {
+                  "kind": "integer",
+                  "value": "1"
+                },
+                {
+                  "kind": "decimal",
+                  "value": "3.2"
+                },
+                {
+                  "kind": "identifier",
+                  "name": "a"
+                },
+                {
+                  "kind": "integer",
+                  "value": "4"
+                }
+              ]
+            }
           }
         },
         "referenceId": "eq:canonical-equation"

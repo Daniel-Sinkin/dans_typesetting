@@ -1,6 +1,7 @@
 // React views for structured inline mathematics.
 import type { BuilderInlineEditorProps } from "../builder/inlinePlugin";
 import type { MathInputParserPlugin } from "../math/inputParser";
+import type { MathEditorExtension } from "../math/editorExtension";
 import type { BuilderInlineNode } from "../model/document";
 import { MathExpressionEditor, MathTree } from "./math";
 import { requireInlineMath } from "./mathInlineSupport";
@@ -18,12 +19,14 @@ export function InlineMathPreview({
 
 interface InlineMathEditorProps extends BuilderInlineEditorProps {
   readonly inputParser?: MathInputParserPlugin | undefined;
+  readonly editorExtensions?: readonly MathEditorExtension[] | undefined;
 }
 
 export function InlineMathEditor({
   inline,
   onChange,
   inputParser,
+  editorExtensions,
 }: InlineMathEditorProps) {
   const math = requireInlineMath(inline);
   return (
@@ -31,6 +34,7 @@ export function InlineMathEditor({
       <MathExpressionEditor
         expression={math.expression}
         inputParser={inputParser}
+        editorExtensions={editorExtensions}
         saveLabel="Apply inline math"
         onCancel={() => undefined}
         onCommit={(expression) => {

@@ -407,6 +407,26 @@ auto write_expression(
             output.write_raw(" ");
             write_expression(*expression.summation_body(), output, 30);
             return;
+        case Kind::grid:
+            output.write_raw("\\begin{matrix}");
+            for (dans::usize row = 0; row < expression.grid_rows(); ++row)
+            {
+                if (row != dans::usize{0})
+                {
+                    output.write_raw(" \\\\ ");
+                }
+                for (dans::usize column = 0; column < expression.grid_columns(); ++column)
+                {
+                    if (column != dans::usize{0})
+                    {
+                        output.write_raw(" & ");
+                    }
+                    const auto index = row * expression.grid_columns() + column;
+                    write_expression(expression.grid_cells()[index], output);
+                }
+            }
+            output.write_raw("\\end{matrix}");
+            return;
     }
     throw std::logic_error{"Unknown structured-math expression kind"};
 }

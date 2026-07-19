@@ -90,6 +90,7 @@ describe("structured math", () => {
     expect(parseMathPath("left.right.left")).toEqual(["left", "right", "left"]);
     expect(parseMathPath("left.body.upper")).toEqual(["left", "body", "upper"]);
     expect(parseMathPath("body.item:12.right")).toEqual(["body", "item:12", "right"]);
+    expect(parseMathPath("body.cell:12.right")).toEqual(["body", "cell:12", "right"]);
     expect(parseMathPath("item:-1")).toBeNull();
     expect(parseMathPath("left.argument")).toBeNull();
   });

@@ -62,12 +62,17 @@ import {
   createRichTableBlock,
 } from "../plugins/tableModel";
 import { createTablePlugin } from "../plugins/tablePlugin";
+import {
+  createMathColumnVector,
+  createMathMatrix,
+  mathMatVecEditorExtension,
+} from "../plugins/mathMatVec";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
     paragraphTextInlinePlugin,
     colorSpanInlinePlugin,
-    createInlineMathPlugin(basicMathInputParser),
+    createInlineMathPlugin(basicMathInputParser, [mathMatVecEditorExtension]),
     hyperlinkInlinePlugin,
     referenceInlinePlugin,
     footnoteInlinePlugin,
@@ -217,7 +222,17 @@ const initialBlocks = [
           createMathInteger(1),
         ),
         createMathIdentifier("N"),
-        createMathBinary("times", createMathInteger(2), createMathInteger(4)),
+        createMathBinary(
+          "times",
+          createMathMatrix([
+            [createMathInteger(2), createMathInteger(4)],
+            [createMathInteger(1), createMathInteger(3)],
+          ]),
+          createMathColumnVector([
+            createMathIdentifier("x"),
+            createMathIdentifier("y"),
+          ]),
+        ),
       ),
     ),
     referenceId: "eq:sample-summation",
@@ -358,7 +373,7 @@ const pluginRegistry = new BuilderPluginRegistry(
   [
     createParagraphPlugin(inlinePluginRegistry),
     imagePlugin,
-    createMathPlugin(basicMathInputParser),
+    createMathPlugin(basicMathInputParser, [mathMatVecEditorExtension]),
     codeListingPlugin,
     titlePagePlugin,
     tableOfContentsPlugin,

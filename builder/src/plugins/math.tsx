@@ -12,6 +12,10 @@ import {
 } from "react";
 
 import type { BuilderBlockEditorProps } from "../builder/plugin";
+import type {
+  MathEditorExtension,
+  MathEditorPaletteItem,
+} from "../math/editorExtension";
 import type { MathInputParserPlugin } from "../math/inputParser";
 import {
   createMathBinary,
@@ -26,6 +30,7 @@ import {
   mathExpressionNeedsParentheses,
   mathExpressionToString,
   mathExpressionToText,
+  mathGridBranch,
   mathOperatorSymbol,
   mathPathKey,
   mathSequenceBranch,
@@ -207,6 +212,17 @@ function selectionCandidatesForScope(
         ...expression.items.slice(0, 3).map((_, index) =>
           makeSelectionCandidate(
             { kind: "node", path: [...scopePath, mathSequenceBranch(index)] },
+            index + 2,
+            lockedSelection,
+          ),
+        ),
+      ];
+    case "grid":
+      return [
+        whole,
+        ...expression.cells.slice(0, 3).map((_, index) =>
+          makeSelectionCandidate(
+            { kind: "node", path: [...scopePath, mathGridBranch(index)] },
             index + 2,
             lockedSelection,
           ),
@@ -414,7 +430,7 @@ function MathNode({
     return (
       <span {...sharedProps}>
         {selectionBadge}
-        <span className="math-parenthesis">{open}</span>
+        <span className="math-parenthesis math-parenthesis--open">{open}</span>
         <MathNode
           expression={expression.body}
           path={[...path, "body"]}
@@ -428,7 +444,7 @@ function MathNode({
           selectionCandidates={selectionCandidates}
           onHoverSelection={onHoverSelection}
         />
-        <span className="math-parenthesis">{close}</span>
+        <span className="math-parenthesis math-parenthesis--close">{close}</span>
       </span>
     );
   }
@@ -493,6 +509,37 @@ function MathNode({
             />
           </span>
         ))}
+      </span>
+    );
+  }
+  if (expression.kind === "grid") {
+    return (
+      <span {...sharedProps}>
+        {selectionBadge}
+        <span
+          className="math-grid"
+          style={{
+            gridTemplateColumns: `repeat(${String(expression.columns)}, minmax(2.4em, auto))`,
+          }}
+        >
+          {expression.cells.map((cell, index) => (
+            <span className="math-grid__cell" key={cell.id}>
+              <MathNode
+                expression={cell}
+                path={[...path, mathGridBranch(index)]}
+                parentOperator={null}
+                parentBranch={null}
+                selectedPathKey={selectedPathKey}
+                onBeginDrag={onBeginDrag}
+                onHoverPath={onHoverPath}
+                renderSlot={renderSlot}
+                renderNodeEditor={renderNodeEditor}
+                selectionCandidates={selectionCandidates}
+                onHoverSelection={onHoverSelection}
+              />
+            </span>
+          ))}
+        </span>
       </span>
     );
   }
@@ -599,15 +646,8 @@ export function MathTree(props: MathTreeProps) {
   return <MathNode {...props} path={[]} parentOperator={null} parentBranch={null} />;
 }
 
-interface MathPaletteItem {
-  readonly id: string;
-  readonly label: string;
-  readonly description: string;
-  create(): MathExpression;
-}
-
 const numberPalette = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"].map(
-  (value): MathPaletteItem => ({
+  (value): MathEditorPaletteItem => ({
     id: `integer-${value}`,
     label: value,
     description: "Integer",
@@ -624,7 +664,7 @@ const operatorPalette = (
     ["divide", "Division"],
   ] as const satisfies readonly (readonly [MathBinaryOperator, string])[]
 ).map(
-  ([operator, description]): MathPaletteItem => ({
+  ([operator, description]): MathEditorPaletteItem => ({
     id: `operator-${operator}`,
     label: mathOperatorSymbol(operator),
     description,
@@ -632,7 +672,7 @@ const operatorPalette = (
   }),
 );
 
-const structurePalette: readonly MathPaletteItem[] = [
+const structurePalette: readonly MathEditorPaletteItem[] = [
   {
     id: "structure-summation",
     label: "∑",
@@ -662,11 +702,13 @@ interface PendingMathDrag {
 
 interface MathEditorProps extends BuilderBlockEditorProps {
   readonly inputParser?: MathInputParserPlugin | undefined;
+  readonly editorExtensions?: readonly MathEditorExtension[] | undefined;
 }
 
 interface MathExpressionEditorProps {
   readonly expression: MathExpression;
   readonly inputParser?: MathInputParserPlugin | undefined;
+  readonly editorExtensions?: readonly MathEditorExtension[] | undefined;
   readonly saveLabel?: string | undefined;
   readonly canCommit?: boolean | undefined;
   readonly onCommit: (expression: MathExpression) => void;
@@ -676,6 +718,7 @@ interface MathExpressionEditorProps {
 export function MathExpressionEditor({
   expression,
   inputParser,
+  editorExtensions = [],
   saveLabel = "Save equation",
   canCommit = true,
   onCommit,
@@ -775,7 +818,7 @@ export function MathExpressionEditor({
       setSlotInputError(null);
       return activeDrag;
     },
-    [],
+    [setDraft],
   );
 
   const updateDropTarget = useCallback(
@@ -902,7 +945,7 @@ export function MathExpressionEditor({
   ]);
 
   const beginPaletteDrag = (
-    item: MathPaletteItem,
+    item: MathEditorPaletteItem,
     event: ReactPointerEvent<HTMLButtonElement>,
   ): void => {
     if (event.button !== 0) {
@@ -1327,6 +1370,26 @@ export function MathExpressionEditor({
             ))}
           </div>
         </section>
+        {editorExtensions.map((extension) => (
+          <section data-math-editor-extension={extension.id} key={extension.id}>
+            <h3>{extension.label}</h3>
+            <div className="math-palette-grid math-palette-grid--structures">
+              {extension.items.map((item) => (
+                <button
+                  data-math-palette={item.id}
+                  key={item.id}
+                  type="button"
+                  title={item.description}
+                  onPointerDown={(event) => {
+                    beginPaletteDrag(item, event);
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
         <section>
           <h3>Binary operators</h3>
           <div className="math-palette-grid math-palette-grid--operators">
@@ -1552,6 +1615,7 @@ export function MathEditor({
   onCommit,
   onCancel,
   inputParser,
+  editorExtensions,
   referenceTargets,
 }: MathEditorProps) {
   const displayMath = requireDisplayMath(block);
@@ -1582,6 +1646,7 @@ export function MathEditor({
       <MathExpressionEditor
         expression={displayMath.expression}
         inputParser={inputParser}
+        editorExtensions={editorExtensions}
         canCommit={referenceError === null}
         onCancel={onCancel}
         onCommit={(expression) => {

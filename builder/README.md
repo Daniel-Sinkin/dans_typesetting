@@ -52,6 +52,12 @@ grouping, arithmetic, comma sequences, signed numbers, and identifiers into the 
 tree. Selection locks retain the bounds of the containing scope, making nested expressions
 addressable without flattening their structure.
 
+The optional MatVec editor extension contributes square and rectangular matrix plus row/column
+vector templates. They lower to the base math model's rectangular grid and delimiter primitives,
+so every cell accepts the same typed input and recursive drag/drop operations as any other math
+subtree. Existing matrices still render and serialize if the optional palette contribution is not
+registered.
+
 Sections, images, drawings, display equations, and listings may publish stable
 semantic target IDs. The graphical writer derives their visible numbers from
 current document order; reference segments therefore update immediately after

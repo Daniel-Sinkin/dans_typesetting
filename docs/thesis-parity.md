@@ -47,6 +47,13 @@ references, and an optional CSV adapter. The audited thesis still requires
 spans, explicit width policy, composite layouts, and dedicated table-note
 placement before table parity is complete.
 
+The first matvec slice now covers arbitrary rectangular structured grids,
+square-bracketed matrices, row vectors, and column vectors in native LaTeX and
+the graphical writer. Cells retain recursive editing and canonical transport.
+The audited corpus still needs parentheses matrices, block separators, arrays,
+fractions, roots, scripts, and richer operators before mathematical parity is
+close.
+
 ## Representative port slices
 
 Porting these slices exercises variety without copying hundreds of paragraphs:
@@ -75,7 +82,7 @@ Porting these slices exercises variety without copying hundreds of paragraphs:
 2. Builder section tree and document-shell blocks.
 3. Prose styles, inline math, URLs, footnotes, and references.
 4. Rich table core, followed by CSV and Python-backed adapters.
-5. Expanded structured math and matvec.
+5. Continue structured math beyond the implemented rectangular matvec slice.
 6. Composite/subfigure support.
 7. CUDA/raw/optional-caption listings.
 8. Citations and BibTeX/JSON bibliography.

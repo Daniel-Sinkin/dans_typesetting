@@ -23,6 +23,7 @@
 #include "plugins/item_list.hpp"
 #include "plugins/latex_mixin.hpp"
 #include "plugins/math.hpp"
+#include "plugins/math_matvec.hpp"
 #include "plugins/reference.hpp"
 #include "plugins/table.hpp"
 #include "plugins/table_csv.hpp"
@@ -75,6 +76,20 @@ auto make_gradient_equation()
     return M::equal(
         M::sequence(M::id_nabla.subscript(M::id_theta), M::id_E),
         M::sequence(M::id_2, M::named_operator("Re").argument(std::move(covariance)))
+    );
+}
+
+auto make_matrix_vector_equation()
+{
+    using M = dans::document::plugins::Math;
+    using MV = M::MatVec;
+
+    return M::equal(
+        M::sequence(
+            MV::matrix(MV::row(M::id_a, M::id_b), MV::row(M::id_c, M::id_d)),
+            MV::column_vector(M::id_x, M::id_y)
+        ),
+        MV::column_vector(M::id_r, M::id_s)
     );
 }
 
@@ -236,15 +251,19 @@ auto make_sample_document()
     );
     const ReferenceId energy_equation_id{"eq:energy"};
     const ReferenceId gradient_equation_id{"eq:gradient"};
+    const ReferenceId matrix_equation_id{"eq:matrix-vector"};
     mathematics.blocks()
         .add<M::Display>(make_energy_equation(), energy_equation_id)
         .add_equation(make_gradient_equation(), gradient_equation_id);
+    mathematics.blocks().add<M::Display>(make_matrix_vector_equation(), matrix_equation_id);
 
     auto& equation_references = mathematics.blocks().add<CoreParagraph>();
     equation_references.append_text("The aligned group retains distinct targets: ");
     equation_references.inlines().add<Reference>(energy_equation_id);
     equation_references.append_text(" and ");
     equation_references.inlines().add<Reference>(gradient_equation_id);
+    equation_references.append_text(", while rectangular matrix/vector composition appears in ");
+    equation_references.inlines().add<Reference>(matrix_equation_id);
     equation_references.append_text(".");
 
     auto& listings = document.blocks().add<Section>("Source-code listings");

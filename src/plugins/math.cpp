@@ -2,6 +2,7 @@
 #include "plugins/math.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -242,6 +243,13 @@ struct Math::Node
         std::optional<Math> body{};
     };
 
+    struct Grid
+    {
+        usize rows{};
+        usize columns{};
+        std::vector<Math> cells{};
+    };
+
     using Value = std::variant<
         Integer,
         Identifier,
@@ -253,7 +261,8 @@ struct Math::Node
         Function,
         Delimited,
         InnerProduct,
-        Summation>;
+        Summation,
+        Grid>;
 
     template <typename ValueType>
     explicit Node(ValueType initial_value) : value{std::move(initial_value)}
@@ -408,6 +417,23 @@ auto Math::inner_product() -> Math
 auto Math::summation() -> Math
 {
     return Math{std::make_unique<Node>(Node::Summation{})};
+}
+
+auto Math::grid(const usize rows, const usize columns, std::vector<Math> cells) -> Math
+{
+    if (rows == usize{0} || columns == usize{0})
+    {
+        throw std::invalid_argument{"A math grid requires at least one row and one column"};
+    }
+    if (columns > std::numeric_limits<usize>::max() / rows || cells.size() != rows * columns)
+    {
+        throw std::invalid_argument{"A math grid requires exactly rows times columns cells"};
+    }
+    return Math{std::make_unique<Node>(Node::Grid{
+        .rows = rows,
+        .columns = columns,
+        .cells = std::move(cells),
+    })};
 }
 
 auto Math::append(Math expression) & -> Math&
@@ -660,10 +686,14 @@ auto Math::kind() const -> Kind
             {
                 return Kind::inner_product;
             }
+            else if constexpr (std::is_same_v<Value, Node::Summation>)
+            {
+                return Kind::summation;
+            }
             else
             {
-                static_assert(std::is_same_v<Value, Node::Summation>);
-                return Kind::summation;
+                static_assert(std::is_same_v<Value, Node::Grid>);
+                return Kind::grid;
             }
         },
         node().value
@@ -779,6 +809,21 @@ auto Math::summation_body() const -> const Math*
     return value.has_value() ? &*value : nullptr;
 }
 
+auto Math::grid_rows() const -> usize
+{
+    return std::get<Node::Grid>(node().value).rows;
+}
+
+auto Math::grid_columns() const -> usize
+{
+    return std::get<Node::Grid>(node().value).columns;
+}
+
+auto Math::grid_cells() const -> std::span<const Math>
+{
+    return std::get<Node::Grid>(node().value).cells;
+}
+
 auto Math::explicit_alignment_points() const -> usize
 {
     switch (kind())
@@ -836,6 +881,15 @@ auto Math::explicit_alignment_points() const -> usize
                 if (const auto* expression = summation_body(); expression != nullptr)
                 {
                     count += expression->explicit_alignment_points();
+                }
+                return count;
+            }
+        case Kind::grid:
+            {
+                usize count{};
+                for (const auto& expression : grid_cells())
+                {
+                    count += expression.explicit_alignment_points();
                 }
                 return count;
             }
@@ -928,6 +982,18 @@ auto Math::validate() const -> void
                 expression->validate();
             }
             summation_body()->validate();
+            return;
+        case Kind::grid:
+            for (const auto& expression : grid_cells())
+            {
+                expression.validate();
+                if (expression.explicit_alignment_points() != usize{0})
+                {
+                    throw std::logic_error{
+                        "A math grid cell cannot contain a display alignment point"
+                    };
+                }
+            }
             return;
     }
     throw std::logic_error{"Unknown structured-math expression kind"};

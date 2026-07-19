@@ -59,3 +59,9 @@ example, `dans.table` owns row and cell IDs plus rectangularity, while each
 caption or cell inline is encoded through the shared `{id, type, payload}`
 registry. CSV never appears in that payload: it is an optional adapter that
 constructs or projects the semantic table contract.
+
+Structured-math expressions are recursively encoded inside their block or
+inline plugin payload. The core `grid` node uses positive numeric `rows` and
+`columns` plus exactly `rows * columns` recursive `cells`. MatVec does not add a
+transport kind: matrices and vectors are square-delimited grids, so documents
+remain readable when the optional graphical MatVec palette is not registered.

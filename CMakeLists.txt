@@ -123,6 +123,16 @@ target_link_libraries(math_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(math_matvec_plugin STATIC
+  src/plugins/math_matvec.cpp
+  src/plugins/math_matvec.hpp
+)
+add_library(dans::math_matvec_plugin ALIAS math_matvec_plugin)
+target_link_libraries(math_matvec_plugin
+  PUBLIC dans::math_plugin
+  PRIVATE typesetter_warnings
+)
+
 add_library(item_list_plugin STATIC
   src/plugins/item_list.cpp
   src/plugins/item_list.hpp
@@ -439,6 +449,7 @@ target_link_libraries(document_example PRIVATE
   dans::hyperlink_latex_connector
   dans::latex_mixin_latex_connector
   dans::math_latex_connector
+  dans::math_matvec_plugin
   dans::reference_latex_connector
   dans::table_latex_connector
   dans::table_csv_plugin
@@ -509,6 +520,16 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_table_test COMMAND native_table_test)
+
+  add_executable(native_math_matvec_test
+    tests/native_math_matvec_test.cpp
+  )
+  target_link_libraries(native_math_matvec_test PRIVATE
+    dans::math_latex_connector
+    dans::math_matvec_plugin
+    typesetter_warnings
+  )
+  add_test(NAME native_math_matvec_test COMMAND native_math_matvec_test)
 endif()
 
 # Build the example object model into LaTeX, then compile the generated source

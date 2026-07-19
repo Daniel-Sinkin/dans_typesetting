@@ -584,6 +584,44 @@ button {
   font-size: 1.18em;
 }
 
+.math-grid {
+  display: inline-grid;
+  align-items: center;
+  padding: 0.12em 0.18em;
+  gap: 0.18em 0.48em;
+  vertical-align: middle;
+}
+
+.math-grid__cell {
+  display: inline-flex;
+  min-width: 1.35em;
+  min-height: 1.25em;
+  align-items: center;
+  justify-content: center;
+}
+
+.math-node--delimited:has(.math-grid) > .math-parenthesis {
+  display: inline-flex;
+  width: 0.3em;
+  align-self: stretch;
+  align-items: center;
+  color: transparent;
+  border-color: #343a40;
+  transform: none;
+}
+
+.math-node--delimited:has(.math-grid) > .math-parenthesis--open {
+  border-top: 2px solid #343a40;
+  border-bottom: 2px solid #343a40;
+  border-left: 2px solid #343a40;
+}
+
+.math-node--delimited:has(.math-grid) > .math-parenthesis--close {
+  border-top: 2px solid #343a40;
+  border-right: 2px solid #343a40;
+  border-bottom: 2px solid #343a40;
+}
+
 .math-node--slot {
   display: inline-grid;
   min-width: 2.8em;
@@ -2311,6 +2349,15 @@ button {
   grid-template-columns: repeat(4, 1fr);
 }
 
+.math-palette-grid--structures {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.math-palette-grid--structures button {
+  aspect-ratio: 1.8;
+  font-size: 15px;
+}
+
 .math-palette-grid button {
   display: grid;
   min-width: 0;
@@ -2393,6 +2440,14 @@ button {
   touch-action: none;
 }
 
+.math-editor-canvas .math-grid__cell {
+  min-width: 84px;
+  min-height: 64px;
+  background: rgb(237 242 255 / 48%);
+  border: 1px solid rgb(145 167 255 / 48%);
+  border-radius: 6px;
+}
+
 .math-editor-canvas .math-node--selected::after {
   position: absolute;
   z-index: 5;
@@ -2450,6 +2505,17 @@ button {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.math-editor-canvas .math-grid__cell .math-node--slot {
+  min-width: 68px;
+  min-height: 42px;
+  font-size: 10px;
+}
+
+.math-editor-canvas .math-grid__cell .math-slot-action {
+  width: 64px;
+  letter-spacing: 0;
 }
 
 .math-slot-input {

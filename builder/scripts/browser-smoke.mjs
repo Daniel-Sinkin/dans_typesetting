@@ -280,6 +280,7 @@ async function exerciseBuilder(client) {
       imageLoaded: image instanceof HTMLImageElement && image.complete && image.naturalWidth === 1280,
       structuredMath: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node") !== null,
       summation: document.querySelector("[data-visual-block-id='sample-display-math'] .math-summation-symbol")?.textContent === "∑",
+      matrixGrid: document.querySelector("[data-visual-block-id='sample-display-math'] .math-grid")?.children.length === 4,
       codeListing: document.querySelector("[data-visual-block-id='sample-code-listing'] code")?.textContent.includes("std::println") ?? false,
       opaqueFallback: document.body.textContent.includes("dans.future.block"),
       inlineMath: document.querySelector("[data-inline-math-id='sample-introduction-inline-math'] .math-node") !== null,
@@ -305,6 +306,7 @@ async function exerciseBuilder(client) {
   assert(initial.imageLoaded, "The real sample image did not load");
   assert(initial.structuredMath, "Structured display math was not rendered");
   assert(initial.summation, "Structured summation was not rendered");
+  assert(initial.matrixGrid, "The optional matrix/vector extension was not rendered");
   assert(initial.codeListing, "The C++ code-listing plugin was not rendered");
   assert(initial.opaqueFallback, "The opaque block fallback was not rendered");
   assert(initial.inlineMath, "Structured inline mathematics was not rendered");
@@ -947,6 +949,10 @@ async function exerciseBuilder(client) {
     await client.evaluate(`document.querySelector(".math-editor-canvas .math-summation-symbol") !== null`),
     "The math editor did not render the structured summation",
   );
+  assert(
+    await client.evaluate(`document.querySelector("[data-math-editor-extension='dans.math.matvec'] [data-math-palette='matvec-matrix-2x3']") !== null`),
+    "The optional matrix/vector extension did not contribute its editor palette",
+  );
   const heldNode = await client.evaluate(`(() => {
     const node = document.querySelector(".math-editor-canvas [data-math-path='left.left']");
     const bounds = node.getBoundingClientRect();
@@ -1169,6 +1175,42 @@ async function exerciseBuilder(client) {
   );
   await screenshot(client, "math-editor-selection-and-parking.png");
 
+  const matrixInsertPoints = await client.evaluate(`(() => {
+    const center = (element) => {
+      const bounds = element.getBoundingClientRect();
+      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    };
+    return {
+      start: center(document.querySelector("[data-math-palette='matvec-matrix-2x3']")),
+      end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left']")),
+    };
+  })()`);
+  await pointerDrag(client, matrixInsertPoints.start, matrixInsertPoints.end);
+  assert(
+    await client.evaluate(`(() => {
+      const grid = document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body'].math-node--grid .math-grid");
+      return grid?.children.length === 6 &&
+        document.querySelectorAll(".math-editor-canvas [data-math-path^='left.left.left.body.cell:'] .math-slot-action").length === 6;
+    })()`),
+    "Dragging a rectangular matrix from the extension palette did not create six editable cells",
+  );
+  const matrixCellPoints = await client.evaluate(`(() => {
+    const center = (element) => {
+      const bounds = element.getBoundingClientRect();
+      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    };
+    return {
+      start: center(document.querySelector("[data-math-palette='integer-7']")),
+      end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")),
+    };
+  })()`);
+  await pointerDrag(client, matrixCellPoints.start, matrixCellPoints.end);
+  assert(
+    await client.evaluate(`document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")?.textContent.includes("7") ?? false`),
+    "A matrix cell did not accept the ordinary recursive math drop contract",
+  );
+  await screenshot(client, "math-matvec-editor.png");
+
   await reloadBuilder(client);
   const persistenceRoot = await client.send("DOM.getDocument", { depth: -1, pierce: true });
   const documentFileInput = await client.send("DOM.querySelector", {
@@ -1188,7 +1230,8 @@ async function exerciseBuilder(client) {
         document.body.textContent.includes("Canonical document") &&
         document.body.textContent.includes("A styled canonical paragraph") &&
         document.body.textContent.includes("third.party.block") &&
-        document.querySelector("button[data-testid='save-document']") !== null;
+        document.querySelector("button[data-testid='save-document']") !== null &&
+        document.querySelector("[data-visual-block-id='fixture-equation'] .math-grid")?.children.length === 4;
     })()`),
     "Canonical document loading did not transactionally replace the graphical document",
   );
