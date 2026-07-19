@@ -3,7 +3,7 @@ import { Sidebar } from "@excalidraw/excalidraw";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 import {
-  pageGeometry,
+  geometryForLayoutMode,
   type DocumentLayoutMode,
   type PageRange,
 } from "../builder/layout";
@@ -22,6 +22,7 @@ interface BlockPaletteProps {
   readonly onLoadDocument: (file: File) => Promise<void>;
   readonly onLayoutModeChange: (mode: DocumentLayoutMode) => void;
   readonly onPageRangeChange: (range: PageRange) => void;
+  readonly onPresent: () => void;
   readonly onBeginDrag: (
     plugin: BuilderBlockPlugin,
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -41,8 +42,10 @@ export function BlockPalette({
   onLoadDocument,
   onLayoutModeChange,
   onPageRangeChange,
+  onPresent,
   onBeginDrag,
 }: BlockPaletteProps) {
+  const geometry = geometryForLayoutMode(layoutMode);
   return (
     <Sidebar name={sidebarName} docked className="blocks-sidebar">
       <Sidebar.Header>
@@ -92,6 +95,7 @@ export function BlockPalette({
             >
               <option value="continuous">Continuous</option>
               <option value="paged">Paged</option>
+              <option value="slides">Slides · 16:9</option>
             </select>
           </label>
           {layoutMode === "continuous" ? (
@@ -115,7 +119,7 @@ export function BlockPalette({
                       start,
                       end: Math.min(
                         totalPageCount,
-                        start + pageGeometry.maximumVisiblePages - 1,
+                        start + geometry.maximumVisiblePages - 1,
                         Math.max(start, pageRange.end),
                       ),
                     });
@@ -130,7 +134,7 @@ export function BlockPalette({
                   min={pageRange.start}
                   max={Math.min(
                     totalPageCount,
-                    pageRange.start + pageGeometry.maximumVisiblePages - 1,
+                    pageRange.start + geometry.maximumVisiblePages - 1,
                   )}
                   value={pageRange.end}
                   onChange={(event) => {
@@ -138,7 +142,7 @@ export function BlockPalette({
                       start: pageRange.start,
                       end: Math.min(
                         totalPageCount,
-                        pageRange.start + pageGeometry.maximumVisiblePages - 1,
+                        pageRange.start + geometry.maximumVisiblePages - 1,
                         Math.max(pageRange.start, Number(event.target.value)),
                       ),
                     });
@@ -147,8 +151,18 @@ export function BlockPalette({
               </label>
               <small>
                 Showing {pageRange.start}–{pageRange.end} of {totalPageCount}; at most five
-                pages are projected.
+                {layoutMode === "slides" ? " slides" : " pages"} are projected.
               </small>
+              {layoutMode !== "slides" ? null : (
+                <button
+                  className="presentation-launch"
+                  data-testid="start-presentation"
+                  type="button"
+                  onClick={onPresent}
+                >
+                  Present from slide {pageRange.start}
+                </button>
+              )}
             </div>
           )}
         </section>

@@ -743,6 +743,69 @@ async function exerciseBuilder(client) {
   );
   await screenshot(client, "paged-document-range.png");
 
+  await client.evaluate(`(() => {
+    const select = document.querySelector("select[data-testid='layout-mode']");
+    const selectSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set;
+    selectSetter.call(select, "slides");
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await delay(120);
+  await client.evaluate(`(() => {
+    const start = document.querySelector("input[data-testid='page-range-start']");
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    inputSetter.call(start, "1");
+    start.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(120);
+  await client.evaluate(`(() => {
+    const end = document.querySelector("input[data-testid='page-range-end']");
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    inputSetter.call(end, "1");
+    end.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(650);
+  const slideLayout = await client.evaluate(`(() => {
+    const slide = document.querySelector(".document-page--slide");
+    const bounds = slide?.getBoundingClientRect();
+    return {
+      presentButton: document.querySelector("button[data-testid='start-presentation']") !== null,
+      slideCount: document.querySelectorAll(".document-page--slide").length,
+      ratio: bounds === undefined ? 0 : bounds.width / bounds.height,
+      label: slide?.getAttribute("aria-label") ?? "",
+    };
+  })()`);
+  assert(slideLayout.presentButton, "Slide mode did not expose fullscreen presentation");
+  assert(slideLayout.slideCount === 1, "The selected slide slice did not project one slide");
+  assert(Math.abs(slideLayout.ratio - 16 / 9) < 0.01, "Slide mode did not use 16:9 geometry");
+  assert(slideLayout.label === "Slide 1", "Slide mode did not expose slide semantics");
+
+  await client.evaluate(`document.querySelector("button[data-testid='start-presentation']").click()`);
+  await delay(250);
+  assert(
+    await client.evaluate(`(() => {
+      const overlay = document.querySelector("[data-testid='presentation-overlay']");
+      return overlay !== null &&
+        overlay.querySelectorAll(".document-page--slide").length === 1 &&
+        overlay.querySelector(".presentation-controls output")?.textContent.trim().startsWith("1 /");
+    })()`),
+    "Fullscreen presentation did not open on the selected slide",
+  );
+  await client.evaluate(`globalThis.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }))`);
+  await delay(120);
+  assert(
+    await client.evaluate(`document.querySelector(".presentation-controls output")?.textContent.trim().startsWith("2 /") ?? false`),
+    "Presentation keyboard navigation did not advance one slide",
+  );
+  await screenshot(client, "slide-presentation.png");
+  await client.evaluate(`[
+    ...document.querySelectorAll(".presentation-controls button")
+  ].find((button) => button.textContent.trim() === "Exit").click()`);
+  await delay(120);
+  assert(
+    !(await client.evaluate(`document.querySelector("[data-testid='presentation-overlay']") !== null`)),
+    "Presentation exit did not restore the editor",
+  );
+
   await reloadBuilder(client);
 
   await client.evaluate(`document.querySelector("input[aria-label='Rectangle']").click()`);

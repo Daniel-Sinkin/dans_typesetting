@@ -52,6 +52,7 @@ import { DetachConfirmation } from "./DetachConfirmation";
 import { DocumentControls, DocumentVisualPage } from "./DocumentPage";
 import { DragGhost } from "./DragGhost";
 import { EditorDialog } from "./EditorDialog";
+import { PresentationView } from "./PresentationView";
 
 const blocksSidebarName = "document-blocks";
 const detachWithoutAskingPreference = "dans-typesetting.delete-detached-without-asking";
@@ -160,6 +161,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const [transportError, setTransportError] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<DocumentLayoutMode>("continuous");
   const [pageRange, setPageRange] = useState<PageRange>({ start: 1, end: 3 });
+  const [presentationOpen, setPresentationOpen] = useState(false);
+  const [presentationSlide, setPresentationSlide] = useState(1);
 
   const dragRef = useRef<ActiveDrag | null>(null);
 
@@ -477,6 +480,26 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       }),
     [flowBlocks, insertionPreview, layoutMode, pageRange, registry],
   );
+  const presentationLayout = useMemo(
+    () =>
+      computeDocumentLayout(snapshot.blocks, registry, null, {
+        mode: "slides",
+        pageRange: { start: presentationSlide, end: presentationSlide },
+      }),
+    [presentationSlide, registry, snapshot.blocks],
+  );
+
+  useEffect(() => {
+    const handleFullscreenChange = (): void => {
+      if (document.fullscreenElement === null) {
+        setPresentationOpen(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
   const referenceTargets = useMemo(
     () => deriveReferenceTargets(flowBlocks, registry),
     [flowBlocks, registry],
@@ -608,6 +631,28 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     setEditingBlock(null);
     setEditingDraft(null);
   }, []);
+  const beginPresentation = useCallback(() => {
+    if (layoutMode !== "slides") {
+      return;
+    }
+    clearDrag();
+    setPendingDetach(null);
+    setEditingBlock(null);
+    setEditingDraft(null);
+    setPresentationSlide(layout.visiblePageRange.start);
+    setPresentationOpen(true);
+    void document.documentElement.requestFullscreen().catch(() => {
+      // The overlay remains usable when a browser denies fullscreen access.
+    });
+  }, [clearDrag, layout.visiblePageRange.start, layoutMode]);
+  const exitPresentation = useCallback(() => {
+    setPresentationOpen(false);
+    if (document.fullscreenElement !== null) {
+      void document.exitFullscreen().catch(() => {
+        // Closing the overlay is sufficient if the browser owns fullscreen state.
+      });
+    }
+  }, []);
   const previewEditorBlock = useCallback(
     (replacement: BuilderBlock) => {
       if (
@@ -738,6 +783,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
             onLoadDocument={loadDocument}
             onLayoutModeChange={setLayoutMode}
             onPageRangeChange={setPageRange}
+            onPresent={beginPresentation}
             onBeginDrag={beginPaletteDrag}
           />
           <Footer>
@@ -808,6 +854,16 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
             {editingDescriptor.render(editorProps)}
           </EditorDialog>
         )}
+
+        {presentationOpen ? (
+          <PresentationView
+            layout={presentationLayout}
+            registry={registry}
+            currentSlide={presentationLayout.visiblePageRange.start}
+            onCurrentSlideChange={setPresentationSlide}
+            onExit={exitPresentation}
+          />
+        ) : null}
       </section>
     </main>
   );

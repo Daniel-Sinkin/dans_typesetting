@@ -84,6 +84,13 @@ button {
     0 24px 70px rgb(22 28 45 / 20%);
 }
 
+.document-page--slide {
+  background:
+    radial-gradient(circle at 86% 14%, rgb(219 228 255 / 72%), transparent 23%),
+    linear-gradient(90deg, rgb(248 249 250 / 34%) 1px, transparent 1px) 0 0 / 32px 32px,
+    #fff;
+}
+
 .document-surface {
   position: absolute;
   top: 0;
@@ -102,6 +109,96 @@ button {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.16em;
+}
+
+.presentation-overlay {
+  position: fixed;
+  z-index: 9000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #f8f9fa;
+  background:
+    radial-gradient(circle at center, #262b38 0%, #10131b 72%),
+    #10131b;
+}
+
+.presentation-stage {
+  position: relative;
+  flex: none;
+  transform-origin: center;
+}
+
+.presentation-stage .document-surface {
+  position: absolute;
+}
+
+.presentation-stage .document-page {
+  background: #fff;
+  border: 0;
+  box-shadow: 0 28px 90px rgb(0 0 0 / 48%);
+}
+
+.presentation-stage .document-page__header {
+  display: none;
+}
+
+.presentation-stage .document-block-visual {
+  overflow: hidden;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  pointer-events: auto;
+}
+
+.presentation-stage .document-block__content {
+  padding: 14px 20px;
+}
+
+.presentation-controls {
+  position: fixed;
+  right: 22px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  color: #f8f9fa;
+  background: rgb(16 19 27 / 78%);
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  backdrop-filter: blur(8px);
+  opacity: 0.35;
+  transition: opacity 140ms ease;
+}
+
+.presentation-controls:hover,
+.presentation-controls:focus-within {
+  opacity: 1;
+}
+
+.presentation-controls button {
+  min-width: 36px;
+  height: 32px;
+  color: #f8f9fa;
+  background: #343a40;
+  border: 1px solid #495057;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.presentation-controls button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.presentation-controls output {
+  min-width: 68px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .document-block-visual,
@@ -1158,6 +1255,22 @@ button {
 
 .page-range-controls small {
   grid-column: 1 / -1;
+}
+
+.presentation-launch {
+  grid-column: 1 / -1;
+  min-height: 36px;
+  color: #fff;
+  background: linear-gradient(135deg, #5f3dc4, #4263eb);
+  border: 0;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.presentation-launch:hover {
+  background: linear-gradient(135deg, #6741d9, #4c6ef5);
 }
 
 .title-page-content {

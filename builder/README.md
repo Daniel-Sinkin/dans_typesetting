@@ -1,7 +1,7 @@
 # Graphical document builder
 
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
-be projected either as one vertically growing continuous view or as whole-block pages. Paragraph,
+be projected as one vertically growing continuous view, as whole-block A4 pages, or as 16:9 slides. Paragraph,
 image, two-panel figure, embedded-drawing, semantic-list, rich-table, bibliography, code-listing,
 text-authored math, title-page, table-of-contents, page-break, and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
@@ -33,7 +33,9 @@ Drag an existing block by its handle to reorder it or to nest it inside a sectio
 dragging to copy it. Dropping a moved block outside the document keeps it detached until the
 confirmation dialogue either restores or deletes it. Title pages are isolated in paged mode, a
 table of contents derives its numbered entries from the live section tree, and explicit page breaks
-advance following content. The page-range controls project at most five pages at once.
+advance following content. Page/slide range controls project at most five surfaces at once. Slide
+mode also exposes a fullscreen-friendly one-slide reader with keyboard navigation; it consumes the
+same graphical plugin adapters rather than maintaining a second presentation model.
 
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
 live composed preview. Normal/bold/italic/bold-italic text, semantic single-line code, semantic RGB
@@ -127,13 +129,14 @@ Unknown document blocks remain in the flow as opaque labelled previews. Their Ed
 stable handle to the browser console, demonstrating that preview and editing support are independent.
 Ordinary Excalidraw tools remain available for panning, zooming, sketching, and free-form notes.
 
-Paged projection never splits a semantic block: a block that does not fit moves to the next page,
+Paged and slide projection never split a semantic block: a block that does not fit moves to the next surface,
 and one taller than an entire content area becomes a visible warning placeholder. This is an
 authoring policy, not a semantic property of the block. Cross-page dragging works through the same
 recursive insertion slots as continuous mode. Save and Load use the canonical document format;
 native decoding of those plugin payloads remains a separate connector task. Multiple movable
 document surfaces remain a later experiment. See `../docs/continuation.md` and
-`../docs/canvas-migration.md` for recovery state and the bespoke-canvas plan.
+`../docs/canvas-migration.md` for recovery state and the bespoke-canvas plan. See also
+`../docs/slide-development-writer.md` for the 16:9 and presentation policies.
 
 ## Verify
 

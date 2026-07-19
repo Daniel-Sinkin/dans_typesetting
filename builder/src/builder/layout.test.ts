@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import { BuilderPluginRegistry } from "./plugin";
 import { BuilderInlinePluginRegistry } from "./inlinePlugin";
-import { computeDocumentLayout, insertionIndexAtSceneY } from "./layout";
+import {
+  computeDocumentLayout,
+  insertionIndexAtSceneY,
+  slideGeometry,
+} from "./layout";
 import { createImagePlugin } from "../plugins/image";
 import { mathPlugin } from "../plugins/mathPlugin";
 import { opaqueBlockAdapter } from "../plugins/opaque";
@@ -149,5 +153,29 @@ describe("document flow", () => {
     expect(layout.blocks.find(({ block }) => block.id === "oversized")?.oversized).toBe(
       true,
     );
+  });
+
+  it("flows whole blocks through 16:9 slide surfaces", () => {
+    const layout = computeDocumentLayout(
+      [
+        paragraphPlugin.createDefault("first"),
+        pageBreakPlugin.createDefault("break"),
+        imagePlugin.createDefault("second"),
+      ],
+      registry,
+      null,
+      { mode: "slides", pageRange: { start: 2, end: 2 } },
+    );
+
+    expect(layout.mode).toBe("slides");
+    expect(layout.pages[0]?.bounds).toMatchObject({
+      width: slideGeometry.width,
+      height: slideGeometry.minimumHeight,
+    });
+    expect(layout.blocks.find(({ block }) => block.id === "first")?.pageIndex).toBe(0);
+    expect(layout.blocks.find(({ block }) => block.id === "second")?.pageIndex).toBe(1);
+    expect(layout.visiblePageRange).toEqual({ start: 2, end: 2 });
+    expect(layout.pageBounds.width).toBe(slideGeometry.width);
+    expect(layout.pageBounds.height).toBe(slideGeometry.minimumHeight);
   });
 });

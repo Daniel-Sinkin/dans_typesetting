@@ -159,6 +159,8 @@ writer applies plugin-declared page policies while measuring a recursive flow:
 
 - continuous mode keeps one growing authoring surface;
 - paged mode projects a selected range of at most five pages;
+- slide mode uses independent 1280×720 geometry and projects at most five
+  slides;
 - semantic blocks are indivisible in this development writer;
 - an oversized block is represented by a warning instead of silently
   overflowing;
@@ -168,6 +170,12 @@ writer applies plugin-declared page policies while measuring a recursive flow:
 Page dimensions and policies remain writer concerns. Other writers may ignore
 preferred sizes or implement fragmentable paragraphs without changing the
 semantic contracts.
+
+Fullscreen presentation is a reader for the graphical slide projection, not a
+new semantic writer or persisted model. It renders one derived slide through
+the same plugin adapters, strips development chrome, and uses browser
+fullscreen only as an optional host capability. See
+[slide-development-writer.md](slide-development-writer.md).
 
 ## Embedded drawing boundary
 

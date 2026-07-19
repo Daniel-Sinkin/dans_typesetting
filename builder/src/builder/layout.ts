@@ -1,4 +1,4 @@
-// Deterministic recursive document flow for continuous and paged development views.
+// Deterministic recursive document flow for continuous, paged, and slide surfaces.
 import type { BuilderPluginRegistry } from "./plugin";
 import {
   isSectionBlock,
@@ -12,14 +12,28 @@ export interface LayoutBounds {
   readonly height: number;
 }
 
-export type DocumentLayoutMode = "continuous" | "paged";
+export type DocumentLayoutMode = "continuous" | "paged" | "slides";
 
 export interface PageRange {
   readonly start: number;
   readonly end: number;
 }
 
-export const pageGeometry = Object.freeze({
+export interface DocumentSurfaceGeometry {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly minimumHeight: number;
+  readonly contentInsetX: number;
+  readonly contentInsetTop: number;
+  readonly contentInsetBottom: number;
+  readonly blockGap: number;
+  readonly pageGap: number;
+  readonly sectionIndent: number;
+  readonly maximumVisiblePages: number;
+}
+
+export const pageGeometry: DocumentSurfaceGeometry = Object.freeze({
   x: 0,
   y: 0,
   width: 794,
@@ -32,6 +46,26 @@ export const pageGeometry = Object.freeze({
   sectionIndent: 30,
   maximumVisiblePages: 5,
 });
+
+export const slideGeometry: DocumentSurfaceGeometry = Object.freeze({
+  x: 0,
+  y: 0,
+  width: 1280,
+  minimumHeight: 720,
+  contentInsetX: 72,
+  contentInsetTop: 64,
+  contentInsetBottom: 64,
+  blockGap: 22,
+  pageGap: 64,
+  sectionIndent: 34,
+  maximumVisiblePages: 5,
+});
+
+export function geometryForLayoutMode(
+  mode: DocumentLayoutMode,
+): DocumentSurfaceGeometry {
+  return mode === "slides" ? slideGeometry : pageGeometry;
+}
 
 export interface BlockLayout {
   readonly block: BuilderBlock;
@@ -93,35 +127,40 @@ interface MutablePage {
   readonly contentBounds: LayoutBounds;
 }
 
-function pageAt(pageIndex: number): MutablePage {
-  const x = pageGeometry.x + pageIndex * (pageGeometry.width + pageGeometry.pageGap);
+function pageAt(
+  pageIndex: number,
+  geometry: DocumentSurfaceGeometry,
+): MutablePage {
+  const x = geometry.x + pageIndex * (geometry.width + geometry.pageGap);
   return {
     pageIndex,
     bounds: {
       x,
-      y: pageGeometry.y,
-      width: pageGeometry.width,
-      height: pageGeometry.minimumHeight,
+      y: geometry.y,
+      width: geometry.width,
+      height: geometry.minimumHeight,
     },
     contentBounds: {
-      x: x + pageGeometry.contentInsetX,
-      y: pageGeometry.y + pageGeometry.contentInsetTop,
-      width: pageGeometry.width - 2 * pageGeometry.contentInsetX,
+      x: x + geometry.contentInsetX,
+      y: geometry.y + geometry.contentInsetTop,
+      width: geometry.width - 2 * geometry.contentInsetX,
       height:
-        pageGeometry.minimumHeight -
-        pageGeometry.contentInsetTop -
-        pageGeometry.contentInsetBottom,
+        geometry.minimumHeight - geometry.contentInsetTop - geometry.contentInsetBottom,
     },
   };
 }
 
-function normalizeVisibleRange(totalPageCount: number, requested?: PageRange): PageRange {
+function normalizeVisibleRange(
+  totalPageCount: number,
+  maximumVisiblePages: number,
+  requested?: PageRange,
+): PageRange {
   const requestedStart = requested?.start ?? 1;
   const start = Math.min(totalPageCount, Math.max(1, Math.trunc(requestedStart)));
   const requestedEnd = requested?.end ?? start;
   const end = Math.min(
     totalPageCount,
-    start + pageGeometry.maximumVisiblePages - 1,
+    start + maximumVisiblePages - 1,
     Math.max(start, Math.trunc(requestedEnd)),
   );
   return { start, end };
@@ -134,18 +173,20 @@ export function computeDocumentLayout(
   options: DocumentLayoutOptions = {},
 ): DocumentLayout {
   const mode = options.mode ?? "continuous";
-  const pages: MutablePage[] = [pageAt(0)];
+  const geometry = geometryForLayoutMode(mode);
+  const paginated = mode !== "continuous";
+  const pages: MutablePage[] = [pageAt(0, geometry)];
   const blockLayouts: BlockLayout[] = [];
   const insertionSlots: InsertionSlot[] = [];
   let currentPageIndex = 0;
-  let cursorY = pages[0]?.contentBounds.y ?? pageGeometry.contentInsetTop;
+  let cursorY = pages[0]?.contentBounds.y ?? geometry.contentInsetTop;
   let previewBounds: LayoutBounds | null = null;
   let previewPageIndex: number | null = null;
   let previewWasPlaced = preview === null;
 
   const ensurePage = (pageIndex: number): MutablePage => {
     while (pages.length <= pageIndex) {
-      pages.push(pageAt(pages.length));
+      pages.push(pageAt(pages.length, geometry));
     }
     const page = pages[pageIndex];
     if (page === undefined) {
@@ -169,7 +210,7 @@ export function computeDocumentLayout(
     const adapter = registry.pluginForBlock(block);
     const paginationPolicy = adapter.paginationPolicy ?? "flow";
     if (
-      mode === "paged" &&
+      paginated &&
       paginationPolicy === "isolated_page" &&
       cursorY > ensurePage(currentPageIndex).contentBounds.y
     ) {
@@ -177,7 +218,7 @@ export function computeDocumentLayout(
     }
 
     let page = ensurePage(currentPageIndex);
-    const indentation = depth * pageGeometry.sectionIndent;
+    const indentation = depth * geometry.sectionIndent;
     const availableWidth = page.contentBounds.width - indentation;
     if (availableWidth <= 0) {
       throw new Error("Nested section indentation exhausted the available document width");
@@ -190,10 +231,10 @@ export function computeDocumentLayout(
       throw new Error(`Builder adapter for ${block.typeId} returned an invalid block height`);
     }
 
-    const oversized = mode === "paged" && measuredHeight > page.contentBounds.height;
+    const oversized = paginated && measuredHeight > page.contentBounds.height;
     const height = oversized ? Math.min(180, page.contentBounds.height) : measuredHeight;
     if (
-      mode === "paged" &&
+      paginated &&
       cursorY > page.contentBounds.y &&
       cursorY + height > page.contentBounds.y + page.contentBounds.height
     ) {
@@ -216,7 +257,7 @@ export function computeDocumentLayout(
       pageIndex: currentPageIndex,
       oversized,
     };
-    cursorY += height + pageGeometry.blockGap;
+    cursorY += height + geometry.blockGap;
 
     if (isPreview) {
       previewBounds = bounds;
@@ -226,7 +267,7 @@ export function computeDocumentLayout(
       blockLayouts.push(result);
     }
 
-    if (mode === "paged" && paginationPolicy !== "flow") {
+    if (paginated && paginationPolicy !== "flow") {
       advancePage();
     }
     return result;
@@ -245,7 +286,7 @@ export function computeDocumentLayout(
       index,
       depth,
       pageIndex,
-      x: page.contentBounds.x + depth * pageGeometry.sectionIndent,
+      x: page.contentBounds.x + depth * geometry.sectionIndent,
       y,
     });
   };
@@ -285,8 +326,8 @@ export function computeDocumentLayout(
 
   if (mode === "continuous") {
     const requiredBottom = Math.max(
-      pageGeometry.minimumHeight,
-      cursorY - pageGeometry.blockGap + pageGeometry.contentInsetBottom,
+      geometry.minimumHeight,
+      cursorY - geometry.blockGap + geometry.contentInsetBottom,
     );
     const continuousPage = pages[0];
     if (continuousPage === undefined) {
@@ -298,7 +339,7 @@ export function computeDocumentLayout(
       contentBounds: {
         ...continuousPage.contentBounds,
         height:
-          requiredBottom - pageGeometry.contentInsetTop - pageGeometry.contentInsetBottom,
+          requiredBottom - geometry.contentInsetTop - geometry.contentInsetBottom,
       },
     });
   }
@@ -307,7 +348,11 @@ export function computeDocumentLayout(
   const visiblePageRange =
     mode === "continuous"
       ? { start: 1, end: 1 }
-      : normalizeVisibleRange(totalPageCount, options.pageRange);
+      : normalizeVisibleRange(
+          totalPageCount,
+          geometry.maximumVisiblePages,
+          options.pageRange,
+        );
   const pageLayouts = pages.map<PageLayout>((page) => ({
     ...page,
     visible:

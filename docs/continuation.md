@@ -71,6 +71,22 @@ reference-target publication across native and graphical writers.
 
 ## Current implementation slice
 
+The graphical slide-development slice adds:
+
+- independent 1280×720 writer geometry alongside continuous and A4 paged
+  projection;
+- whole-block slide flow, explicit-break handling, oversized warnings, and a
+  bounded five-slide authoring range;
+- a one-slide presentation overlay that requests browser fullscreen but still
+  works when that request is denied;
+- Arrow/Page/Space/Home/End navigation with an explicit exit path;
+- shared graphical plugin rendering without a second semantic slide model;
+- unit, production-build, real-browser interaction, and screenshot coverage.
+
+See `slide-development-writer.md` for the boundary and deliberate omissions.
+
+## Preceding implementation slice
+
 The text-authored LaTeX-math slice adds:
 
 - independent inline and display contracts whose source omits writer-owned

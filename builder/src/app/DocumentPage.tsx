@@ -50,20 +50,33 @@ export function DocumentVisualPage({
     .map((blockLayout, documentIndex) => ({ blockLayout, documentIndex }))
     .filter(({ blockLayout }) => isPageVisible(layout, blockLayout.pageIndex));
   return (
-    <div className="document-surface" style={pageStyle} aria-label="Document development view">
+    <div
+      className={`document-surface document-surface--${layout.mode}`}
+      style={pageStyle}
+      aria-label={layout.mode === "slides" ? "Slide development view" : "Document development view"}
+    >
       {layout.pages
         .filter((page) => page.visible)
         .map((page) => (
           <article
-            className="document-page"
+            className={`document-page${layout.mode === "slides" ? " document-page--slide" : ""}`}
             data-page-number={page.pageIndex + 1}
             key={page.pageIndex}
             style={positionStyle(layout, page.bounds)}
-            aria-label={`Document page ${String(page.pageIndex + 1)}`}
+            aria-label={`${layout.mode === "slides" ? "Slide" : "Document page"} ${String(page.pageIndex + 1)}`}
           >
             <header className="document-page__header">
-              <span>DOCUMENT {String(page.pageIndex + 1).padStart(2, "0")}</span>
-              <span>{layout.mode === "continuous" ? "CONTINUOUS VIEW" : "PAGED VIEW"}</span>
+              <span>
+                {layout.mode === "slides" ? "SLIDE" : "DOCUMENT"}{" "}
+                {String(page.pageIndex + 1).padStart(2, "0")}
+              </span>
+              <span>
+                {layout.mode === "continuous"
+                  ? "CONTINUOUS VIEW"
+                  : layout.mode === "slides"
+                    ? "16:9 SLIDE"
+                    : "PAGED VIEW"}
+              </span>
             </header>
           </article>
         ))}
