@@ -65,21 +65,35 @@ and tests at the boundaries it implements.
 - The graphical writer may show an opaque placeholder for unsupported plugins.
   It must preserve their envelope and payload rather than dropping them.
 
-## Next architectural gate: canonical transport
+## Canonical transport
 
-The native and browser models still do not share a whole-document persistence
-format. Broadly multiplying plugins and writers before fixing that would create
-independent, drifting object graphs. The next gate is a versioned canonical
-transport with these properties:
+The native and browser implementations share a versioned JSON document
+envelope. It is the persistence and interchange boundary; generated LaTeX and
+graphical preview state are never semantic storage. The contract provides:
 
 - exact encode/decode round trips;
 - stable authoring IDs and separate optional reference IDs;
 - ordered recursive block and inline sequences;
 - plugin-owned payload schemas keyed by semantic type ID;
 - preservation of unknown plugin payloads;
-- explicit document-model versioning and schema migrations;
+- explicit document-model versioning and a schema-version migration seam;
 - conformance fixtures consumed by native and browser implementations;
 - no LaTeX importer.
 
-The transport is a protocol between modules, not a replacement for their
-encapsulated runtime data structures.
+The core transport only understands `id`, `type`, and an ordered JSON `payload`.
+Browser plugin modules register their own payload codecs. Native plugin
+materializers will follow the same ownership rule; the native transport already
+parses and reproduces the shared fixture without inspecting known or unknown
+payloads. This makes the transport a protocol between modules, not a replacement
+for their encapsulated runtime data structures.
+
+See [canonical-transport.md](canonical-transport.md) for the normative shape and
+current compatibility policy.
+
+## Next architectural gate: semantic document shell
+
+The next completed vertical slice should add ordinary title, table-of-contents,
+page-break, and section block plugins to the canonical protocol, their native
+LaTeX connectors, and their graphical adapters. Continuous and paged graphical
+layout can then consume those semantics without embedding page policy in the
+document core.

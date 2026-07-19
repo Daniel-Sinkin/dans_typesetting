@@ -7,6 +7,11 @@ export default defineConfig({
   define: {
     "process.env.IS_PREACT": JSON.stringify("false"),
   },
+  server: {
+    fs: {
+      allow: [".."],
+    },
+  },
   test: {
     environment: "jsdom",
   },

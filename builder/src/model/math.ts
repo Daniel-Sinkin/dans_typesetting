@@ -744,12 +744,24 @@ function parseSerializedMathNode(value: unknown): MathExpression {
   }
 }
 
-export function mathExpressionToString(expression: MathExpression): string {
+export function mathExpressionToTransport(
+  expression: MathExpression,
+): SerializedMathExpression {
   validateMathExpression(expression);
+  return serializeMathNode(expression);
+}
+
+export function mathExpressionFromTransport(value: unknown): MathExpression {
+  const expression = parseSerializedMathNode(value);
+  validateMathExpression(expression);
+  return expression;
+}
+
+export function mathExpressionToString(expression: MathExpression): string {
   const envelope: SerializedMathEnvelope = {
     format: "dans.math.expression",
     version: 1,
-    expression: serializeMathNode(expression),
+    expression: mathExpressionToTransport(expression),
   };
   return JSON.stringify(envelope);
 }
@@ -765,7 +777,5 @@ export function mathExpressionFromString(source: string): MathExpression {
   if (envelope.format !== "dans.math.expression" || envelope.version !== 1) {
     throw new Error("Unsupported serialized math format or version");
   }
-  const expression = parseSerializedMathNode(envelope.expression);
-  validateMathExpression(expression);
-  return expression;
+  return mathExpressionFromTransport(envelope.expression);
 }

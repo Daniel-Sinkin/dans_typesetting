@@ -34,6 +34,7 @@ import {
   type BuilderBlock,
   type DocumentPort,
 } from "../model/document";
+import type { CanonicalDocumentTransport } from "../transport/documentTransport";
 import { BlockPalette } from "./BlockPalette";
 import { DetachConfirmation } from "./DetachConfirmation";
 import { DocumentControls, DocumentVisualPage } from "./DocumentPage";
@@ -47,6 +48,7 @@ const pageAnchor = createPageAnchor();
 interface DocumentBuilderProps {
   readonly port: DocumentPort;
   readonly registry: BuilderPluginRegistry;
+  readonly transport: CanonicalDocumentTransport;
 }
 
 interface CanvasViewport {
@@ -131,7 +133,7 @@ function saveDetachPreference(): void {
   }
 }
 
-export function DocumentBuilder({ port, registry }: DocumentBuilderProps) {
+export function DocumentBuilder({ port, registry, transport }: DocumentBuilderProps) {
   const subscribe = useCallback((listener: () => void) => port.subscribe(listener), [port]);
   const getSnapshot = useCallback(() => port.getSnapshot(), [port]);
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
@@ -141,6 +143,7 @@ export function DocumentBuilder({ port, registry }: DocumentBuilderProps) {
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [pendingDetach, setPendingDetach] = useState<PendingDetach | null>(null);
   const [editingBlock, setEditingBlock] = useState<BuilderBlock | null>(null);
+  const [transportError, setTransportError] = useState<string | null>(null);
 
   const dragRef = useRef<ActiveDrag | null>(null);
 
@@ -488,6 +491,43 @@ export function DocumentBuilder({ port, registry }: DocumentBuilderProps) {
   const editingDescriptor =
     editingBlock === null ? null : registry.editorForBlock(editingBlock);
 
+  const saveDocument = useCallback((): void => {
+    try {
+      const source = transport.toString(port.getSnapshot());
+      const url = URL.createObjectURL(
+        new Blob([source], { type: "application/json;charset=utf-8" }),
+      );
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "document.dans.json";
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      globalThis.setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 0);
+      setTransportError(null);
+    } catch (error) {
+      setTransportError(error instanceof Error ? error.message : "Could not save document");
+    }
+  }, [port, transport]);
+
+  const loadDocument = useCallback(
+    async (file: File): Promise<void> => {
+      try {
+        const decoded = transport.fromString(await file.text());
+        clearDrag();
+        setPendingDetach(null);
+        setEditingBlock(null);
+        port.dispatch({ kind: "replace_all", ...decoded });
+        setTransportError(null);
+      } catch (error) {
+        setTransportError(error instanceof Error ? error.message : "Could not load document");
+      }
+    },
+    [clearDrag, port, transport],
+  );
+
   return (
     <main className="builder-shell">
       <section className="canvas-host" aria-label="Excalidraw notes canvas and document builder">
@@ -517,6 +557,9 @@ export function DocumentBuilder({ port, registry }: DocumentBuilderProps) {
             sidebarName={blocksSidebarName}
             blockCount={snapshot.blocks.length}
             registry={registry}
+            transportError={transportError}
+            onSaveDocument={saveDocument}
+            onLoadDocument={loadDocument}
             onBeginDrag={beginPaletteDrag}
           />
           <Footer>

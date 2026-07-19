@@ -12,6 +12,20 @@ export const codeListingTypeId = "dans.code.listing";
 export type CodeListingLanguage = "cpp" | "julia";
 export type ParagraphTextStyle = "normal" | "bold" | "italic" | "bold_italic";
 
+export interface DocumentModelVersion {
+  readonly major: number;
+  readonly minor: number;
+  readonly patch: number;
+}
+
+export interface DocumentMetadata {
+  readonly modelVersion: DocumentModelVersion;
+}
+
+export const defaultDocumentMetadata: DocumentMetadata = Object.freeze({
+  modelVersion: Object.freeze({ major: 0, minor: 1, patch: 0 }),
+});
+
 export interface BuilderBlockEnvelope {
   readonly id: string;
   readonly typeId: string;
@@ -76,6 +90,7 @@ export interface CodeListingBlock extends BuilderBlock {
 
 export interface DocumentSnapshot {
   readonly revision: number;
+  readonly metadata: DocumentMetadata;
   readonly blocks: readonly BuilderBlock[];
 }
 
@@ -98,6 +113,11 @@ export type DocumentCommand =
   | Readonly<{
       kind: "delete";
       blockId: string;
+    }>
+  | Readonly<{
+      kind: "replace_all";
+      metadata: DocumentMetadata;
+      blocks: readonly BuilderBlock[];
     }>;
 
 export type DocumentListener = () => void;
@@ -334,16 +354,41 @@ function validateBlock(block: BuilderBlock): void {
   }
 }
 
+function validateMetadata(metadata: DocumentMetadata): void {
+  const { major, minor, patch } = metadata.modelVersion;
+  for (const [name, value, maximum] of [
+    ["major", major, 65_535],
+    ["minor", minor, 65_535],
+    ["patch", patch, 4_294_967_295],
+  ] as const) {
+    if (!Number.isSafeInteger(value) || value < 0 || value > maximum) {
+      throw new Error(
+        `Document model version ${name} must be an integer in [0, ${String(maximum)}]`,
+      );
+    }
+  }
+}
+
 export class MemoryDocumentPort implements DocumentPort {
   readonly #listeners = new Set<DocumentListener>();
   #snapshot: DocumentSnapshot;
 
-  public constructor(initialBlocks: readonly BuilderBlock[]) {
+  public constructor(
+    initialBlocks: readonly BuilderBlock[],
+    metadata: DocumentMetadata = defaultDocumentMetadata,
+  ) {
+    validateMetadata(metadata);
     for (const block of initialBlocks) {
       validateBlock(block);
     }
     this.#assertUniqueIds(initialBlocks);
-    this.#snapshot = Object.freeze({ revision: 0, blocks: Object.freeze([...initialBlocks]) });
+    this.#snapshot = Object.freeze({
+      revision: 0,
+      metadata: Object.freeze({
+        modelVersion: Object.freeze({ ...metadata.modelVersion }),
+      }),
+      blocks: Object.freeze([...initialBlocks]),
+    });
   }
 
   public getSnapshot(): DocumentSnapshot {
@@ -363,6 +408,9 @@ export class MemoryDocumentPort implements DocumentPort {
         return;
       case "delete":
         this.#delete(command.blockId);
+        return;
+      case "replace_all":
+        this.#replaceAll(command.metadata, command.blocks);
         return;
     }
   }
@@ -451,9 +499,24 @@ export class MemoryDocumentPort implements DocumentPort {
     this.#publish(blocks);
   }
 
-  #publish(blocks: readonly BuilderBlock[]): void {
+  #replaceAll(metadata: DocumentMetadata, blocks: readonly BuilderBlock[]): void {
+    validateMetadata(metadata);
+    for (const block of blocks) {
+      validateBlock(block);
+    }
+    this.#assertUniqueIds(blocks);
+    this.#publish(blocks, metadata);
+  }
+
+  #publish(
+    blocks: readonly BuilderBlock[],
+    metadata: DocumentMetadata = this.#snapshot.metadata,
+  ): void {
     this.#snapshot = Object.freeze({
       revision: this.#snapshot.revision + 1,
+      metadata: Object.freeze({
+        modelVersion: Object.freeze({ ...metadata.modelVersion }),
+      }),
       blocks: Object.freeze([...blocks]),
     });
 

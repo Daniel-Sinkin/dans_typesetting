@@ -1,0 +1,140 @@
+{
+  "format": "dans.typesetting.document",
+  "schemaVersion": 1,
+  "documentVersion": {
+    "major": 0,
+    "minor": 1,
+    "patch": 0
+  },
+  "blocks": [
+    {
+      "id": "fixture-introduction",
+      "type": "dans.core.paragraph",
+      "payload": {
+        "inlines": [
+          {
+            "id": "fixture-text",
+            "type": "dans.core.text",
+            "payload": {
+              "text": "A styled canonical paragraph with ",
+              "style": "bold_italic"
+            }
+          },
+          {
+            "id": "fixture-inline-math",
+            "type": "dans.math.inline",
+            "payload": {
+              "expression": {
+                "kind": "binary",
+                "operator": "equals",
+                "left": {
+                  "kind": "identifier",
+                  "name": "E"
+                },
+                "right": {
+                  "kind": "integer",
+                  "value": "4"
+                }
+              }
+            }
+          },
+          {
+            "id": "fixture-link",
+            "type": "dans.inline.hyperlink",
+            "payload": {
+              "target": "https://example.com/results",
+              "labelInlines": [
+                {
+                  "id": "fixture-link-label",
+                  "type": "dans.core.text",
+                  "payload": {
+                    "text": "clickable results",
+                    "style": "bold"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "fixture-colour",
+            "type": "dans.inline.color_span",
+            "payload": {
+              "color": {
+                "red": 38,
+                "green": 96,
+                "blue": 168
+              },
+              "inlines": [
+                {
+                  "id": "fixture-colour-text",
+                  "type": "dans.core.text",
+                  "payload": {
+                    "text": " and colour.",
+                    "style": "normal"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "fixture-unknown-inline",
+            "type": "third.party.inline",
+            "payload": {
+              "preserved": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fixture-figure",
+      "type": "dans.image.figure",
+      "payload": {
+        "source": "/sample-domain-decomposition.svg",
+        "caption": "A canonical figure.",
+        "widthFraction": 0.72,
+        "preferredPixelWidth": 1280,
+        "preferredPixelHeight": 720
+      }
+    },
+    {
+      "id": "fixture-equation",
+      "type": "dans.math.display",
+      "payload": {
+        "expression": {
+          "kind": "binary",
+          "operator": "equals",
+          "left": {
+            "kind": "identifier",
+            "name": "x"
+          },
+          "right": {
+            "kind": "decimal",
+            "value": "3.2"
+          }
+        }
+      }
+    },
+    {
+      "id": "fixture-listing",
+      "type": "dans.code.listing",
+      "payload": {
+        "language": "julia",
+        "code": "function energy(x)\n    return sum(abs2, x)\nend",
+        "caption": "A canonical Julia listing."
+      }
+    },
+    {
+      "id": "fixture-unknown-block",
+      "type": "third.party.block",
+      "payload": {
+        "rows": [
+          1,
+          2,
+          3
+        ],
+        "note": null
+      }
+    }
+  ]
+}

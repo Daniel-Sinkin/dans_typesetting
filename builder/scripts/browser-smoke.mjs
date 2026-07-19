@@ -16,6 +16,13 @@ const sampleImagePath = join(
   "public",
   "sample-domain-decomposition.svg",
 );
+const canonicalFixturePath = join(
+  builderDirectory,
+  "..",
+  "fixtures",
+  "canonical",
+  "current-features.dans.json",
+);
 
 function assert(condition, message) {
   if (!condition) {
@@ -774,6 +781,30 @@ async function exerciseBuilder(client) {
     "A parked math fragment could not be dragged back into the equation",
   );
   await screenshot(client, "math-editor-selection-and-parking.png");
+
+  await reloadBuilder(client);
+  const persistenceRoot = await client.send("DOM.getDocument", { depth: -1, pierce: true });
+  const documentFileInput = await client.send("DOM.querySelector", {
+    nodeId: persistenceRoot.root.nodeId,
+    selector: `input[data-testid="load-document"]`,
+  });
+  assert(documentFileInput.nodeId !== 0, "Canonical document file input was not created");
+  await client.send("DOM.setFileInputFiles", {
+    nodeId: documentFileInput.nodeId,
+    files: [canonicalFixturePath],
+  });
+  await delay(250);
+  assert(
+    await client.evaluate(`(() => {
+      const blocks = [...document.querySelectorAll("[data-block-id]")];
+      return blocks.length === 5 &&
+        document.body.textContent.includes("A styled canonical paragraph") &&
+        document.body.textContent.includes("third.party.block") &&
+        document.querySelector("button[data-testid='save-document']") !== null;
+    })()`),
+    "Canonical document loading did not transactionally replace the graphical document",
+  );
+  await screenshot(client, "canonical-document-loaded.png");
 
   assert(client.exceptions.length === 0, `Browser exceptions: ${client.exceptions.join("; ")}`);
 }

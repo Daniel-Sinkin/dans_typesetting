@@ -8,6 +8,9 @@ interface BlockPaletteProps {
   readonly sidebarName: string;
   readonly blockCount: number;
   readonly registry: BuilderPluginRegistry;
+  readonly transportError: string | null;
+  readonly onSaveDocument: () => void;
+  readonly onLoadDocument: (file: File) => Promise<void>;
   readonly onBeginDrag: (
     plugin: BuilderBlockPlugin,
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -18,6 +21,9 @@ export function BlockPalette({
   sidebarName,
   blockCount,
   registry,
+  transportError,
+  onSaveDocument,
+  onLoadDocument,
   onBeginDrag,
 }: BlockPaletteProps) {
   return (
@@ -29,6 +35,32 @@ export function BlockPalette({
         </div>
       </Sidebar.Header>
       <div className="palette-content">
+        <section className="document-file-controls" aria-label="Document files">
+          <button type="button" data-testid="save-document" onClick={onSaveDocument}>
+            Save document
+          </button>
+          <label>
+            <span>Load document</span>
+            <input
+              className="visually-hidden"
+              data-testid="load-document"
+              type="file"
+              accept=".json,.dans.json,application/json"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (file !== undefined) {
+                  void onLoadDocument(file);
+                }
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+        </section>
+        {transportError === null ? null : (
+          <p className="document-file-error" role="alert">
+            {transportError}
+          </p>
+        )}
         <p className="palette-intro">
           Drag a semantic block onto the fixed page. Sketches and notes stay in Excalidraw.
         </p>

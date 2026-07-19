@@ -500,6 +500,44 @@ button {
   line-height: 1.45;
 }
 
+.document-file-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.document-file-controls button,
+.document-file-controls label {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  margin: 0;
+  padding: 0 9px;
+  color: #364fc7;
+  background: #edf2ff;
+  border: 1px solid #bac8ff;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.document-file-controls button:hover,
+.document-file-controls label:hover {
+  background: #dbe4ff;
+}
+
+.document-file-error {
+  margin: 0;
+  padding: 8px 10px;
+  color: #c92a2a;
+  background: #fff5f5;
+  border: 1px solid #ffc9c9;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
 .palette-grid {
   display: grid;
   gap: 10px;

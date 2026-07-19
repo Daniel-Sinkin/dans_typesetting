@@ -12,9 +12,10 @@ The graphical writer may be incomplete by design. A registered block type uses i
 unknown type is preserved by `DocumentPort` and rendered through one visible opaque-block fallback.
 The fallback reads only the common stable ID and type ID and never inspects plugin-owned payload.
 
-The current `MemoryDocumentPort` is deliberately behind a command/snapshot interface. It validates
-the interaction before a native or WebAssembly transport connects the existing C++ model; it is not
-intended to become an independent permanent document format.
+The current `MemoryDocumentPort` is deliberately behind a command/snapshot interface. Versioned
+`.dans.json` persistence sits on the other side of that boundary: plugin-owned codecs translate
+runtime shapes to canonical payload envelopes, while unknown plugin payloads remain opaque. The
+same conformance fixture is normalized exactly by browser and native transport tests.
 
 ## Run
 
@@ -47,8 +48,8 @@ stable handle to the browser console, demonstrating that preview and editing sup
 Ordinary Excalidraw tools remain available for panning, zooming, sketching, and free-form notes.
 
 This slice intentionally uses one growing page and has no pagination. Multiple movable document
-surfaces and cross-page reflow remain later experiments. Native and browser paragraph IDs are now
-aligned, but whole-document canonical persistence remains the next architectural gate. See
+surfaces and cross-page reflow remain later experiments. Save and Load use the canonical document
+format; native materialization of those plugin payloads remains a separate connector task. See
 `../docs/continuation.md` and `../docs/canvas-migration.md` for recovery state and the bespoke-canvas
 plan.
 

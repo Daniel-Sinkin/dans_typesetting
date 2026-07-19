@@ -35,6 +35,7 @@ import {
   colorSpanInlinePlugin,
   createColorSpanInline,
 } from "../plugins/colorSpan";
+import { projectDocumentTransport } from "../transport/projectTransport";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
@@ -174,5 +175,11 @@ const pluginRegistry = new BuilderPluginRegistry(
 );
 
 export function App() {
-  return <DocumentBuilder port={documentPort} registry={pluginRegistry} />;
+  return (
+    <DocumentBuilder
+      port={documentPort}
+      registry={pluginRegistry}
+      transport={projectDocumentTransport}
+    />
+  );
 }
