@@ -4,12 +4,9 @@ import { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import { BuilderPluginRegistry } from "../builder/plugin";
 import {
   createText,
-  createMathDisplayLine,
-  createMathInline,
   createHyperlinkInline,
   createReferenceInline,
   MemoryDocumentPort,
-  mathDisplayTypeId,
   paragraphTypeId,
   pageBreakTypeId,
   sectionTypeId,
@@ -17,20 +14,6 @@ import {
   titlePageTypeId,
   type BuilderBlock,
 } from "../model/document";
-import {
-  createMathBinary,
-  createMathFraction,
-  createMathIdentifier,
-  createMathInteger,
-  createMathNamedOperator,
-  createMathRadical,
-  createMathScript,
-  createMathSummation,
-  createMathSymbol,
-  createMathStyledIdentifier,
-  createMathText,
-  createMathUnderbrace,
-} from "../model/math";
 import { createImagePlugin } from "../plugins/image";
 import { createImageBlock } from "../plugins/imageModel";
 import { createFigurePairPlugin } from "../plugins/figurePair";
@@ -40,11 +23,8 @@ import {
 } from "../plugins/figurePairModel";
 import { createCodeListingPlugin } from "../plugins/codeListing";
 import { createCodeListingBlock } from "../plugins/codeListingModel";
-import { createMathPlugin } from "../plugins/mathPlugin";
-import { createInlineMathPlugin } from "../plugins/mathInline";
 import { hyperlinkInlinePlugin } from "../plugins/hyperlink";
 import { referenceInlinePlugin } from "../plugins/reference";
-import { basicMathInputParser } from "../plugins/basicMathInputParser";
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import { createParagraphPlugin } from "../plugins/paragraph";
 import {
@@ -86,16 +66,19 @@ import {
 } from "../plugins/tableModel";
 import { createTablePlugin } from "../plugins/tablePlugin";
 import {
-  createMathColumnVector,
-  createMathMatrix,
-  mathMatVecEditorExtension,
-} from "../plugins/mathMatVec";
+  latexMathDisplayPlugin,
+  latexMathInlinePlugin,
+} from "../plugins/latexMath";
+import {
+  createLatexMathDisplay,
+  createLatexMathInline,
+} from "../plugins/latexMathModel";
 
 const inlinePluginRegistry = new BuilderInlinePluginRegistry(
   [
     textInlinePlugin,
     colorSpanInlinePlugin,
-    createInlineMathPlugin(basicMathInputParser, [mathMatVecEditorExtension]),
+    latexMathInlinePlugin,
     hyperlinkInlinePlugin,
     referenceInlinePlugin,
     footnoteInlinePlugin,
@@ -154,24 +137,12 @@ const initialBlocks = [
         "sample-introduction-link",
       ),
       createText(" can sit beside ", "sample-introduction-text-math-join"),
-      createMathInline(
-        createMathBinary(
-          "approximately_equals",
-          createMathIdentifier("E"),
-          createMathBinary(
-            "times",
-            createMathIdentifier("m"),
-            createMathScript(
-              createMathIdentifier("c"),
-              null,
-              createMathInteger(2),
-            ),
-          ),
-        ),
+      createLatexMathInline(
+        String.raw`E \approx m c^2`,
         "sample-introduction-inline-math",
       ),
       createText(
-        " remains editable as structured inline mathematics. ",
+        " remains editable as scoped LaTeX mathematics. ",
         "sample-introduction-text-b",
       ),
       createColorSpanInline(
@@ -242,12 +213,8 @@ const initialBlocks = [
         "sample-figure-caption-text",
         "bold",
       ),
-      createMathInline(
-        createMathScript(
-          createMathIdentifier("J"),
-          createMathInteger(2),
-          null,
-        ),
+      createLatexMathInline(
+        String.raw`J_2`,
         "sample-figure-caption-math",
       ),
       createColorSpanInline(
@@ -274,12 +241,8 @@ const initialBlocks = [
       "/sample-domain-decomposition.svg",
       [
         createText("Single-coupling model ", "sample-pair-left-text"),
-        createMathInline(
-          createMathScript(
-            createMathIdentifier("J"),
-            createMathInteger(1),
-            null,
-          ),
+        createLatexMathInline(
+          String.raw`J_1`,
           "sample-pair-left-math",
         ),
       ],
@@ -290,20 +253,8 @@ const initialBlocks = [
       "/sample-domain-decomposition.svg",
       [
         createText("Frustrated model ", "sample-pair-right-text"),
-        createMathInline(
-          createMathBinary(
-            "minus",
-            createMathScript(
-              createMathIdentifier("J"),
-              createMathInteger(1),
-              null,
-            ),
-            createMathScript(
-              createMathIdentifier("J"),
-              createMathInteger(2),
-              null,
-            ),
-          ),
+        createLatexMathInline(
+          String.raw`J_1 - J_2`,
           "sample-pair-right-math",
         ),
       ],
@@ -326,81 +277,19 @@ const initialBlocks = [
     canvasHeight: 390,
     scene: createSampleExcalidrawScene(),
   }),
-  Object.freeze({
-    id: "sample-display-math",
-    typeId: mathDisplayTypeId,
-    alignment: "automatic",
-    lines: Object.freeze([
-      createMathDisplayLine(
-        createMathBinary(
-          "equals",
-          createMathBinary(
-            "minus",
-            createMathBinary("plus", createMathInteger(1), createMathInteger(2)),
-            createMathInteger(3),
-          ),
-          createMathSummation(
-            createMathBinary(
-              "equals",
-              createMathIdentifier("i"),
-              createMathInteger(1),
-            ),
-            createMathUnderbrace(
-              createMathNamedOperator(
-                "dim",
-                createMathStyledIdentifier("H", "calligraphic"),
-              ),
-              createMathText("space dimension"),
-            ),
-            createMathBinary(
-              "tensor_product",
-              createMathMatrix([
-                [createMathInteger(2), createMathInteger(4)],
-                [createMathInteger(1), createMathInteger(3)],
-              ]),
-              createMathFraction(
-                createMathColumnVector([
-                  createMathIdentifier("x"),
-                  createMathIdentifier("y"),
-                ]),
-                createMathRadical(
-                  createMathScript(
-                    createMathSymbol("lambda"),
-                    createMathIdentifier("i"),
-                    createMathInteger(2),
-                  ),
-                  createMathInteger(3),
-                ),
-              ),
-            ),
-          ),
-        ),
-        true,
-        "eq:sample-summation",
-        "sample-display-math-line-main",
-      ),
-      createMathDisplayLine(
-        createMathBinary(
-          "equals",
-          createMathIdentifier("E"),
-          createMathBinary(
-            "plus",
-            createMathIdentifier("T"),
-            createMathIdentifier("V"),
-          ),
-        ),
-        true,
-        null,
-        "sample-display-math-line-energy",
-      ),
-      createMathDisplayLine(
-        createMathText("An intentionally unnumbered explanatory line"),
-        false,
-        null,
-        "sample-display-math-line-note",
-      ),
-    ]),
-  }),
+  createLatexMathDisplay(
+    String.raw`\begin{aligned}
+(1 + 2) - 3
+  &= \sum_{i=1}^{\dim \mathcal{H}}
+     \begin{pmatrix}2 & 4 \\ 1 & 3\end{pmatrix}
+     \otimes
+     \frac{\begin{pmatrix}x \\ y\end{pmatrix}}{\sqrt[3]{\lambda_i^2}} \\
+E &= T + V
+\end{aligned}`,
+    true,
+    "eq:sample-summation",
+    "sample-display-math",
+  ),
   createCodeListingBlock(
     "sample-code-listing",
     "cpp",
@@ -436,16 +325,8 @@ const initialBlocks = [
       ]),
       createBuilderListItem("sample-list-item-inline", [
         createText("Reuse ", "sample-list-item-inline-text-a"),
-        createMathInline(
-          createMathBinary(
-            "equals",
-            createMathIdentifier("E"),
-            createMathBinary(
-              "times",
-              createMathIdentifier("m"),
-              createMathIdentifier("c"),
-            ),
-          ),
+        createLatexMathInline(
+          String.raw`E = mc`,
           "sample-list-item-inline-math",
         ),
         createText(
@@ -481,12 +362,8 @@ const initialBlocks = [
           createText("contract", "sample-table-contract-kernel-text"),
         ]),
         createBuilderTableCell("sample-table-contract-lattice", [
-          createMathInline(
-            createMathBinary(
-              "times",
-              createMathInteger(16),
-              createMathInteger(16),
-            ),
+          createLatexMathInline(
+            String.raw`16 \times 16`,
             "sample-table-contract-lattice-math",
           ),
         ]),
@@ -571,7 +448,7 @@ const pluginRegistry = new BuilderPluginRegistry(
     createParagraphPlugin(inlinePluginRegistry),
     createImagePlugin(inlinePluginRegistry),
     createFigurePairPlugin(inlinePluginRegistry),
-    createMathPlugin(basicMathInputParser, [mathMatVecEditorExtension]),
+    latexMathDisplayPlugin,
     createCodeListingPlugin(inlinePluginRegistry),
     titlePagePlugin,
     tableOfContentsPlugin,

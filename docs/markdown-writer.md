@@ -55,7 +55,8 @@ citations consume the completed index through the Markdown output context.
 | Item list | itemized or automatically numbered Markdown list |
 | Table | GFM pipe table with alignment, caption, number, and anchor |
 | Code listing | collision-safe fenced block, language, caption, and anchor |
-| Inline/display math | shared TeX-expression lowering inside math delimiters |
+| Structured inline/display math | shared TeX-expression lowering inside math delimiters |
+| Text-authored LaTeX math | validated source inside writer-owned math delimiters |
 | Semantic reference | live link such as `Section 1.2` or `Figure 3` |
 | Citation | linked numeric occurrence resolved by bibliography key |
 | Bibliography | normalized ordered records with DOI/URL links |

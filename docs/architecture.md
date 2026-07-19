@@ -54,6 +54,8 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Citation | `dans.bibliography.citation` |
 | Inline math | `dans.math.inline` |
 | Display math | `dans.math.display` |
+| Text-authored inline LaTeX math | `dans.math.latex.inline` |
+| Text-authored display LaTeX math | `dans.math.latex.display` |
 | Hyperlink | `dans.inline.hyperlink` |
 | Semantic reference | `dans.inline.reference` |
 | Footnote | `dans.inline.footnote` |
@@ -83,6 +85,11 @@ and tests at the boundaries it implements.
   defensible for links inside links.
 - Raw LaTeX is an explicit backend-specific escape hatch. It does not count as
   Markdown, Jupyter, graphical, or future PDF support.
+- Text-authored LaTeX math is narrower than raw LaTeX: it stores trusted source
+  inside implicit math delimiters, has explicit inline/display contracts, and
+  has LaTeX, Markdown/Jupyter, canonical, and graphical adapters. The active
+  builder uses this path while retaining structured-math codecs for existing
+  documents. See [latex-math.md](latex-math.md).
 - Code-listing language is a presentation classification with four opinionated
   values, not a compiler/parser contract. Rich-caption presence and target
   identity are independent, while every listing remains in one writer-owned

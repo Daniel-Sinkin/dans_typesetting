@@ -159,6 +159,18 @@ target_link_libraries(math_plugin
   PRIVATE typesetter_warnings
 )
 
+add_library(latex_math_plugin STATIC
+  src/plugins/latex_math.cpp
+  src/plugins/latex_math.hpp
+)
+add_library(dans::latex_math_plugin ALIAS latex_math_plugin)
+target_link_libraries(latex_math_plugin
+  PUBLIC
+    dans::document_core
+    dans::inline_sequence
+  PRIVATE typesetter_warnings
+)
+
 add_library(math_matvec_plugin STATIC
   src/plugins/math_matvec.cpp
   src/plugins/math_matvec.hpp
@@ -415,6 +427,18 @@ target_link_libraries(math_latex_connector
   PRIVATE
     dans::math_tex_expression_connector
     typesetter_warnings
+)
+
+add_library(latex_math_latex_connector STATIC
+  src/connectors/latex/latex_math.cpp
+  src/connectors/latex/latex_math.hpp
+)
+add_library(dans::latex_math_latex_connector ALIAS latex_math_latex_connector)
+target_link_libraries(latex_math_latex_connector
+  PUBLIC
+    dans::inline_sequence_latex_connector
+    dans::latex_math_plugin
+  PRIVATE typesetter_warnings
 )
 
 add_library(item_list_latex_connector STATIC
@@ -782,6 +806,18 @@ target_link_libraries(math_markdown_connector
     typesetter_warnings
 )
 
+add_library(latex_math_markdown_connector STATIC
+  src/connectors/markdown/latex_math.cpp
+  src/connectors/markdown/latex_math.hpp
+)
+add_library(dans::latex_math_markdown_connector ALIAS latex_math_markdown_connector)
+target_link_libraries(latex_math_markdown_connector
+  PUBLIC
+    dans::inline_sequence_markdown_connector
+    dans::latex_math_plugin
+  PRIVATE typesetter_warnings
+)
+
 add_library(bibliography_markdown_connector STATIC
   src/connectors/markdown/bibliography.cpp
   src/connectors/markdown/bibliography.hpp
@@ -827,6 +863,7 @@ target_link_libraries(document_example PRIVATE
   dans::item_list_latex_connector
   dans::hyperlink_latex_connector
   dans::latex_mixin_latex_connector
+  dans::latex_math_latex_connector
   dans::math_latex_connector
   dans::math_matvec_plugin
   dans::reference_latex_connector
@@ -921,6 +958,18 @@ if(BUILD_TESTING)
     typesetter_warnings
   )
   add_test(NAME native_math_structures_test COMMAND native_math_structures_test)
+
+  add_executable(native_latex_math_test
+    tests/native_latex_math_test.cpp
+  )
+  target_link_libraries(native_latex_math_test PRIVATE
+    dans::latex_math_latex_connector
+    dans::latex_math_markdown_connector
+    dans::paragraph_latex_connector
+    dans::paragraph_markdown_connector
+    typesetter_warnings
+  )
+  add_test(NAME native_latex_math_test COMMAND native_latex_math_test)
 
   add_executable(native_code_listing_test
     tests/native_code_listing_test.cpp

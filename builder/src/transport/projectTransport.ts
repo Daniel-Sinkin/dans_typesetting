@@ -24,6 +24,10 @@ import {
   displayMathTransportCodec,
   inlineMathTransportCodec,
 } from "../plugins/mathTransport";
+import {
+  latexMathDisplayTransportCodec,
+  latexMathInlineTransportCodec,
+} from "../plugins/latexMathTransport";
 import { paragraphBlockTransportCodec } from "../plugins/paragraphTransport";
 import { textInlineTransportCodec } from "../plugins/textTransport";
 import {
@@ -37,6 +41,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     imageBlockTransportCodec,
     figurePairTransportCodec,
     displayMathTransportCodec,
+    latexMathDisplayTransportCodec,
     codeListingBlockTransportCodec,
     sectionBlockTransportCodec,
     titlePageBlockTransportCodec,
@@ -51,6 +56,7 @@ export const projectTransportRegistry = new DocumentTransportRegistry(
     textInlineTransportCodec,
     colorSpanInlineTransportCodec,
     inlineMathTransportCodec,
+    latexMathInlineTransportCodec,
     hyperlinkInlineTransportCodec,
     referenceInlineTransportCodec,
     footnoteInlineTransportCodec,

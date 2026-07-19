@@ -9,6 +9,7 @@
 #include "connectors/latex/image.hpp"
 #include "connectors/latex/inline_code.hpp"
 #include "connectors/latex/item_list.hpp"
+#include "connectors/latex/latex_math.hpp"
 #include "connectors/latex/latex_mixin.hpp"
 #include "connectors/latex/math.hpp"
 #include "connectors/latex/paragraph.hpp"
@@ -26,6 +27,7 @@
 #include "plugins/image.hpp"
 #include "plugins/inline_code.hpp"
 #include "plugins/item_list.hpp"
+#include "plugins/latex_math.hpp"
 #include "plugins/latex_mixin.hpp"
 #include "plugins/math.hpp"
 #include "plugins/math_matvec.hpp"
@@ -198,6 +200,8 @@ auto make_sample_document()
     auto& inline_paragraph = inline_extensions.blocks().add<Paragraph>();
     inline_paragraph.append_text("A paragraph can combine ordinary text, inline math such as ");
     inline_paragraph.inlines().add<Math::Inline>(M::id_x.subscript(M::id_i).superscript(M::id_2));
+    inline_paragraph.append_text(", directly authored LaTeX math such as ");
+    inline_paragraph.inlines().add<LatexMathInline>(R"(\rho_\beta \approx e^{-\beta H})");
     inline_paragraph.append_text(", and ");
     inline_paragraph.inlines().add<InlineCode>("cudaDeviceSynchronize()");
     inline_paragraph.append_text(" as semantic inline code, plus ");
@@ -371,6 +375,11 @@ auto make_sample_document()
     mathematics.blocks().add<M::Display>(
         make_numeric_literal_equation(), numeric_literal_equation_id
     );
+    mathematics.blocks().add<LatexMathDisplay>(
+        R"(\mathcal{Z}(\beta) = \operatorname{Tr}\!\left(e^{-\beta H}\right))",
+        LatexMathNumbering::numbered,
+        ReferenceId{"eq:latex-authored"}
+    );
 
     auto& equation_references = mathematics.blocks().add<Paragraph>();
     equation_references.append_text("The aligned group retains distinct targets: ");
@@ -485,6 +494,9 @@ auto run(const int argc, char** argv) -> int
             std::make_unique<dans::document::connectors::latex::InlineMathLatexAdapter>()
         );
         inline_renderer->register_inline_adapter(
+            std::make_unique<dans::document::connectors::latex::LatexMathInlineAdapter>()
+        );
+        inline_renderer->register_inline_adapter(
             std::make_unique<dans::document::connectors::latex::RawInlineLatexAdapter>()
         );
         inline_renderer->register_inline_adapter(
@@ -524,6 +536,9 @@ auto run(const int argc, char** argv) -> int
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::DisplayMathLatexAdapter>()
+        );
+        writer.register_block_adapter(
+            std::make_unique<dans::document::connectors::latex::LatexMathDisplayAdapter>()
         );
         writer.register_block_adapter(
             std::make_unique<dans::document::connectors::latex::FigureLatexAdapter>(inline_renderer)

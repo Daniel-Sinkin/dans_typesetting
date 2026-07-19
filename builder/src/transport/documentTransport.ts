@@ -79,6 +79,18 @@ export function requireTransportNumber(
   return value;
 }
 
+export function requireTransportBoolean(
+  record: Record<string, unknown>,
+  field: string,
+  context: string,
+): boolean {
+  const value = record[field];
+  if (typeof value !== "boolean") {
+    throw new Error(`${context}.${field} must be a boolean`);
+  }
+  return value;
+}
+
 export function requireTransportArray(
   record: Record<string, unknown>,
   field: string,

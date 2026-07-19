@@ -118,6 +118,12 @@ payload remains readable and normalizes to one automatically aligned numbered
 line; new files emit only the ordered form. See
 [math-display-groups.md](math-display-groups.md).
 
+The independent `dans.math.latex.inline` payload stores one validated `source`
+string. `dans.math.latex.display` stores `source`, Boolean `numbered`, and a
+nullable `referenceId`. Delimiters are never serialized. These codecs coexist
+with the structured-math codecs so benching the structured graphical editor
+does not make older files unreadable. See [latex-math.md](latex-math.md).
+
 Inline source code uses `dans.code.inline` with one string-valued `code` field.
 CR and LF are rejected because multiline source belongs to the listing plugin;
 all other code punctuation is stored semantically rather than writer-escaped.

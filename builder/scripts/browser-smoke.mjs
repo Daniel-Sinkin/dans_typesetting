@@ -279,21 +279,12 @@ async function exerciseBuilder(client) {
     return {
       blocks: document.querySelectorAll("[data-block-id]").length,
       imageLoaded: image instanceof HTMLImageElement && image.complete && image.naturalWidth === 1280,
-      structuredMath: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node") !== null,
-      summation: document.querySelector("[data-visual-block-id='sample-display-math'] .math-summation-symbol")?.textContent === "∑",
-      matrixGrid: document.querySelector("[data-visual-block-id='sample-display-math'] .math-grid")?.children.length === 4,
-      fraction: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--fraction") !== null,
-      radical: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--radical") !== null,
-      script: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--script") !== null,
-      mathFunction: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--function") !== null,
-      calligraphicIdentifier: document.querySelector("[data-visual-block-id='sample-display-math'] .math-identifier--calligraphic")?.textContent === "ℋ",
-      underbrace: document.querySelector("[data-visual-block-id='sample-display-math'] .math-node--underbrace") !== null,
-      mathText: document.querySelector("[data-visual-block-id='sample-display-math'] .math-text")?.textContent === "space dimension",
-      mathVocabulary: document.querySelector("[data-visual-block-id='sample-display-math']")?.textContent.includes("⊗") === true && document.querySelector("[data-visual-block-id='sample-display-math']")?.textContent.includes("λ") === true,
+      latexMath: document.querySelector("[data-visual-block-id='sample-display-math'] .latex-math-display .katex") !== null,
+      latexMathVocabulary: document.querySelector("[data-visual-block-id='sample-display-math'] .katex-html")?.textContent.includes("∑") === true && document.querySelector("[data-visual-block-id='sample-display-math'] .katex-html")?.textContent.includes("λ") === true,
       codeListing: document.querySelector("[data-visual-block-id='sample-code-listing'] code")?.textContent.includes("std::println") ?? false,
       opaqueFallback: document.body.textContent.includes("dans.future.block"),
-      inlineMath: document.querySelector("[data-inline-math-id='sample-introduction-inline-math'] .math-node") !== null,
-      inlineRelation: document.querySelector("[data-inline-math-id='sample-introduction-inline-math']")?.textContent.includes("≈") ?? false,
+      inlineMath: document.querySelector("[data-latex-math-inline-id='sample-introduction-inline-math'] .katex") !== null,
+      inlineRelation: document.querySelector("[data-latex-math-inline-id='sample-introduction-inline-math'] .katex-html")?.textContent.includes("≈") ?? false,
       hyperlink: document.querySelector("a[href='https://example.com/typesetting']")?.textContent.includes("clickable links") ?? false,
       styledText: document.querySelector("[data-visual-block-id='sample-introduction'] strong em")?.textContent === "Styled text",
       inlineCode: document.querySelector("[data-visual-block-id='sample-introduction'] .inline-code-content")?.textContent === "cudaDeviceSynchronize()",
@@ -301,24 +292,23 @@ async function exerciseBuilder(client) {
       bibliographyEntries: document.querySelectorAll("[data-visual-block-id='sample-bibliography'] [data-bibliography-entry-key]").length,
       bibliographyDoi: document.querySelector("[data-visual-block-id='sample-bibliography'] a[href='https://doi.org/10.1080/14789940801912366']") !== null,
       figureNumber: document.querySelector("[data-visual-block-id='sample-figure'] figcaption")?.textContent.includes("Figure 1:") ?? false,
-      figureCaptionMath: document.querySelector("[data-visual-block-id='sample-figure'] figcaption .math-node") !== null,
+      figureCaptionMath: document.querySelector("[data-visual-block-id='sample-figure'] figcaption .latex-math-inline .katex") !== null,
       figureCaptionColor: document.querySelector("[data-visual-block-id='sample-figure'] figcaption .inline-color-span")?.textContent.includes("with colour") ?? false,
       figurePairPanels: document.querySelectorAll("[data-visual-block-id='sample-figure-pair'] [data-figure-panel-id]").length,
       figurePairNumber: document.querySelector("[data-visual-block-id='sample-figure-pair'] .figure-pair-content__caption")?.textContent.includes("Figure 2:") ?? false,
-      figurePairMath: document.querySelectorAll("[data-visual-block-id='sample-figure-pair'] .math-node").length,
+      figurePairMath: document.querySelectorAll("[data-visual-block-id='sample-figure-pair'] .latex-math-inline .katex").length,
       figurePairPanelTargets: document.getElementById("dans-reference-fig%3Apaired-models%3Aleft") !== null && document.getElementById("dans-reference-fig%3Apaired-models%3Aright") !== null,
       equationNumbers: [...document.querySelectorAll("[data-visual-block-id='sample-display-math'] .math-equation-number")].map((node) => node.textContent.trim()),
-      equationLineCount: document.querySelectorAll("[data-visual-block-id='sample-display-math'] [data-math-display-line-id]").length,
       listingNumber: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption")?.textContent.includes("Listing 1:") ?? false,
       listingCaptionCode: document.querySelector("[data-visual-block-id='sample-code-listing'] figcaption .inline-code-content")?.textContent === "std::println",
       drawingPreview: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] img")?.src.startsWith("blob:") ?? false,
       drawingNumber: document.querySelector("[data-visual-block-id='sample-excalidraw-drawing'] figcaption")?.textContent.includes("Figure 3:") ?? false,
       itemListPresentation: document.querySelector("[data-visual-block-id='sample-item-list'] ol")?.dataset.listPresentation ?? null,
       itemListCount: document.querySelectorAll("[data-visual-block-id='sample-item-list'] li").length,
-      itemListMath: document.querySelector("[data-visual-block-id='sample-item-list'] .math-node") !== null,
+      itemListMath: document.querySelector("[data-visual-block-id='sample-item-list'] .latex-math-inline .katex") !== null,
       tableNumber: document.querySelector("[data-visual-block-id='sample-table'] figcaption")?.textContent.includes("Table 1:") ?? false,
       tableCellCount: document.querySelectorAll("[data-visual-block-id='sample-table'] [data-table-cell-id]").length,
-      tableMath: document.querySelector("[data-visual-block-id='sample-table'] .math-node") !== null,
+      tableMath: document.querySelector("[data-visual-block-id='sample-table'] .latex-math-inline .katex") !== null,
       tableFootnote: document.querySelector("[data-visual-block-id='sample-table'] .footnote-preview > sup > button")?.textContent.trim() === "2",
       tableReference: [...document.querySelectorAll(".inline-reference")].some((reference) => reference.textContent === "Table 1"),
       layers: layers.map((layer) => layer === null ? null : getComputedStyle(layer).zIndex),
@@ -326,18 +316,11 @@ async function exerciseBuilder(client) {
   })()`);
   assert(initial.blocks === initialBlockCount, "Expected all initial document blocks");
   assert(initial.imageLoaded, "The real sample image did not load");
-  assert(initial.structuredMath, "Structured display math was not rendered");
-  assert(initial.summation, "Structured summation was not rendered");
-  assert(initial.matrixGrid, "The optional matrix/vector extension was not rendered");
-  assert(initial.fraction && initial.radical && initial.script, "Structured fraction, radical, or script rendering is missing");
-  assert(
-    initial.mathFunction && initial.calligraphicIdentifier && initial.underbrace && initial.mathText,
-    "Structured function, identifier style, underbrace, or math-text rendering is missing",
-  );
-  assert(initial.mathVocabulary && initial.inlineRelation, "Structured symbols, products, or relations were not rendered");
+  assert(initial.latexMath, "Text-authored display math was not rendered through KaTeX");
+  assert(initial.latexMathVocabulary && initial.inlineRelation, "LaTeX math symbols or relations were not rendered");
   assert(initial.codeListing, "The C++ code-listing plugin was not rendered");
   assert(initial.opaqueFallback, "The opaque block fallback was not rendered");
-  assert(initial.inlineMath, "Structured inline mathematics was not rendered");
+  assert(initial.inlineMath, "Text-authored inline mathematics was not rendered");
   assert(initial.hyperlink, "The semantic hyperlink was not rendered as a clickable link");
   assert(initial.styledText, "Styled Core Text was not rendered");
   assert(initial.inlineCode, "Semantic inline code was not rendered");
@@ -347,13 +330,12 @@ async function exerciseBuilder(client) {
   assert(
     initial.figureNumber &&
       initial.listingNumber &&
-      initial.equationLineCount === 3 &&
-      JSON.stringify(initial.equationNumbers) === JSON.stringify(["(1)", "(2)"]),
-    "Live numbering did not distinguish numbered and unnumbered display lines",
+      JSON.stringify(initial.equationNumbers) === JSON.stringify(["(1)"]),
+    "Live numbering did not include the text-authored display equation",
   );
   assert(
     initial.figureCaptionMath && initial.figureCaptionColor,
-    "The ordinary figure did not render its structured rich caption",
+    "The ordinary figure did not render its rich caption",
   );
   assert(initial.listingCaptionCode, "The listing did not render its rich inline-code caption");
   assert(
@@ -812,6 +794,9 @@ async function exerciseBuilder(client) {
     const citation = document.querySelector("input[data-citation-editor-id='sample-introduction-citation']");
     inputSetter.call(citation, "orus2014");
     citation.dispatchEvent(new Event("input", { bubbles: true }));
+    const inlineMath = document.querySelector("textarea[data-latex-math-inline-source='sample-introduction-inline-math']");
+    textareaSetter.call(inlineMath, "\\\\alpha + \\\\beta");
+    inlineMath.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(80);
   const paragraphLive = await client.evaluate(`(() => {
@@ -821,7 +806,8 @@ async function exerciseBuilder(client) {
       text: preview.textContent.includes("Edited by the browser smoke test"),
       colour: getComputedStyle(colour).color,
       segments: document.querySelectorAll("[data-inline-editor-id]").length,
-      inlineMathEditor: document.querySelector(".inline-math-editor .math-editor-canvas") !== null,
+      inlineMathEditor: document.querySelector("textarea[data-latex-math-inline-source='sample-introduction-inline-math']")?.value === "\\\\alpha + \\\\beta",
+      inlineMathPreview: preview.querySelector("[data-latex-math-inline-id='sample-introduction-inline-math'] .katex-html")?.textContent.includes("α+β") ?? false,
       hyperlink: preview.querySelector("a[href='https://www.google.com']")?.textContent === "updated link",
       styled: preview.querySelector("em")?.textContent === "Styled text",
       reference: preview.querySelector("a.inline-reference")?.textContent === "Figure 1",
@@ -837,7 +823,10 @@ async function exerciseBuilder(client) {
     paragraphLive.segments === initialParagraphSegmentCount,
     "The paragraph did not expose all inline segments",
   );
-  assert(paragraphLive.inlineMathEditor, "Inline structured math did not expose its graphical editor");
+  assert(
+    paragraphLive.inlineMathEditor && paragraphLive.inlineMathPreview,
+    "Text-authored inline math did not update its editor and live preview",
+  );
   assert(paragraphLive.hyperlink, "Hyperlink target and label did not live-update");
   assert(paragraphLive.styled, "Core Text style did not live-update");
   assert(paragraphLive.reference, "Semantic reference numbering did not resolve live");
@@ -1052,7 +1041,7 @@ async function exerciseBuilder(client) {
     await client.evaluate(`(() => {
       const editor = document.querySelector(".image-editor");
       return editor.querySelectorAll(".inline-sequence-editor").length === 1 &&
-        editor.querySelector(".image-editor-preview .math-node") !== null &&
+        editor.querySelector(".image-editor-preview .latex-math-inline .katex") !== null &&
         editor.querySelector(".image-editor-preview .inline-color-span") !== null;
     })()`),
     "The ordinary-figure editor did not expose and preview its rich caption",
@@ -1096,7 +1085,7 @@ async function exerciseBuilder(client) {
       const figure = document.querySelector("[data-visual-block-id='sample-figure']");
       return figure.querySelector("img").src.startsWith("data:image/svg+xml") &&
         figure.textContent.includes("Edited rich figure") &&
-        figure.querySelector("figcaption .math-node") !== null &&
+        figure.querySelector("figcaption .latex-math-inline .katex") !== null &&
         figure.querySelector("figcaption .inline-color-span") !== null;
     })()`),
     "Selected image data or rich caption was not committed to the preview",
@@ -1193,403 +1182,39 @@ async function exerciseBuilder(client) {
     [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
   })()`);
   await delay(100);
-  const displayGroupEditor = await client.evaluate(`(() => ({
-    lines: document.querySelectorAll("[data-math-display-editor-line-id]").length,
-    previewLines: document.querySelectorAll(".math-block-editor__group-preview .math-display-line").length,
-    alignment: document.querySelector(".math-block-editor__settings select")?.value ?? null,
-  }))()`);
-  assert(
-    displayGroupEditor.lines === 3 &&
-      displayGroupEditor.previewLines === 3 &&
-      displayGroupEditor.alignment === "automatic",
-    "The display-group editor did not expose all ordered lines and alignment policy",
-  );
-  const displayAlignmentGeometry = await client.evaluate(`(() => {
-    const rows = [...document.querySelectorAll(
-      ".math-block-editor__group-preview .math-display-line--aligned",
-    )];
-    return rows.map((row) => {
-      const left = row.querySelector(".math-display-line__branch:first-child").getBoundingClientRect();
-      const symbol = row.querySelector(".math-display-line__alignment-symbol").getBoundingClientRect();
-      const right = row.querySelector(".math-display-line__branch:last-child").getBoundingClientRect();
-      return {
-        symbolCenter: symbol.x + symbol.width / 2,
-        separated: left.right <= symbol.left + 0.5 && symbol.right <= right.left + 0.5,
-      };
-    });
-  })()`);
-  assert(
-    displayAlignmentGeometry.length === 2 &&
-      displayAlignmentGeometry.every(({ separated }) => separated) &&
-      Math.max(...displayAlignmentGeometry.map(({ symbolCenter }) => symbolCenter)) -
-        Math.min(...displayAlignmentGeometry.map(({ symbolCenter }) => symbolCenter)) <
-        0.5,
-    "Display equations did not share one non-overlapping alignment column",
-  );
-  await screenshot(client, "math-display-group-editor.png");
-  await client.evaluate(`document.querySelector(".math-block-editor__add-line").click()`);
-  await delay(60);
-  assert(
-    (await client.evaluate(`document.querySelectorAll("[data-math-display-editor-line-id]").length`)) === 4,
-    "Adding a display equation line did not update the live editor",
-  );
-  await client.evaluate(`(() => {
-    const selected = document.querySelector(".math-block-editor__line--selected");
-    [...selected.querySelectorAll("button")].find((button) => button.textContent.trim() === "Remove").click();
-    document.querySelector(".math-block-editor__line-select").click();
-  })()`);
-  await delay(60);
-  assert(
-    (await client.evaluate(`document.querySelectorAll("[data-math-display-editor-line-id]").length`)) === 3,
-    "Removing a display equation line did not restore the ordered group",
-  );
-  assert(
-    await client.evaluate(`document.querySelector(".math-editor-canvas .math-summation-symbol") !== null`),
-    "The math editor did not render the structured summation",
-  );
-  assert(
-    await client.evaluate(`document.querySelector("[data-math-editor-extension='dans.math.matvec'] [data-math-palette='matvec-matrix-2x3']") !== null`),
-    "The optional matrix/vector extension did not contribute its editor palette",
-  );
-  assert(
-    await client.evaluate(`[
-      "structure-fraction",
-      "structure-square-root",
-      "structure-indexed-root",
-      "structure-subscript",
-      "structure-superscript",
-      "structure-scripts",
-      "structure-function",
-      "structure-named-operator",
-      "structure-text",
-      "structure-underbrace"
-    ].every((id) => document.querySelector(\`[data-math-palette='\${id}']\`) !== null)`),
-    "The core math structures did not contribute their complete editor palette",
-  );
-  assert(
-    await client.evaluate(`[
-      "operator-less_equals",
-      "operator-element_of",
-      "operator-right_arrow",
-      "operator-tensor_product",
-      "symbol-theta",
-      "symbol-capital_omega",
-      "symbol-partial",
-      "symbol-dagger",
-      "identifier-upright",
-      "identifier-blackboard",
-      "identifier-calligraphic"
-    ].every((id) => document.querySelector(\`[data-math-palette='\${id}']\`) !== null)`),
-    "The thesis relation and symbol vocabulary did not contribute its editor palette",
-  );
-  const heldNode = await client.evaluate(`(() => {
-    const node = document.querySelector(".math-editor-canvas [data-math-path='left.left']");
-    const bounds = node.getBoundingClientRect();
-    return {
-      point: { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
-    };
-  })()`);
-  await pointerClick(client, heldNode.point);
   assert(
     await client.evaluate(`(() => {
-      const canvas = document.querySelector(".math-editor-canvas");
-      const node = canvas.querySelector("[data-math-path='left.left']");
-      return node !== null && !node.classList.contains("math-node--slot") && document.querySelectorAll("[data-math-parking-id]").length === 0;
+      const editor = document.querySelector(".latex-math-block-editor");
+      return editor !== null &&
+        editor.querySelector("textarea[data-latex-math-display-source='sample-display-math']") !== null &&
+        editor.querySelector(".latex-math-source-editor__preview .katex") !== null &&
+        editor.textContent.includes("Implicit $$ … $$");
     })()`),
-    "Clicking or holding a math node without moving detached it",
+    "The text-authored display-math editor did not expose source and live preview",
   );
-  const mathPoints = await client.evaluate(`(() => {
-    const center = (element) => {
-      const bounds = element.getBoundingClientRect();
-      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-    };
-    document.querySelector("[data-math-palette='integer-9']").scrollIntoView({
-      block: "center",
-      inline: "nearest",
-    });
-    const canvas = document.querySelector(".math-editor-canvas");
-    return {
-      start: center(document.querySelector("[data-math-palette='integer-9']")),
-      end: center(canvas.querySelector("[data-math-path='left.left.left']")),
-    };
+  await client.evaluate(`(() => {
+    const textarea = document.querySelector("textarea[data-latex-math-display-source='sample-display-math']");
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    setter.call(textarea, "F = ma");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: mathPoints.start.x,
-    y: mathPoints.start.y,
-  });
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mousePressed",
-    x: mathPoints.start.x,
-    y: mathPoints.start.y,
-    button: "left",
-    buttons: 1,
-    clickCount: 1,
-  });
-  await delay(70);
-  assert(
-    await client.evaluate(`document.querySelector(".math-drag-ghost") !== null`),
-    "Math palette pointer-down did not begin a drag",
-  );
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: mathPoints.end.x,
-    y: mathPoints.end.y,
-    button: "left",
-    buttons: 1,
-  });
-  await delay(100);
-  const highlightedMathPath = await client.evaluate(
-    `document.querySelector(".math-editor-canvas .math-node--selected")?.dataset.mathPath ?? null`,
-  );
-  assert(
-    highlightedMathPath === "left.left.left",
-    `Nested math drop target was not highlighted (received ${String(highlightedMathPath)})`,
-  );
-  await screenshot(client, "math-editor-drag.png");
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseReleased",
-    x: mathPoints.end.x,
-    y: mathPoints.end.y,
-    button: "left",
-    buttons: 0,
-    clickCount: 1,
-  });
   await delay(80);
   assert(
-    await client.evaluate(`document.querySelector(".math-editor-canvas").textContent.includes("9")`),
-    "Math palette drop did not replace the nested integer",
+    await client.evaluate(`(() => {
+      const preview = document.querySelector(".latex-math-source-editor__preview");
+      return preview.querySelector(".katex-html")?.textContent.includes("F=ma") ?? false;
+    })()`),
+    "Editing LaTeX display source did not update the KaTeX preview",
   );
-
-  const selectionPoints = await client.evaluate(`(() => {
-    const canvas = document.querySelector(".math-editor-canvas").getBoundingClientRect();
-    const root = document.querySelector(".math-editor-canvas [data-math-path='root']").getBoundingClientRect();
-    const right = document.querySelector(".math-editor-canvas [data-math-path='right']").getBoundingClientRect();
-    return {
-      outside: { x: canvas.x + 12, y: canvas.y + 12 },
-      equation: { x: root.x + root.width / 2, y: root.y + root.height / 2 },
-      siblingInsideRoot: { x: right.x + right.width / 2, y: right.y + right.height / 2 },
-    };
-  })()`);
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: selectionPoints.outside.x,
-    y: selectionPoints.outside.y,
-  });
-  await delay(50);
-  assert(
-    (await client.evaluate(`document.querySelectorAll("[data-math-selection-kind]").length`)) === 0,
-    "Math selection overlays appeared while the pointer was outside the expression",
-  );
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: selectionPoints.equation.x,
-    y: selectionPoints.equation.y,
-  });
-  await delay(60);
-  assert(
-    (await client.evaluate(`document.querySelectorAll("[data-math-selection-kind]").length`)) === 4,
-    "A binary math scope did not expose whole/left/operator/right selections",
-  );
-  await pressKey(client, "2", "Digit2");
-  assert(
-    (await client.evaluate(`document.querySelectorAll(".math-node--selection-locked").length`)) === 1,
-    "Digit selection did not lock a nested math scope",
-  );
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: selectionPoints.siblingInsideRoot.x,
-    y: selectionPoints.siblingInsideRoot.y,
-  });
-  await delay(50);
-  assert(
-    (await client.evaluate(`document.querySelectorAll(".math-node--selection-locked").length`)) === 1,
-    "A math lock was released inside the containing scope instead of at its boundary",
-  );
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: selectionPoints.outside.x,
-    y: selectionPoints.outside.y,
-  });
-  await delay(50);
-  assert(
-    (await client.evaluate(`document.querySelectorAll(".math-node--selection-locked").length`)) === 0,
-    "Leaving the containing math scope did not release its selection lock",
-  );
-  await client.send("Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: selectionPoints.equation.x,
-    y: selectionPoints.equation.y,
-  });
-  await delay(50);
-  await pressKey(client, "2", "Digit2");
-  await pressKey(client, " ", "Space");
-  assert(
-    (await client.evaluate(`document.querySelectorAll(".math-node--selection-locked").length`)) === 0,
-    "Space did not release the math selection lock",
-  );
-
-  const rightSelectionPoint = await client.evaluate(`(() => {
-    const node = document.querySelector("[data-math-selection-kind='node'][data-math-selection-path='right']");
-    const bounds = node.getBoundingClientRect();
-    return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-  })()`);
-  await pointerClick(client, rightSelectionPoint, "right");
-  assert(
-    await client.evaluate(`document.querySelector("[data-testid='math-radial-menu']") !== null`),
-    "Right-clicking a math selection did not open the radial menu",
-  );
+  await screenshot(client, "latex-math-editor.png");
   await client.evaluate(`[
-    ...document.querySelector("[data-testid='math-radial-menu']").querySelectorAll("button")
-  ].find((button) => button.textContent.trim() === "Parentheses").click()`);
+    ...document.querySelector("[data-testid='block-editor-dialog']").querySelectorAll("button")
+  ].find((button) => button.textContent.includes("Save equation")).click()`);
+  await delay(80);
   assert(
-    await client.evaluate(`document.querySelector(".math-editor-canvas [data-math-path='right'].math-node--parenthesized") !== null`),
-    "The radial menu did not wrap the selected subtree in parentheses",
+    await client.evaluate(`document.querySelector("[data-visual-block-id='sample-display-math'] .katex-html")?.textContent.includes("F=ma") ?? false`),
+    "The text-authored display equation did not commit",
   );
-
-  const deleteByDetachingPoints = await client.evaluate(`(() => {
-    const node = document.querySelector(".math-editor-canvas [data-math-path='left.right']").getBoundingClientRect();
-    const canvas = document.querySelector(".math-editor-canvas").getBoundingClientRect();
-    return {
-      start: { x: node.x + node.width / 2, y: node.y + node.height / 2 },
-      end: { x: canvas.x + 18, y: canvas.y + 18 },
-    };
-  })()`);
-  await pointerDrag(client, deleteByDetachingPoints.start, deleteByDetachingPoints.end);
-  assert(
-    await client.evaluate(`document.querySelector(".math-editor-canvas [data-math-path='left.right'] .math-slot-action") !== null`),
-    "Dropping a detached math fragment nowhere did not leave an empty slot",
-  );
-  await client.evaluate(`document.querySelector(".math-editor-canvas [data-math-path='left.right'] .math-slot-action").click()`);
-  await delay(40);
-  await client.evaluate(`(() => {
-    const input = document.querySelector("input[data-math-slot-input='left.right']");
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    setter.call(input, "partial*sqrt(x_2^3)/(-56.321/(a+[B,{c,-3}]))+underbrace(op(Tr,cal(H)),text(transfer))+rm(cores)+bb(C)<=infinity");
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-  })()`);
-  assert(
-    await client.evaluate(`(() => {
-      const replacement = document.querySelector(".math-editor-canvas [data-math-path='left.right']");
-      return replacement.textContent.includes("56.321") &&
-        replacement.textContent.includes("∂") &&
-        replacement.textContent.includes("≤") &&
-        replacement.textContent.includes("∞") &&
-        replacement.textContent.includes("Tr") &&
-        replacement.textContent.includes("transfer") &&
-        replacement.textContent.includes("ℋ") &&
-        replacement.textContent.includes("ℂ") &&
-        replacement.querySelector(".math-node--function") !== null &&
-        replacement.querySelector(".math-node--underbrace") !== null &&
-        replacement.querySelector(".math-text") !== null &&
-        replacement.querySelector(".math-identifier--upright") !== null &&
-        replacement.querySelector(".math-identifier--blackboard") !== null &&
-        replacement.querySelector(".math-identifier--calligraphic") !== null &&
-        replacement.querySelector(".math-node--negated") !== null &&
-        replacement.querySelector(".math-node--delimited") !== null &&
-        replacement.querySelector(".math-node--comma_sequence") !== null &&
-        replacement.querySelector(".math-node--radical") !== null &&
-        replacement.querySelector(".math-node--script") !== null;
-    })()`),
-    "The registered basic-expression parser did not replace a math slot with structured input",
-  );
-
-  const parkPoints = await client.evaluate(`(() => {
-    const node = document.querySelector(".math-editor-canvas [data-math-path='left.left']").getBoundingClientRect();
-    const parking = document.querySelector(".math-parking").getBoundingClientRect();
-    return {
-      start: { x: node.x + node.width / 2, y: node.y + node.height / 2 },
-      end: { x: parking.x + parking.width / 2, y: parking.y + parking.height / 2 },
-    };
-  })()`);
-  await pointerDrag(client, parkPoints.start, parkPoints.end);
-  assert(
-    await client.evaluate(`document.querySelectorAll("[data-math-parking-id]").length === 1 && document.querySelector(".math-editor-canvas [data-math-path='left.left'] .math-slot-action") !== null`),
-    "Detached math did not move into temporary parking",
-  );
-  const restoreParkedPoints = await client.evaluate(`(() => {
-    const grip = document.querySelector(".math-parking__grip").getBoundingClientRect();
-    const slot = document.querySelector(".math-editor-canvas [data-math-path='left.left']").getBoundingClientRect();
-    return {
-      start: { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 },
-      end: { x: slot.x + slot.width / 2, y: slot.y + slot.height / 2 },
-    };
-  })()`);
-  await pointerDrag(client, restoreParkedPoints.start, restoreParkedPoints.end);
-  assert(
-    await client.evaluate(`document.querySelectorAll("[data-math-parking-id]").length === 0 && document.querySelector(".math-editor-canvas [data-math-path='left.left'] .math-slot-action") === null`),
-    "A parked math fragment could not be dragged back into the equation",
-  );
-  await screenshot(client, "math-editor-selection-and-parking.png");
-
-  const matrixInsertPoints = await client.evaluate(`(() => {
-    const center = (element) => {
-      const bounds = element.getBoundingClientRect();
-      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-    };
-    document.querySelector("[data-math-palette='matvec-matrix-2x3']").scrollIntoView({
-      block: "center",
-      inline: "nearest",
-    });
-    return {
-      start: center(document.querySelector("[data-math-palette='matvec-matrix-2x3']")),
-      end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left']")),
-    };
-  })()`);
-  await pointerDrag(client, matrixInsertPoints.start, matrixInsertPoints.end);
-  assert(
-    await client.evaluate(`(() => {
-      const grid = document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body'].math-node--grid .math-grid");
-      return grid?.children.length === 6 &&
-        document.querySelectorAll(".math-editor-canvas [data-math-path^='left.left.left.body.cell:'] .math-slot-action").length === 6;
-    })()`),
-    "Dragging a rectangular matrix from the extension palette did not create six editable cells",
-  );
-  const matrixCellPoints = await client.evaluate(`(() => {
-    const center = (element) => {
-      const bounds = element.getBoundingClientRect();
-      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-    };
-    document.querySelector("[data-math-palette='integer-7']").scrollIntoView({
-      block: "center",
-      inline: "nearest",
-    });
-    return {
-      start: center(document.querySelector("[data-math-palette='integer-7']")),
-      end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")),
-    };
-  })()`);
-  await pointerDrag(client, matrixCellPoints.start, matrixCellPoints.end);
-  assert(
-    await client.evaluate(`document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")?.textContent.includes("7") ?? false`),
-    "A matrix cell did not accept the ordinary recursive math drop contract",
-  );
-  const fractionInsertPoints = await client.evaluate(`(() => {
-    const center = (element) => {
-      const bounds = element.getBoundingClientRect();
-      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-    };
-    document.querySelector("[data-math-palette='structure-fraction']").scrollIntoView({
-      block: "center",
-      inline: "nearest",
-    });
-    return {
-      start: center(document.querySelector("[data-math-palette='structure-fraction']")),
-      end: center(document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0']")),
-    };
-  })()`);
-  await pointerDrag(client, fractionInsertPoints.start, fractionInsertPoints.end);
-  assert(
-    await client.evaluate(`(() => {
-      const fraction = document.querySelector(".math-editor-canvas [data-math-path='left.left.left.body.cell:0'].math-node--fraction");
-      return fraction !== null &&
-        fraction.querySelector("[data-math-path='left.left.left.body.cell:0.numerator'] .math-slot-action") !== null &&
-        fraction.querySelector("[data-math-path='left.left.left.body.cell:0.denominator'] .math-slot-action") !== null;
-    })()`),
-    "A palette fraction did not expose recursive numerator and denominator slots",
-  );
-  await screenshot(client, "math-matvec-editor.png");
 
   await reloadBuilder(client);
   const persistenceRoot = await client.send("DOM.getDocument", { depth: -1, pierce: true });
@@ -1611,20 +1236,8 @@ async function exerciseBuilder(client) {
         paragraph: document.body.textContent.includes("A styled canonical paragraph"),
         opaque: document.body.textContent.includes("third.party.block"),
         save: document.querySelector("button[data-testid='save-document']") !== null,
-        grid: document.querySelector("[data-visual-block-id='fixture-equation'] .math-grid")?.children.length === 4,
-        fraction: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--fraction") !== null,
-        radical: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--radical") !== null,
-        script: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--script") !== null,
-        approximate: document.querySelector("[data-visual-block-id='fixture-equation']")?.textContent.includes("≈") === true,
-        functionApplication: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--function")?.textContent.includes("spectrum[ℋ]") === true,
-        underbrace: document.querySelector("[data-visual-block-id='fixture-equation'] .math-node--underbrace") !== null,
-        mathText: document.querySelector("[data-visual-block-id='fixture-equation'] .math-text")?.textContent === "spectral support",
-        calligraphicIdentifier: document.querySelector("[data-visual-block-id='fixture-equation'] .math-identifier--calligraphic")?.textContent === "ℋ",
-        displayLines: document.querySelectorAll("[data-visual-block-id='fixture-equation'] [data-math-display-line-id]").length === 3,
-        displayNumbers: JSON.stringify([...document.querySelectorAll("[data-visual-block-id='fixture-equation'] .math-equation-number")].map((node) => node.textContent.trim())) === JSON.stringify(["(1)", "(2)"]),
-        relation: document.querySelector("[data-visual-block-id='fixture-introduction']")?.textContent.includes("ℕ≤∞") === true,
-        blackboardIdentifier: document.querySelector("[data-visual-block-id='fixture-introduction'] .math-identifier--blackboard")?.textContent === "ℕ",
-        uprightIdentifier: document.querySelector("[data-visual-block-id='fixture-item-list'] .math-identifier--upright")?.textContent === "E",
+        structuredDisplayPreserved: document.querySelector("[data-visual-block-id='fixture-equation']")?.textContent.includes("dans.math.display") === true,
+        structuredInlinePreserved: document.querySelector("[data-visual-block-id='fixture-introduction']")?.textContent.includes("dans.math.inline") === true,
         citation: document.querySelector("[data-visual-block-id='fixture-introduction'] .inline-citation")?.textContent === "[1, 2]",
         bibliography: document.querySelectorAll("[data-visual-block-id='fixture-bibliography'] [data-bibliography-entry-key]").length === 2,
       };

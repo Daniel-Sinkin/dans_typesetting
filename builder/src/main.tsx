@@ -1,5 +1,6 @@
 // builder/src/main.tsx — start the graphical document-builder experiment.
 import "@excalidraw/excalidraw/index.css";
+import "katex/dist/katex.min.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 

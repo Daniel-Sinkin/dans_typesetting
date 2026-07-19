@@ -71,6 +71,25 @@ reference-target publication across native and graphical writers.
 
 ## Current implementation slice
 
+The text-authored LaTeX-math slice adds:
+
+- independent inline and display contracts whose source omits writer-owned
+  delimiters;
+- plain-text graphical editing with live KaTeX previews and transient invalid
+  drafts that cannot leak into canonical transport;
+- traversal-derived display numbering, optional equation references, and
+  plugin-aware copies that clear target identity;
+- exact canonical round trips alongside retained structured-math codecs;
+- native LaTeX and Markdown connectors, with Jupyter inheriting Markdown;
+- focused native/browser validation, transport, rendering, and publication
+  coverage.
+
+The structured graphical editor is benched rather than removed. Existing
+structured documents remain readable and native structured-math support remains
+tested. See `latex-math.md`.
+
+## Preceding implementation slice
+
 The lossless numeric-literal and unary-negation slice adds:
 
 - string-backed native integer and decimal leaves that preserve exact spelling

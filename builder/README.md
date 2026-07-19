@@ -3,7 +3,7 @@
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
 be projected either as one vertically growing continuous view or as whole-block pages. Paragraph,
 image, two-panel figure, embedded-drawing, semantic-list, rich-table, bibliography, code-listing,
-structured-math, title-page, table-of-contents, page-break, and section plugins
+text-authored math, title-page, table-of-contents, page-break, and section plugins
 contribute palette entries, default block construction, vertical measurements, previews, and
 optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
 previews, animated reflow, copying, transactional detach/delete behaviour, and page projection.
@@ -37,7 +37,7 @@ advance following content. The page-range controls project at most five pages at
 
 Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
 live composed preview. Normal/bold/italic/bold-italic text, semantic single-line code, semantic RGB
-colour spans, hyperlinks, live cross-references, live citations, numbered footnotes, and structured inline math are
+colour spans, hyperlinks, live cross-references, live citations, numbered footnotes, and text-authored inline math are
 editable while unsupported inline nodes remain visible as named read-only chips. Footnotes render
 as live superscript markers
 with hover/focus previews; their editor composes, adds, removes, and reorders a nested inline
@@ -48,27 +48,15 @@ and listings use the same rich-caption sequence editor as paired figures and tab
 styles, code, math, colour, links, and numbered inline extensions. Code listings support C++, CUDA,
 Julia, and raw text with rich caption and reference ID independently optional; a transparent
 textarea aligned over the syntax-coloured preview makes the rendered surface directly editable,
-and Tab inserts four spaces. Display and inline math share the nested expression editor:
-drag literals, operators, a summation, fraction, square/indexed root, or script template into empty
-slots; replace, parenthesize, park, copy, or detach any subtree. An independently registered basic
-input-parser capability lowers grouping, arithmetic, comma sequences, signed numbers, identifiers,
-`sqrt(...)`, and postfix `_`/`^` scripts into the same structured tree. Slash division remains
-distinct from a stacked fraction. Selection locks retain the bounds of the containing scope, making
-nested expressions addressable without flattening their structure.
-
-Numeric leaves preserve their decimal spelling as strings, including leading
-zeroes and leading/trailing decimal points. A minus sign is a recursive negation
-node rather than part of a number leaf, so clipboard and canonical round trips
-do not depend on JavaScript floating-point conversion.
-
-Display math owns one or more ordered equation lines. Each line can be
-numbered or explicitly unnumbered and a numbered line may independently expose
-a semantic target. Targetless numbered lines still advance later references.
-The editor shows a live group preview, supports line add/remove/permutation and
-per-line target controls, and reuses the recursive math canvas for the selected
-line. Automatic mode aligns top-level equals signs; disabled mode preserves
-ordinary centered lines. Legacy one-expression payloads normalize to this
-shape on load.
+and Tab inserts four spaces. Display and inline math are plain text editors for
+source inside implicit LaTeX math delimiters, with immediate KaTeX preview and
+visible parse errors. Numbered display blocks participate in the live equation
+series and may publish a reference target; unnumbered blocks cannot. An
+`aligned` environment may create several visual rows inside one equation, while
+separate numbered equations remain separate blocks. The earlier recursive
+structured-math model and codecs remain in the repository for compatibility,
+but its graphical tree editor is benched and is not registered in the active
+palette. See `../docs/latex-math.md`.
 
 The two-panel figure extension owns two horizontal image panels, three rich inline captions, one
 group target, and optional `a`/`b` panel targets. Its editor selects each image independently and
