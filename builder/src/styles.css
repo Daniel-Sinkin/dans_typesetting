@@ -252,17 +252,39 @@ button {
   position: absolute;
   top: 0;
   left: 0;
-  pointer-events: none;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  cursor: grab;
+  outline: 0;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.document-block-controls:active {
+  cursor: grabbing;
+}
+
+.document-block-controls:hover,
+.document-block-controls:focus-visible {
+  border-color: rgb(77 171 247 / 55%);
+}
+
+.document-block-controls--selected {
+  z-index: 10;
+  border-color: #228be6;
+  box-shadow: 0 0 0 2px rgb(34 139 230 / 18%);
 }
 
 .document-block-controls--editing {
   z-index: 20;
+  cursor: default;
 }
 
 .inline-block-editor {
   position: absolute;
   z-index: 1;
-  inset: 38px 5px 5px;
+  inset: 5px;
   overflow: hidden;
   background: #fff;
   border: 2px solid #4c6ef5;
@@ -271,104 +293,48 @@ button {
   pointer-events: auto;
 }
 
-.document-block__toolbar {
+.document-block__selection-label {
   position: absolute;
-  z-index: 2;
-  top: 7px;
-  right: 9px;
-  left: 9px;
+  z-index: 3;
+  top: -11px;
+  left: 8px;
   display: flex;
+  height: 20px;
   align-items: center;
-  gap: 7px;
-  color: #b02a37;
-  font-size: 10px;
+  overflow: hidden;
+  color: #1864ab;
+  background: #e7f5ff;
+  border: 1px solid #74c0fc;
+  border-radius: 5px;
+  box-shadow: 0 2px 7px rgb(24 100 171 / 16%);
+  font-size: 9px;
   font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  line-height: 1;
   pointer-events: auto;
 }
 
-.document-block-controls .document-block__toolbar {
-  width: max-content;
-  max-width: calc(100% - 18px);
-  min-height: 34px;
-  padding: 4px 6px;
-  background: rgb(255 255 255 / 88%);
-  border: 1px solid rgb(224 49 49 / 44%);
-  border-radius: 8px;
-  box-shadow: 0 4px 14px rgb(36 42 56 / 12%);
-  backdrop-filter: blur(5px);
-}
-
-.document-block__toolbar code {
-  max-width: 180px;
-  overflow: hidden;
-  color: #868e96;
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-overflow: ellipsis;
-  text-transform: none;
+.document-block__selection-label span {
+  padding: 0 6px;
   white-space: nowrap;
 }
 
-.document-block__grip,
-.document-block__actions button {
-  min-width: 27px;
-  height: 24px;
-  padding: 0 8px;
-  color: #495057;
-  background: #f1f3f5;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.document-block__grip {
+.document-block__selection-label button {
+  width: 19px;
+  height: 18px;
   padding: 0;
   color: #c92a2a;
-  cursor: grab;
-  touch-action: none;
-}
-
-.document-block__grip:active {
-  cursor: grabbing;
-}
-
-.document-block__actions {
-  display: flex;
-  gap: 5px;
-  margin-left: auto;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-.document-block-controls:hover .document-block__actions,
-.document-block-controls:focus-within .document-block__actions {
-  opacity: 1;
-}
-
-.document-block__actions button {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.document-block__actions button:hover {
-  background: #e9ecef;
-}
-
-.document-block__actions .danger-action {
-  color: #c92a2a;
   background: #fff5f5;
-  border-color: #ffc9c9;
+  border: 0;
+  border-left: 1px solid #a5d8ff;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
 }
 
 .document-block__content {
   width: 100%;
   height: 100%;
-  padding: 43px 24px 18px;
+  padding: 18px 24px;
 }
 
 .document-block-visual[data-visual-block-type="dans.layout.padding"] {
@@ -1887,11 +1853,6 @@ button {
   white-space: nowrap;
 }
 
-.palette-card__drag {
-  color: #adb5bd;
-  font-size: 18px;
-}
-
 .prototype-note {
   display: flex;
   flex-direction: column;
@@ -2235,6 +2196,38 @@ button {
   gap: 14px;
 }
 
+.paragraph-editor__workspace--source,
+.paragraph-editor__workspace--preview {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.paragraph-editor__modes {
+  display: flex;
+  width: max-content;
+  padding: 3px;
+  gap: 2px;
+  background: #e9ecef;
+  border-radius: 8px;
+}
+
+.paragraph-editor__modes button {
+  min-height: 24px;
+  padding: 2px 10px;
+  color: #495057;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.paragraph-editor__modes button.selected {
+  color: #1864ab;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(33 37 41 / 14%);
+}
+
 .paragraph-writing-panel,
 .paragraph-inspector {
   min-width: 0;
@@ -2311,15 +2304,15 @@ button {
 
 .paragraph-toolbar button {
   display: inline-flex;
-  min-height: 30px;
+  min-height: 20px;
   align-items: center;
   justify-content: center;
-  padding: 0 9px;
-  gap: 5px;
+  padding: 1px 6px;
+  gap: 4px;
   color: #343a40;
   background: #fff;
   border: 1px solid #ced4da;
-  border-radius: 7px;
+  border-radius: 5px;
   font-size: 9px;
   font-weight: 750;
   cursor: pointer;
@@ -2338,12 +2331,12 @@ button {
 
 .paragraph-toolbar__inserts button > span {
   display: grid;
-  width: 18px;
-  height: 18px;
+  width: 13px;
+  height: 13px;
   place-items: center;
   color: #fff;
-  border-radius: 4px;
-  font-size: 9px;
+  border-radius: 3px;
+  font-size: 7px;
 }
 
 .paragraph-toolbar button.paragraph-toolbar__image {
@@ -2389,65 +2382,105 @@ button {
 
 .paragraph-composer__atom {
   display: inline-flex;
-  max-width: min(270px, 72%);
-  min-height: 30px;
+  max-width: min(420px, 90%);
+  min-height: 1em;
   align-items: center;
-  margin: 0 0.16em;
-  padding: 3px 7px 3px 4px;
-  gap: 6px;
-  overflow: hidden;
-  color: #343a40;
-  background: #f8f9fa;
-  border: 1px solid #ced4da;
-  border-radius: 7px;
-  box-shadow: 0 1px 3px rgb(33 37 41 / 8%);
+  margin: 0 0.05em;
+  padding: 0 0.08em;
+  gap: 4px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
   cursor: pointer;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  line-height: 1.1;
+  font-family: inherit;
+  line-height: inherit;
   user-select: none;
-  vertical-align: -0.48em;
+  vertical-align: baseline;
 }
 
 .paragraph-composer__atom:hover,
-.paragraph-composer__atom:focus {
+.paragraph-composer__atom:focus,
+.paragraph-composer__atom--selected {
   background: #e7f5ff;
   border-color: #4dabf7;
   outline: 0;
 }
 
+.paragraph-composer__atom-preview,
+.paragraph-composer__atom-preview > * {
+  display: inline;
+}
+
+.paragraph-composer__atom-preview .inline-hyperlink {
+  pointer-events: none;
+}
+
+.paragraph-composer__atom--image {
+  padding: 0 4px 0 2px;
+  color: #495057;
+  background: #f8f9fa;
+  border-color: #ced4da;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.58em;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
 .paragraph-composer__atom-glyph {
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: 13px;
+  height: 13px;
   flex: 0 0 auto;
   place-items: center;
   color: #fff;
-  border-radius: 5px;
-  font-size: 10px;
+  border-radius: 3px;
+  font-size: 7px;
   font-weight: 850;
 }
 
-.paragraph-composer__atom-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.paragraph-composer__atom-copy strong,
-.paragraph-composer__atom-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.paragraph-composer__atom-label {
   white-space: nowrap;
 }
 
-.paragraph-composer__atom-copy strong {
-  font-size: 9px;
+.paragraph-source-editor {
+  display: grid;
+  padding: 14px;
+  gap: 7px;
+  color: #495057;
+  font-size: 10px;
+  font-weight: 750;
 }
 
-.paragraph-composer__atom-copy small {
+.paragraph-source-editor textarea {
+  width: 100%;
+  min-height: 300px;
+  padding: 16px;
+  resize: vertical;
+  color: #252936;
+  background: #fbfcfd;
+  border: 1px solid #adb5bd;
+  border-radius: 8px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  outline: 0;
+}
+
+.paragraph-source-editor textarea:focus {
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 2px rgb(77 171 247 / 24%);
+}
+
+.paragraph-source-editor small {
   color: #868e96;
-  font-size: 8px;
+  font-weight: 400;
+}
+
+.paragraph-editor__preview-mode {
+  min-height: 300px;
+  padding: 28px 32px;
 }
 
 .paragraph-writing-panel__hint,

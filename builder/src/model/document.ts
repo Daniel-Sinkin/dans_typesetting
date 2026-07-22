@@ -156,6 +156,13 @@ export type DocumentCommand =
       parentSequenceId?: string | null;
     }>
   | Readonly<{
+      kind: "move_many";
+      blockIds: readonly string[];
+      index: number;
+      parentId?: string | null;
+      parentSequenceId?: string | null;
+    }>
+  | Readonly<{
       kind: "replace";
       blockId: string;
       block: BuilderBlock;
@@ -910,6 +917,14 @@ export class MemoryDocumentPort implements DocumentPort {
           command.index,
         );
         return;
+      case "move_many":
+        this.#moveMany(
+          command.blockIds,
+          command.parentId ?? null,
+          command.parentSequenceId ?? null,
+          command.index,
+        );
+        return;
       case "replace":
         this.#replace(command.blockId, command.block);
         return;
@@ -986,6 +1001,83 @@ export class MemoryDocumentPort implements DocumentPort {
       index,
       detached.block,
     );
+    validateDocumentBlocks(blocks);
+    this.#publish(blocks);
+  }
+
+  #moveMany(
+    blockIds: readonly string[],
+    parentId: string | null,
+    parentSequenceId: string | null,
+    index: number,
+  ): void {
+    if (blockIds.length < 2 || new Set(blockIds).size !== blockIds.length) {
+      throw new Error("A multi-block move requires at least two distinct block IDs");
+    }
+    const locations = blockIds.map((blockId) => {
+      const location = findBuilderBlock(this.#snapshot.blocks, blockId);
+      if (location === null) {
+        throw new Error(`Unknown document block ID: ${blockId}`);
+      }
+      return location;
+    });
+    const first = locations[0];
+    if (first === undefined) {
+      throw new Error("A multi-block move requires a source sequence");
+    }
+    if (
+      locations.some(
+        (location) =>
+          location.parentId !== first.parentId ||
+          location.parentSequenceId !== first.parentSequenceId,
+      )
+    ) {
+      throw new Error("Multi-block moves must stay within one source level");
+    }
+    const ordered = [...locations].sort((left, right) => left.index - right.index);
+    const firstOrderedIndex = Math.min(...ordered.map(({ index: sourceIndex }) => sourceIndex));
+    if (
+      ordered.some(
+        (location, locationIndex) =>
+          location.index !== firstOrderedIndex + locationIndex,
+      )
+    ) {
+      throw new Error("Only contiguous blocks can be moved together");
+    }
+    for (const { block } of ordered) {
+      if (
+        childBlockSequences(block).length > 0 &&
+        (block.id === parentId ||
+          childBlockSequences(block).some((sequence) =>
+            flattenBuilderBlocks(sequence.blocks).some(
+              (descendant) => descendant.id === parentId,
+            ),
+          ))
+      ) {
+        throw new Error(
+          "A nested block group cannot be moved inside itself or one of its descendants",
+        );
+      }
+    }
+
+    let remaining = this.#snapshot.blocks;
+    for (const location of ordered) {
+      const detached = detachBuilderBlock(remaining, location.block.id);
+      if (detached === null) {
+        throw new Error(`Unknown document block ID: ${location.block.id}`);
+      }
+      remaining = detached.blocks;
+    }
+    let blocks = remaining;
+    for (const [offset, location] of ordered.entries()) {
+      blocks = insertBuilderBlock(
+        blocks,
+        parentId,
+        parentSequenceId,
+        index + offset,
+        location.block,
+      );
+    }
     validateDocumentBlocks(blocks);
     this.#publish(blocks);
   }

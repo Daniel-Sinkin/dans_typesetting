@@ -177,6 +177,47 @@ describe("MemoryDocumentPort", () => {
     expect(port.getSnapshot().blocks).toHaveLength(1);
   });
 
+  it("moves contiguous same-level blocks together in document order", () => {
+    const port = new MemoryDocumentPort([
+      paragraph("one"),
+      paragraph("two"),
+      paragraph("three"),
+      paragraph("four"),
+    ]);
+
+    port.dispatch({
+      kind: "move_many",
+      blockIds: ["three", "two"],
+      index: 2,
+    });
+
+    expect(port.getSnapshot().blocks.map(({ id }) => id)).toEqual([
+      "one",
+      "four",
+      "two",
+      "three",
+    ]);
+    expect(() => {
+      port.dispatch({
+        kind: "move_many",
+        blockIds: ["one", "two"],
+        index: 0,
+      });
+    }).toThrow(/contiguous/u);
+
+    const nestedPort = new MemoryDocumentPort([
+      section("section", [paragraph("inside")]),
+      paragraph("outside"),
+    ]);
+    expect(() => {
+      nestedPort.dispatch({
+        kind: "move_many",
+        blockIds: ["inside", "outside"],
+        index: 0,
+      });
+    }).toThrow(/one source level/u);
+  });
+
   it("addresses multiple named child sequences without plugin-specific commands", () => {
     const composite: BuilderBlock = {
       id: "composite",

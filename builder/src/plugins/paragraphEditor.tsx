@@ -13,6 +13,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { createPortal } from "react-dom";
 
 import type {
   BuilderInlineEditorProps,
@@ -41,6 +42,11 @@ import {
   paragraphTextStyleAttribute,
   readParagraphComposerInlines,
 } from "./paragraphEditing";
+import {
+  expandParagraphAuthoringShortcuts,
+  paragraphInlinesToSource,
+  parseParagraphSource,
+} from "./paragraphSource";
 
 function requireParagraph(block: BuilderBlock): ParagraphBlock {
   if (!isParagraphBlock(block)) {
@@ -103,6 +109,7 @@ interface ParagraphComposerHandle {
 interface ParagraphComposerProps {
   readonly initialInlines: readonly BuilderInlineNode[];
   readonly registry: BuilderInlinePluginRegistry;
+  readonly context: BuilderInlineRenderContext;
   readonly onChange: (inlines: readonly BuilderInlineNode[]) => void;
   readonly onSelectedInlineChange: (inlineId: string | null) => void;
   readonly onImageFiles: (files: readonly File[]) => void;
@@ -117,18 +124,16 @@ function createComposerTextNode(inline: TextInline): HTMLSpanElement {
   return span;
 }
 
-function atomSummary(
-  inline: BuilderInlineNode,
-  registry: BuilderInlinePluginRegistry,
-): string {
-  const summary = registry.adapterForInline(inline).plainText(inline, registry).trim();
-  return summary.length === 0 ? inline.typeId : summary;
+interface ComposerAtomMount {
+  readonly id: string;
+  readonly inline: BuilderInlineNode;
+  readonly container: HTMLSpanElement;
 }
 
 function createComposerAtomNode(
   inline: BuilderInlineNode,
   registry: BuilderInlinePluginRegistry,
-): HTMLSpanElement {
+): Readonly<{ atom: HTMLSpanElement; mount: ComposerAtomMount | null }> {
   const adapter = registry.adapterForInline(inline);
   const atom = document.createElement("span");
   atom.setAttribute(paragraphAtomIdAttribute, inline.id);
@@ -140,19 +145,23 @@ function createComposerAtomNode(
   atom.setAttribute("aria-label", `Edit ${adapter.palette.label}`);
   atom.title = `Click to edit ${adapter.palette.label}`;
 
-  const glyph = document.createElement("span");
-  glyph.className = "paragraph-composer__atom-glyph";
-  glyph.style.backgroundColor = adapter.palette.accentColor;
-  glyph.textContent = adapter.palette.glyph;
-  const copy = document.createElement("span");
-  copy.className = "paragraph-composer__atom-copy";
-  const label = document.createElement("strong");
-  label.textContent = adapter.palette.label;
-  const summary = document.createElement("small");
-  summary.textContent = atomSummary(inline, registry);
-  copy.append(label, summary);
-  atom.append(glyph, copy);
-  return atom;
+  if (inline.typeId === inlineImageTypeId) {
+    atom.classList.add("paragraph-composer__atom--image");
+    const glyph = document.createElement("span");
+    glyph.className = "paragraph-composer__atom-glyph";
+    glyph.style.backgroundColor = adapter.palette.accentColor;
+    glyph.textContent = adapter.palette.glyph;
+    const label = document.createElement("strong");
+    label.className = "paragraph-composer__atom-label";
+    label.textContent = adapter.palette.label;
+    atom.append(glyph, label);
+    return { atom, mount: null };
+  }
+
+  const container = document.createElement("span");
+  container.className = "paragraph-composer__atom-preview";
+  atom.append(container);
+  return { atom, mount: { id: inline.id, inline, container } };
 }
 
 function removeBrowserTextFormatting(fragment: DocumentFragment): void {
@@ -196,6 +205,7 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
     {
       initialInlines,
       registry,
+      context,
       onChange,
       onSelectedInlineChange,
       onImageFiles,
@@ -209,6 +219,8 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
     const onChangeRef = useRef(onChange);
     const onSelectedInlineChangeRef = useRef(onSelectedInlineChange);
     const onImageFilesRef = useRef(onImageFiles);
+    const selectedAtomIdRef = useRef<string | null>(null);
+    const [atomMounts, setAtomMounts] = useState<readonly ComposerAtomMount[]>([]);
 
     useEffect(() => {
       onChangeRef.current = onChange;
@@ -223,14 +235,23 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
           return;
         }
         const fragment = document.createDocumentFragment();
+        const mounts: ComposerAtomMount[] = [];
         for (const inline of inlines) {
-          fragment.append(
-            isTextInline(inline)
-              ? createComposerTextNode(inline)
-              : createComposerAtomNode(inline, registry),
-          );
+          if (isTextInline(inline)) {
+            fragment.append(createComposerTextNode(inline));
+            continue;
+          }
+          const created = createComposerAtomNode(inline, registry);
+          if (inline.id === selectedAtomIdRef.current) {
+            created.atom.classList.add("paragraph-composer__atom--selected");
+          }
+          fragment.append(created.atom);
+          if (created.mount !== null) {
+            mounts.push(created.mount);
+          }
         }
         root.replaceChildren(fragment);
+        setAtomMounts(Object.freeze(mounts));
         savedRangeRef.current = null;
       },
       [registry],
@@ -327,6 +348,7 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
           return;
         }
         publishRenderedSequence(next);
+        selectedAtomIdRef.current = null;
         onSelectedInlineChangeRef.current(null);
       },
       [publishRenderedSequence, readCurrentSequence],
@@ -384,16 +406,22 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
           }
           root.focus();
           range.deleteContents();
-          const atom = createComposerAtomNode(inline, registry);
-          range.insertNode(atom);
-          range.setStartAfter(atom);
+          const created = createComposerAtomNode(inline, registry);
+          created.atom.classList.add("paragraph-composer__atom--selected");
+          range.insertNode(created.atom);
+          range.setStartAfter(created.atom);
           range.collapse(true);
           selectRange(range);
           currentInlinesRef.current = Object.freeze([
             ...currentInlinesRef.current,
             inline,
           ]);
+          const mount = created.mount;
+          if (mount !== null) {
+            setAtomMounts((current) => Object.freeze([...current, mount]));
+          }
           publishCurrentSequence();
+          selectedAtomIdRef.current = inline.id;
           onSelectedInlineChangeRef.current(inline.id);
         },
         replaceInline(inline) {
@@ -452,6 +480,13 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
       range.setStartAfter(atom);
       range.collapse(true);
       selectRange(range);
+      selectedAtomIdRef.current = inlineId;
+      root
+        .querySelectorAll(".paragraph-composer__atom--selected")
+        .forEach((candidate) => {
+          candidate.classList.remove("paragraph-composer__atom--selected");
+        });
+      atom.classList.add("paragraph-composer__atom--selected");
       onSelectedInlineChangeRef.current(inlineId);
       return true;
     }, [selectRange]);
@@ -496,30 +531,58 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
     };
 
     return (
-      <div
-        ref={rootRef}
-        className="paragraph-composer"
-        data-testid="paragraph-composer"
-        contentEditable
-        suppressContentEditableWarning
-        role="textbox"
-        aria-label="Paragraph writing surface"
-        aria-multiline="true"
-        spellCheck
-        onInput={() => {
-          rememberSelection();
-          publishCurrentSequence();
-        }}
-        onClick={(event: ReactMouseEvent<HTMLDivElement>) => {
-          if (!selectAtomFromTarget(event.target)) {
-            onSelectedInlineChangeRef.current(null);
-          }
-        }}
-        onKeyDown={handleKeyDown}
-        onKeyUp={rememberSelection}
-        onPointerUp={rememberSelection}
-        onPaste={handlePaste}
-      />
+      <>
+        <div
+          ref={rootRef}
+          className="paragraph-composer"
+          data-testid="paragraph-composer"
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-label="Paragraph writing surface"
+          aria-multiline="true"
+          spellCheck
+          onInput={() => {
+            rememberSelection();
+            const current = publishCurrentSequence();
+            const expanded = expandParagraphAuthoringShortcuts(current);
+            if (expanded.converted) {
+              publishRenderedSequence(expanded.inlines);
+              const root = rootRef.current;
+              if (root !== null) {
+                const range = document.createRange();
+                range.selectNodeContents(root);
+                range.collapse(false);
+                selectRange(range);
+              }
+            }
+          }}
+          onClick={(event: ReactMouseEvent<HTMLDivElement>) => {
+            if (selectAtomFromTarget(event.target)) {
+              event.preventDefault();
+            } else {
+              selectedAtomIdRef.current = null;
+              rootRef.current
+                ?.querySelectorAll(".paragraph-composer__atom--selected")
+                .forEach((atom) => {
+                  atom.classList.remove("paragraph-composer__atom--selected");
+                });
+              onSelectedInlineChangeRef.current(null);
+            }
+          }}
+          onKeyDown={handleKeyDown}
+          onKeyUp={rememberSelection}
+          onPointerUp={rememberSelection}
+          onPaste={handlePaste}
+        />
+        {atomMounts.map(({ id, inline, container }) =>
+          createPortal(
+            registry.adapterForInline(inline).renderPreview(inline, registry, context),
+            container,
+            id,
+          ),
+        )}
+      </>
     );
   },
 );
@@ -527,6 +590,8 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
 interface ParagraphEditorProps extends BuilderBlockEditorProps {
   readonly inlineRegistry: BuilderInlinePluginRegistry;
 }
+
+type ParagraphEditingMode = "write" | "source" | "preview";
 
 export function ParagraphEditor({
   block,
@@ -543,6 +608,10 @@ export function ParagraphEditor({
   const imageFileInputRef = useRef<HTMLInputElement>(null);
   const [inlines, setInlines] = useState<readonly BuilderInlineNode[]>(paragraph.inlines);
   const [selectedInlineId, setSelectedInlineId] = useState<string | null>(null);
+  const [editingMode, setEditingMode] = useState<ParagraphEditingMode>("write");
+  const [sourceText, setSourceText] = useState(() =>
+    paragraphInlinesToSource(paragraph.inlines),
+  );
   const [readingImages, setReadingImages] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const identity = useState(() => ({ id: paragraph.id, typeId: paragraph.typeId }))[0];
@@ -624,6 +693,14 @@ export function ParagraphEditor({
     event.preventDefault();
   };
 
+  const chooseEditingMode = (mode: ParagraphEditingMode): void => {
+    if (mode === "source") {
+      setSourceText(paragraphInlinesToSource(inlines));
+    }
+    setSelectedInlineId(null);
+    setEditingMode(mode);
+  };
+
   return (
     <form
       className="block-editor-form paragraph-editor"
@@ -634,15 +711,48 @@ export function ParagraphEditor({
         }
       }}
     >
-      <div className="paragraph-editor__workspace">
+      <div
+        className="paragraph-editor__modes"
+        role="tablist"
+        aria-label="Paragraph editing mode"
+      >
+        {(["write", "source", "preview"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            role="tab"
+            aria-selected={editingMode === mode}
+            className={editingMode === mode ? "selected" : ""}
+            onClick={() => {
+              chooseEditingMode(mode);
+            }}
+          >
+            {mode === "write" ? "Write" : mode === "source" ? "Source" : "Preview"}
+          </button>
+        ))}
+      </div>
+      <div className={`paragraph-editor__workspace paragraph-editor__workspace--${editingMode}`}>
         <section className="paragraph-writing-panel" aria-label="Paragraph editor">
           <header>
             <div>
-              <strong>Write paragraph</strong>
-              <small>Type normally, select text to format it, or insert rich content at the caret.</small>
+              <strong>
+                {editingMode === "write"
+                  ? "Write paragraph"
+                  : editingMode === "source"
+                    ? "Plain source"
+                    : "Typeset paragraph"}
+              </strong>
+              <small>
+                {editingMode === "write"
+                  ? "Type normally; completed inline syntax becomes a live semantic preview."
+                  : editingMode === "source"
+                    ? "Edit the Markdown/LaTeX-like representation without rendering."
+                    : "Review the same semantic sequence using the document renderer."}
+              </small>
             </div>
             <span>{inlines.length} semantic node{inlines.length === 1 ? "" : "s"}</span>
           </header>
+          {editingMode === "write" ? (
           <div className="paragraph-toolbar" role="toolbar" aria-label="Paragraph tools">
             <div className="paragraph-toolbar__group" aria-label="Text formatting">
               <button
@@ -728,22 +838,55 @@ export function ParagraphEditor({
               ))}
             </div>
           </div>
-          <ParagraphComposer
-            ref={composerRef}
-            initialInlines={paragraph.inlines}
-            registry={inlineRegistry}
-            onChange={acceptComposerChange}
-            onSelectedInlineChange={setSelectedInlineId}
-            onImageFiles={(files) => {
-              void insertImageFiles(files);
-            }}
-          />
-          <small className="paragraph-writing-panel__hint">
-            Paste an image to place it at the caret. Rich inline pills stay atomic; click one to edit its details.
-          </small>
+          ) : null}
+          {editingMode === "write" ? (
+            <>
+              <ParagraphComposer
+                ref={composerRef}
+                initialInlines={inlines}
+                registry={inlineRegistry}
+                context={editorContext}
+                onChange={acceptComposerChange}
+                onSelectedInlineChange={setSelectedInlineId}
+                onImageFiles={(files) => {
+                  void insertImageFiles(files);
+                }}
+              />
+              <small className="paragraph-writing-panel__hint">
+                Type <code>$x^2$</code>, <code>`code`</code>, <code>[label](url)</code>, or <code>§reference§fig:id§</code>. Paste images at the caret.
+              </small>
+            </>
+          ) : editingMode === "source" ? (
+            <label className="paragraph-source-editor">
+              <span>Markdown / LaTeX-like paragraph source</span>
+              <textarea
+                data-testid="paragraph-source"
+                rows={16}
+                spellCheck={false}
+                value={sourceText}
+                onChange={(event) => {
+                  const nextSource = event.target.value;
+                  setSourceText(nextSource);
+                  setInlines(parseParagraphSource(nextSource).inlines);
+                }}
+              />
+              <small>
+                §hyperlink§label§url§ · §reference§id§ · §footnote§text§ · §citation§key,key§
+              </small>
+            </label>
+          ) : (
+            <div className="paragraph-editor__preview-mode">
+              <ParagraphPreview
+                paragraph={draftParagraph}
+                registry={inlineRegistry}
+                context={editorContext}
+              />
+            </div>
+          )}
           {imageError === null ? null : <p className="editor-error">{imageError}</p>}
         </section>
 
+        {editingMode === "write" ? (
         <aside className="paragraph-inspector" aria-label="Selected inline content">
           {selectedInline === null ? (
             <div className="paragraph-inspector__empty">
@@ -812,8 +955,10 @@ export function ParagraphEditor({
             </>
           )}
         </aside>
+        ) : null}
       </div>
 
+      {editingMode === "preview" ? null : (
       <section className="paragraph-live-preview" aria-label="Live paragraph preview">
         <header>
           <span>Typeset preview</span>
@@ -827,6 +972,7 @@ export function ParagraphEditor({
           />
         </div>
       </section>
+      )}
 
       <div className="editor-actions">
         <button type="button" onClick={onCancel}>

@@ -62,6 +62,7 @@ implementations must use the same spelling. The currently aligned IDs include:
 | Hyperlink | `dans.inline.hyperlink` |
 | Semantic reference | `dans.inline.reference` |
 | Footnote | `dans.inline.footnote` |
+| Bare image | `dans.image.content` |
 | Figure | `dans.image.figure` |
 | Two-panel figure | `dans.image.figure_pair` |
 | Listing | `dans.code.listing` |

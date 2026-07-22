@@ -190,9 +190,6 @@ export function BlockPalette({
                 <strong>{plugin.palette.label}</strong>
                 <small>{plugin.palette.description}</small>
               </span>
-              <span className="palette-card__drag" aria-hidden="true">
-                ⠿
-              </span>
             </button>
           ))}
         </div>

@@ -1,12 +1,11 @@
 # Graphical document builder
 
 This prototype embeds a semantic document surface inside an Excalidraw note canvas. The surface can
-be projected as one vertically growing continuous view, as whole-block A4 pages, or as 16:9 slides. Paragraph,
-image, two-panel figure, embedded-drawing, semantic-list, rich-table, bibliography, code-listing,
-generic-caption, trusted-Python-plot, compositional-grid,
-text-authored math, title-page, table-of-contents, page-break, and section plugins
-contribute palette entries, default block construction, vertical measurements, previews, and
-optional editors. Generic builder code handles command dispatch, recursive document flow, insertion
+be projected as one vertically growing continuous view, as whole-block A4 pages, or as 16:9 slides.
+The focused writer palette contains Title Page, Table of Contents, Page Break, Section, Paragraph,
+Image, Excalidraw Drawing, Display Math, Code Listing, Item List, and Table. Other experimental
+plugin implementations remain in the repository but are not registered in this surface. Generic
+builder code handles command dispatch, recursive document flow, insertion
 previews, animated reflow, copying, transactional detach/delete behaviour, and page projection.
 Document previews are rendered below Excalidraw, so sketches and free-form notes can be drawn over
 the pages; the small interaction controls are rendered above them. Document blocks are not stored as
@@ -26,13 +25,11 @@ Inline Sequences and retain header/alignment/CSV semantics. Empty Grid cells
 remain visible drag targets, and the live editor changes rows, columns, gaps,
 and inactive/single/double boundaries. See `../docs/grid.md`.
 
-`Captioned` is a generic one-child composition block. Its optional string
+`Captioned` is a dormant generic one-child composition block. Its optional string
 category joins writer-derived numbering (for example `Figure`), while its rich
-caption and optional reference remain independent of the nested plugin. The
-sample wraps an uncaptioned Python plot and demonstrates that existing figures
-and generated plots share live numbering.
+caption and optional reference remain independent of the nested plugin.
 
-Python-plot editing executes explicitly trusted local source through a bounded
+The benched Python-plot implementation executes explicitly trusted local source through a bounded
 Vite capability and displays the returned SVG through an image boundary. It is
 not a sandbox. The editor preloads `np`/`plt`, live-updates source and sizing,
 and persists only source plus rendering intent. See
@@ -56,27 +53,35 @@ npm run dev
 ```
 
 Open the displayed local URL, then drag a block from the docked Blocks sidebar into the document.
-Drag an existing block by its handle to reorder it or to nest it inside a section; hold Alt while
-dragging to copy it. Dropping a moved block outside the document keeps it detached until the
+Single-click a document block to select it and double-click anywhere inside it to edit. Drag from
+anywhere inside a selected block to reorder it; hold Alt while dragging to copy it. Ctrl/Cmd-click
+and Shift-click select sibling blocks. A contiguous selection moves together in document order; a
+noncontiguous selection remains selectable but is intentionally not draggable. Dropping one moved
+block outside the document keeps it detached until the
 confirmation dialogue either restores or deletes it. Title pages are isolated in paged mode, a
 table of contents derives its numbered entries from the live section tree, and explicit page breaks
 advance following content. Page/slide range controls project at most five surfaces at once. Slide
 mode also exposes a fullscreen-friendly one-slide reader with keyboard navigation; it consumes the
 same graphical plugin adapters rather than maintaining a second presentation model.
 
-Paragraph editing is a direct writing surface backed by the ordered inline sequence. Ordinary text
-is typed and selected in place, bold/italic formatting uses familiar controls and keyboard
-shortcuts, and semantic code, colour, links, cross-references, citations, footnotes, math, and images
-are inserted at the caret without dragging cards. Clicking a rich inline pill opens only that
-element's focused inspector. Image files can be chosen from the toolbar or pasted directly into the
-paragraph; emoji-sized inline images retain text-relative height without acquiring figure numbering
+Paragraph editing has Write, Source, and Preview modes backed by one ordered inline sequence.
+Write mode formats ordinary text in place and renders math, links, cross-references, citations,
+footnotes, and code directly in the editable line; selecting one opens its focused inspector.
+Completed keyboard syntax is converted immediately: `$...$` (also `§$...$§` or `%$...$%`) creates
+inline LaTeX, backticks create inline code, Markdown links preserve formatted labels, and commands
+such as `§hyperlink§label§url§`, `§reference§id§`, `§footnote§text§`, and
+`§citation§key,key§` create semantic nodes. Source mode exposes that Markdown/LaTeX-like form as
+plain text, while Preview uses the document renderer. Image files can be chosen from the compact
+toolbar or pasted directly into the paragraph; emoji-sized inline images retain text-relative height without acquiring figure numbering
 or captions. Unsupported inline nodes remain visible as named read-only pills. Footnotes render
 as live superscript markers
 with hover/focus previews; their editor composes, adds, removes, and reorders a nested inline
 sequence. Markers are derived from current document traversal rather than stored in the payload,
 including when a footnote is hosted by a list item. Image editing uses the native file picker and
-stores a preview together with the requested width and detected pixel dimensions. Ordinary figures
-and listings use the same rich-caption sequence editor as paired figures and tables, including live
+stores a preview together with the requested width and detected pixel dimensions. The focused
+palette's bare Image block is unnumbered content with no caption or reference payload; the older
+`dans.image.figure` contract remains transport-compatible and is preserved when loaded. Code Listing
+retains its listing semantics. Rich captions use the same sequence editor as tables, including live
 styles, code, math, colour, links, and numbered inline extensions. Code listings support C++, CUDA,
 Julia, and raw text with rich caption and reference ID independently optional; a transparent
 textarea aligned over the syntax-coloured preview makes the rendered surface directly editable,
@@ -128,7 +133,7 @@ numbered inline occurrences such as footnotes: duplicating a paragraph or list
 creates a distinct note occurrence while preserving its content.
 
 An Excalidraw drawing is a semantic figure block rather than part of the surrounding note canvas.
-Choose Edit to open a focused modal containing the second Excalidraw instance. Caption, reference
+Double-click it to open a focused modal containing the second Excalidraw instance. Caption, reference
 ID, and percentage width remain editable; displayed height is derived automatically from the scene's
 visible bounds. Cancel discards the draft and Save commits one replacement transaction. The scene
 preview is rendered through an isolated SVG image boundary, and Export SVG renders the same scene
@@ -156,7 +161,7 @@ supports add/remove/reorder operations. BibTeX and bespoke JSON are optional reg
 capabilities; when present they add strict import/export controls without changing the semantic
 block or canonical document payload.
 
-Unknown document blocks remain in the flow as opaque labelled previews. Their Edit action logs a
+Unknown document blocks remain in the flow as opaque labelled previews. Double-clicking one logs a
 stable handle to the browser console, demonstrating that preview and editing support are independent.
 Ordinary Excalidraw tools remain available for panning, zooming, sketching, and free-form notes.
 

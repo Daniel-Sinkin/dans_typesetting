@@ -39,7 +39,9 @@ import {
 } from "../builder/numbering";
 import { createPageAnchor, pageAnchorId } from "../canvas/pageAnchor";
 import {
+  childBlockSequences,
   createBlockId,
+  findBuilderBlock,
   flattenBuilderBlocks,
   removeBuilderBlockFromTree,
   replaceBuilderBlockInTree,
@@ -89,11 +91,24 @@ type ActiveDrag =
   | Readonly<{
       source: "document";
       block: BuilderBlock;
+      blocks: readonly BuilderBlock[];
       pointerId: number;
       clientX: number;
       clientY: number;
       copy: boolean;
     }>;
+
+interface PendingBlockDrag {
+  readonly block: BuilderBlock;
+  readonly blocks: readonly BuilderBlock[];
+  readonly parentId: string | null;
+  readonly parentSequenceId: string | null;
+  readonly index: number;
+  readonly pointerId: number;
+  readonly clientX: number;
+  readonly clientY: number;
+  readonly draggable: boolean;
+}
 
 interface PendingDetach {
   readonly block: BuilderBlock;
@@ -129,7 +144,29 @@ function blocksForDrag(
   if (drag.source === "palette" || drag.copy) {
     return blocks;
   }
-  return removeBuilderBlockFromTree(blocks, drag.block.id);
+  return drag.blocks.reduce(
+    (remaining, block) => removeBuilderBlockFromTree(remaining, block.id),
+    blocks,
+  );
+}
+
+function siblingBlocks(
+  blocks: readonly BuilderBlock[],
+  parentId: string | null,
+  parentSequenceId: string | null,
+): readonly BuilderBlock[] {
+  if (parentId === null) {
+    return blocks;
+  }
+  const parent = findBuilderBlock(blocks, parentId)?.block;
+  if (parent === undefined) {
+    return [];
+  }
+  const sequences = childBlockSequences(parent);
+  if (parentSequenceId === null) {
+    return sequences.length === 1 ? sequences[0]?.blocks ?? [] : [];
+  }
+  return sequences.find(({ id }) => id === parentSequenceId)?.blocks ?? [];
 }
 
 function readDetachPreference(): boolean {
@@ -155,6 +192,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const [canvasApi, setCanvasApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [viewport, setViewport] = useState<CanvasViewport | null>(null);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
+  const [pendingBlockDrag, setPendingBlockDrag] = useState<PendingBlockDrag | null>(null);
+  const [selectedBlockIds, setSelectedBlockIds] = useState<readonly string[]>([]);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [pendingDetach, setPendingDetach] = useState<PendingDetach | null>(null);
   const [editingBlock, setEditingBlock] = useState<BuilderBlock | null>(null);
@@ -166,6 +205,9 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const [presentationSlide, setPresentationSlide] = useState(1);
 
   const dragRef = useRef<ActiveDrag | null>(null);
+  const pendingBlockDragRef = useRef<PendingBlockDrag | null>(null);
+  const selectedBlockIdsRef = useRef<readonly string[]>([]);
+  const selectionAnchorRef = useRef<string | null>(null);
 
   const publishViewport = useCallback((appState: AppState) => {
     const nextViewport = viewportFromAppState(appState);
@@ -311,26 +353,42 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           return;
         }
         if (completedDrag.copy) {
-          port.dispatch({
-            kind: "insert",
-            parentId: finalPlacement.parentId,
-            parentSequenceId: finalPlacement.parentSequenceId,
-            index: finalPlacement.index,
-            block: copyBuilderBlockForInsert(completedDrag.block, registry),
+          completedDrag.blocks.forEach((block, offset) => {
+            port.dispatch({
+              kind: "insert",
+              parentId: finalPlacement.parentId,
+              parentSequenceId: finalPlacement.parentSequenceId,
+              index: finalPlacement.index + offset,
+              block: copyBuilderBlockForInsert(block, registry),
+            });
           });
           return;
         }
-        port.dispatch({
-          kind: "move",
-          blockId: completedDrag.block.id,
-          parentId: finalPlacement.parentId,
-          parentSequenceId: finalPlacement.parentSequenceId,
-          index: finalPlacement.index,
-        });
+        if (completedDrag.blocks.length === 1) {
+          port.dispatch({
+            kind: "move",
+            blockId: completedDrag.block.id,
+            parentId: finalPlacement.parentId,
+            parentSequenceId: finalPlacement.parentSequenceId,
+            index: finalPlacement.index,
+          });
+        } else {
+          port.dispatch({
+            kind: "move_many",
+            blockIds: completedDrag.blocks.map(({ id }) => id),
+            parentId: finalPlacement.parentId,
+            parentSequenceId: finalPlacement.parentSequenceId,
+            index: finalPlacement.index,
+          });
+        }
         return;
       }
 
       if (completedDrag.source === "document" && !completedDrag.copy) {
+        if (completedDrag.blocks.length > 1) {
+          clearDrag();
+          return;
+        }
         if (readDetachPreference()) {
           clearDrag();
           port.dispatch({ kind: "delete", blockId: completedDrag.block.id });
@@ -426,33 +484,142 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     [beginDrag],
   );
 
-  const beginDocumentDrag = useCallback(
+  const beginDocumentPointer = useCallback(
     (
       block: BuilderBlock,
       parentId: string | null,
       parentSequenceId: string | null,
       index: number,
-      event: ReactPointerEvent<HTMLButtonElement>,
+      event: ReactPointerEvent<HTMLElement>,
     ) => {
       if (event.button !== 0) {
         return;
       }
-      event.preventDefault();
       event.stopPropagation();
-      beginDrag(
-        {
-          source: "document",
-          block,
-          pointerId: event.pointerId,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          copy: event.altKey,
-        },
-        { parentId, parentSequenceId, index },
+      event.currentTarget.focus();
+
+      const siblings = siblingBlocks(snapshot.blocks, parentId, parentSequenceId);
+      const current = selectedBlockIdsRef.current.filter((blockId) => {
+        const location = findBuilderBlock(snapshot.blocks, blockId);
+        return (
+          location?.parentId === parentId &&
+          location.parentSequenceId === parentSequenceId
+        );
+      });
+      let next: readonly string[];
+      if (event.shiftKey) {
+        const anchorId = selectionAnchorRef.current;
+        const anchorIndex = anchorId === null
+          ? -1
+          : siblings.findIndex(({ id }) => id === anchorId);
+        if (anchorIndex < 0) {
+          next = [block.id];
+        } else {
+          const start = Math.min(anchorIndex, index);
+          const end = Math.max(anchorIndex, index);
+          next = siblings.slice(start, end + 1).map(({ id }) => id);
+        }
+      } else if (event.ctrlKey || event.metaKey) {
+        next = current.includes(block.id)
+          ? current.filter((blockId) => blockId !== block.id)
+          : [...current, block.id];
+      } else {
+        next = current.includes(block.id) ? current : [block.id];
+      }
+      if (!event.shiftKey) {
+        selectionAnchorRef.current = next.includes(block.id) ? block.id : null;
+      }
+      selectedBlockIdsRef.current = Object.freeze([...next]);
+      setSelectedBlockIds(selectedBlockIdsRef.current);
+
+      const selectedSet = new Set(next);
+      const ordered = siblings.filter(({ id }) => selectedSet.has(id));
+      const selectedIndices = ordered.map(({ id }) =>
+        siblings.findIndex((candidate) => candidate.id === id),
       );
+      const contiguous = selectedIndices.every(
+        (selectedIndex, offset) =>
+          selectedIndex === (selectedIndices[0] ?? selectedIndex) + offset,
+      );
+      const pending = {
+        block: ordered[0] ?? block,
+        blocks: Object.freeze(ordered),
+        parentId,
+        parentSequenceId,
+        index: selectedIndices[0] ?? index,
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        draggable: next.includes(block.id) && ordered.length > 0 && contiguous,
+      } satisfies PendingBlockDrag;
+      pendingBlockDragRef.current = pending;
+      setPendingBlockDrag(pending);
     },
-    [beginDrag],
+    [snapshot.blocks],
   );
+
+  useEffect(() => {
+    if (pendingBlockDrag === null) {
+      return;
+    }
+    const clearPending = (): void => {
+      pendingBlockDragRef.current = null;
+      setPendingBlockDrag(null);
+    };
+    const handlePointerMove = (event: PointerEvent): void => {
+      const pending = pendingBlockDragRef.current;
+      if (event.pointerId !== pending?.pointerId) {
+        return;
+      }
+      const distance = Math.hypot(
+        event.clientX - pending.clientX,
+        event.clientY - pending.clientY,
+      );
+      if (distance < 5) {
+        return;
+      }
+      clearPending();
+      if (!pending.draggable) {
+        return;
+      }
+      event.preventDefault();
+      const drag = {
+        source: "document",
+        block: pending.block,
+        blocks: pending.blocks,
+        pointerId: pending.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        copy: event.altKey,
+      } satisfies ActiveDrag;
+      beginDrag(drag, {
+        parentId: pending.parentId,
+        parentSequenceId: pending.parentSequenceId,
+        index: pending.index,
+      });
+      setCurrentPlacement(resolvePlacement(event.clientX, event.clientY, drag));
+    };
+    const handlePointerEnd = (event: PointerEvent): void => {
+      if (event.pointerId === pendingBlockDragRef.current?.pointerId) {
+        clearPending();
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        clearPending();
+      }
+    };
+    window.addEventListener("pointermove", handlePointerMove, { passive: false });
+    window.addEventListener("pointerup", handlePointerEnd);
+    window.addEventListener("pointercancel", handlePointerEnd);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerEnd);
+      window.removeEventListener("pointercancel", handlePointerEnd);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [beginDrag, pendingBlockDrag, resolvePlacement, setCurrentPlacement]);
 
   const flowBlocks = useMemo(() => {
     if (activeDrag !== null) {
@@ -588,16 +755,33 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     };
   }, [layout.pageBounds, viewport]);
 
-  const deleteBlock = useCallback(
-    (blockId: string) => {
-      if (editingBlock?.id === blockId) {
-        setEditingBlock(null);
-        setEditingDraft(null);
-      }
+  useEffect(() => {
+    const existingIds = new Set(
+      flattenBuilderBlocks(snapshot.blocks).map(({ id }) => id),
+    );
+    const retained = selectedBlockIdsRef.current.filter((id) => existingIds.has(id));
+    if (retained.length !== selectedBlockIdsRef.current.length) {
+      selectedBlockIdsRef.current = Object.freeze(retained);
+      setSelectedBlockIds(selectedBlockIdsRef.current);
+    }
+  }, [snapshot.blocks]);
+
+  const deleteSelectedBlocks = useCallback(() => {
+    const blockIds = selectedBlockIdsRef.current;
+    if (blockIds.length === 0) {
+      return;
+    }
+    if (editingBlock !== null && blockIds.includes(editingBlock.id)) {
+      setEditingBlock(null);
+      setEditingDraft(null);
+    }
+    selectedBlockIdsRef.current = Object.freeze([]);
+    setSelectedBlockIds(selectedBlockIdsRef.current);
+    selectionAnchorRef.current = null;
+    blockIds.forEach((blockId) => {
       port.dispatch({ kind: "delete", blockId });
-    },
-    [editingBlock, port],
-  );
+    });
+  }, [editingBlock, port]);
 
   const beginEdit = useCallback(
     (block: BuilderBlock) => {
@@ -806,8 +990,9 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
               layout={layout}
               pageStyle={pageStyle}
               registry={registry}
-              onBeginMove={beginDocumentDrag}
-              onDelete={deleteBlock}
+              selectedBlockIds={new Set(selectedBlockIds)}
+              onBlockPointerDown={beginDocumentPointer}
+              onDeleteSelected={deleteSelectedBlocks}
               onEdit={beginEdit}
               inlineEditor={inlineEditor}
             />

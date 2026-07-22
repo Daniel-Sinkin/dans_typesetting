@@ -158,14 +158,15 @@ interface DocumentControlsProps {
   readonly layout: DocumentLayout;
   readonly pageStyle: CSSProperties;
   readonly registry: BuilderPluginRegistry;
-  readonly onBeginMove: (
+  readonly selectedBlockIds: ReadonlySet<string>;
+  readonly onBlockPointerDown: (
     block: BuilderBlock,
     parentId: string | null,
     parentSequenceId: string | null,
     index: number,
-    event: ReactPointerEvent<HTMLButtonElement>,
+    event: ReactPointerEvent<HTMLElement>,
   ) => void;
-  readonly onDelete: (blockId: string) => void;
+  readonly onDeleteSelected: () => void;
   readonly onEdit: (block: BuilderBlock) => void;
   readonly inlineEditor: Readonly<{
     blockId: string;
@@ -178,8 +179,9 @@ export function DocumentControls({
   layout,
   pageStyle,
   registry,
-  onBeginMove,
-  onDelete,
+  selectedBlockIds,
+  onBlockPointerDown,
+  onDeleteSelected,
   onEdit,
   inlineEditor,
 }: DocumentControlsProps) {
@@ -190,58 +192,80 @@ export function DocumentControls({
         .map(({ block, bounds, parentId, parentSequenceId, siblingIndex, depth }) => {
           const adapter = registry.pluginForBlock(block);
           const activeEditor = inlineEditor?.blockId === block.id ? inlineEditor : null;
+          const selected = selectedBlockIds.has(block.id);
           return (
             <section
-              className={`document-block-controls${activeEditor === null ? "" : " document-block-controls--editing"}`}
+              className={`document-block-controls${selected ? " document-block-controls--selected" : ""}${activeEditor === null ? "" : " document-block-controls--editing"}`}
               data-block-id={block.id}
               data-block-type={block.typeId}
               data-section-depth={depth}
               key={block.id}
               style={positionStyle(layout, bounds)}
+              tabIndex={0}
+              aria-selected={selected}
+              aria-label={`${adapter.palette.label} block`}
+              onPointerDown={(event) => {
+                if (
+                  event.target instanceof Element &&
+                  event.target.closest(".inline-block-editor, button, input, textarea, select") !== null
+                ) {
+                  return;
+                }
+                onBlockPointerDown(
+                  block,
+                  parentId,
+                  parentSequenceId,
+                  siblingIndex,
+                  event,
+                );
+              }}
+              onDoubleClick={(event) => {
+                if (
+                  event.target instanceof Element &&
+                  event.target.closest(".inline-block-editor, button, input, textarea, select") !== null
+                ) {
+                  return;
+                }
+                event.preventDefault();
+                onEdit(block);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onEdit(block);
+                } else if ((event.key === "Delete" || event.key === "Backspace") && selected) {
+                  event.preventDefault();
+                  onDeleteSelected();
+                }
+              }}
             >
-              <div className="document-block__toolbar">
-                <button
-                  className="document-block__grip"
-                  type="button"
-                  aria-label={`Move ${adapter.palette.label} block`}
-                  title="Drag to reorder or nest; hold Alt to copy"
-                  onPointerDown={(event) => {
-                    onBeginMove(
-                      block,
-                      parentId,
-                      parentSequenceId,
-                      siblingIndex,
-                      event,
-                    );
-                  }}
-                >
-                  ⠿
-                </button>
-                <span>{adapter.palette.label}</span>
-                <code>{block.id}</code>
-                <div className="document-block__actions">
+              {selected ? (
+                <div className="document-block__selection-label">
+                  <span>{adapter.palette.label}</span>
                   <button
                     type="button"
-                    disabled={activeEditor !== null}
-                    onClick={() => {
-                      onEdit(block);
+                    aria-label="Delete selected blocks"
+                    title="Delete selected blocks"
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDeleteSelected();
                     }}
                   >
-                    {activeEditor === null ? "Edit" : "Editing"}
-                  </button>
-                  <button
-                    className="danger-action"
-                    type="button"
-                    onClick={() => {
-                      onDelete(block.id);
-                    }}
-                  >
-                    Delete
+                    ×
                   </button>
                 </div>
-              </div>
+              ) : null}
               {activeEditor === null ? null : (
-                <div className="inline-block-editor" aria-label={activeEditor.title}>
+                <div
+                  className="inline-block-editor"
+                  aria-label={activeEditor.title}
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                  }}
+                >
                   {activeEditor.content}
                 </div>
               )}

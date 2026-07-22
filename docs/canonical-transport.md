@@ -81,6 +81,12 @@ codecs normalize the earlier plain `caption` string into one deterministic Core
 Text node, and an omitted legacy listing caption into `null`. New files emit
 only the rich spelling. See [rich-captions.md](rich-captions.md).
 
+The independent `dans.image.content` block is an unnumbered image rather than a
+figure. Its payload contains only the source, preferred width fraction, and
+detected pixel dimensions used to preserve the aspect ratio. Captions,
+references, and writer-derived ordinals remain responsibilities of explicit
+figure or composition contracts.
+
 Ordinary figures and two-panel figure groups store nullable `referenceId`
 values independently from their required captions. Each panel target is also
 nullable. Null means that no anchor is published; it does not suppress the
