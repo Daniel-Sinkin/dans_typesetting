@@ -110,6 +110,7 @@ interface ParagraphComposerProps {
   readonly initialInlines: readonly BuilderInlineNode[];
   readonly registry: BuilderInlinePluginRegistry;
   readonly context: BuilderInlineRenderContext;
+  readonly autoFocus?: boolean;
   readonly onChange: (inlines: readonly BuilderInlineNode[]) => void;
   readonly onSelectedInlineChange: (inlineId: string | null) => void;
   readonly onImageFiles: (files: readonly File[]) => void;
@@ -206,6 +207,7 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
       initialInlines,
       registry,
       context,
+      autoFocus = false,
       onChange,
       onSelectedInlineChange,
       onImageFiles,
@@ -260,7 +262,18 @@ const ParagraphComposer = forwardRef<ParagraphComposerHandle, ParagraphComposerP
     useLayoutEffect(() => {
       currentInlinesRef.current = initialInlinesRef.current;
       renderSequence(initialInlinesRef.current);
-    }, [renderSequence]);
+      const root = rootRef.current;
+      if (autoFocus && root !== null) {
+        root.focus();
+        const range = document.createRange();
+        range.selectNodeContents(root);
+        range.collapse(false);
+        const selection = document.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        savedRangeRef.current = range.cloneRange();
+      }
+    }, [autoFocus, renderSequence]);
 
     const rememberSelection = useCallback((): void => {
       const root = rootRef.current;
@@ -592,6 +605,160 @@ interface ParagraphEditorProps extends BuilderBlockEditorProps {
 }
 
 type ParagraphEditingMode = "write" | "source" | "preview";
+
+export function InlineParagraphEditor({
+  block,
+  inlineRegistry,
+  onCommit,
+  onCancel,
+  onPreview,
+  referenceTargets,
+  inlineOrdinals,
+  documentResources,
+}: ParagraphEditorProps) {
+  const paragraph = requireParagraph(block);
+  const composerRef = useRef<ParagraphComposerHandle>(null);
+  const [inlines, setInlines] = useState<readonly BuilderInlineNode[]>(paragraph.inlines);
+  const [selectedInlineId, setSelectedInlineId] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const identity = useState(() => ({ id: paragraph.id, typeId: paragraph.typeId }))[0];
+  const draftParagraph = useMemo<ParagraphBlock>(
+    () =>
+      Object.freeze({
+        ...identity,
+        inlines: Object.freeze([...inlines]),
+      }),
+    [identity, inlines],
+  );
+  const editorContext = useMemo<BuilderInlineRenderContext>(
+    () => ({ referenceTargets, inlineOrdinals, documentResources }),
+    [documentResources, inlineOrdinals, referenceTargets],
+  );
+  const selectedInline =
+    selectedInlineId === null
+      ? null
+      : inlines.find((inline) => inline.id === selectedInlineId) ?? null;
+
+  useEffect(() => {
+    if (inlines.length > 0) {
+      onPreview(draftParagraph);
+    }
+  }, [draftParagraph, inlines.length, onPreview]);
+
+  const acceptComposerChange = useCallback(
+    (nextInlines: readonly BuilderInlineNode[]): void => {
+      setInlines(nextInlines);
+      setSelectedInlineId((current) =>
+        current !== null && nextInlines.some((inline) => inline.id === current)
+          ? current
+          : null,
+      );
+    },
+    [],
+  );
+
+  const insertImageFiles = useCallback(async (files: readonly File[]): Promise<void> => {
+    setImageError(null);
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) {
+          throw new Error(`${file.name} is not an image file`);
+        }
+        composerRef.current?.insertInline(
+          createInlineImage(await readFileAsDataUrl(file), 1.15),
+        );
+      }
+    } catch (cause: unknown) {
+      setImageError(
+        cause instanceof Error ? cause.message : "The image could not be inserted",
+      );
+    }
+  }, []);
+
+  const save = (): void => {
+    if (inlines.length > 0) {
+      onCommit(draftParagraph);
+    }
+  };
+
+  return (
+    <form
+      className="inline-paragraph-editor"
+      data-testid="inline-paragraph-editor"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+      onKeyDownCapture={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          onCancel();
+        } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+          event.preventDefault();
+          event.stopPropagation();
+          save();
+        }
+      }}
+    >
+      <ParagraphComposer
+        ref={composerRef}
+        initialInlines={inlines}
+        registry={inlineRegistry}
+        context={editorContext}
+        autoFocus
+        onChange={acceptComposerChange}
+        onSelectedInlineChange={setSelectedInlineId}
+        onImageFiles={(files) => {
+          void insertImageFiles(files);
+        }}
+      />
+      {imageError === null ? null : <p className="editor-error">{imageError}</p>}
+      <footer className="inline-paragraph-editor__footer">
+        <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> save · <kbd>Esc</kbd> cancel</span>
+        <button type="button" onClick={onCancel}>Cancel</button>
+        <button className="primary-action" type="submit" disabled={inlines.length === 0}>
+          Save
+        </button>
+      </footer>
+      {selectedInline === null ? null : (
+        <aside className="inline-paragraph-editor__inspector" aria-label="Selected inline details">
+          <header>
+            <strong>{inlineRegistry.adapterForInline(selectedInline).palette.label}</strong>
+            <button
+              type="button"
+              aria-label="Close inline details"
+              onClick={() => {
+                setSelectedInlineId(null);
+              }}
+            >
+              ×
+            </button>
+          </header>
+          <div>
+            <InlinePayloadEditor
+              inline={selectedInline}
+              registry={inlineRegistry}
+              context={editorContext}
+              onChange={(replacement) => {
+                composerRef.current?.replaceInline(replacement);
+              }}
+            />
+          </div>
+          <button
+            className="danger-action"
+            type="button"
+            onClick={() => {
+              composerRef.current?.removeInline(selectedInline.id);
+            }}
+          >
+            Remove inline
+          </button>
+        </aside>
+      )}
+    </form>
+  );
+}
 
 export function ParagraphEditor({
   block,

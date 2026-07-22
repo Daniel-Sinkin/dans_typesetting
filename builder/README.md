@@ -7,8 +7,8 @@ Image, Excalidraw Drawing, Display Math, Code Listing, Item List, and Table. Oth
 plugin implementations remain in the repository but are not registered in this surface. Generic
 builder code handles command dispatch, recursive document flow, insertion
 previews, animated reflow, copying, transactional detach/delete behaviour, and page projection.
-Document previews are rendered below Excalidraw, so sketches and free-form notes can be drawn over
-the pages; the small interaction controls are rendered above them. Document blocks are not stored as
+The page background is the lowest layer, Excalidraw sketches sit above it, semantic block previews
+sit above the sketches, and interaction controls are highest. Document blocks are not stored as
 Excalidraw elements.
 
 Composite plugins expose stable named child block sequences. Generic builder
@@ -64,8 +64,15 @@ advance following content. Page/slide range controls project at most five surfac
 mode also exposes a fullscreen-friendly one-slide reader with keyboard navigation; it consumes the
 same graphical plugin adapters rather than maintaining a second presentation model.
 
-Paragraph editing has Write, Source, and Preview modes backed by one ordered inline sequence.
-Write mode formats ordinary text in place and renders math, links, cross-references, citations,
+The selected-block interface is keyboard-operable: Up/Down moves selection, Home/End jumps to the
+first/last block, Enter opens the ordinary editor, `V` opens a source-capable block in Neovim, and
+Delete/Backspace removes it while selecting the following block (or the preceding block at the end).
+Shift+F10/the menu key and right-click open the radial block menu. Wheel, Shift-wheel, Ctrl/Cmd-wheel,
+and middle-button drag over document blocks are routed to the same Excalidraw viewport transform as
+the exposed canvas, so an overlay does not create a dead navigation region.
+
+Paragraph editing opens directly inside the selected block. Its expanded editor has Write, Source,
+and Preview modes backed by one ordered inline sequence. Write mode formats ordinary text in place and renders math, links, cross-references, citations,
 footnotes, and code directly in the editable line; selecting one opens its focused inspector.
 Completed keyboard syntax is converted immediately: `$...$` (also `§$...$§` or `%$...$%`) creates
 inline LaTeX, backticks create inline code, Markdown links preserve formatted labels, and commands
@@ -94,6 +101,14 @@ separate numbered equations remain separate blocks. The earlier recursive
 structured-math model and codecs remain in the repository for compatibility,
 but its graphical tree editor is benched and is not registered in the active
 palette. See `../docs/latex-math.md`.
+
+Paragraph source and Code Listing expose an optional real-Neovim path through `V` and the radial
+menu. A localhost-only Vite WebSocket bridges the embedded xterm surface to `/usr/bin/nvim` in a
+PTY. Neovim loads the normal `~/.config/nvim` configuration, mappings, plugins, and filetype logic;
+only swap/shada and the external-file protection guard are disabled for the isolated temporary
+buffer. `:w` parses the temporary buffer back into a live document preview, and a successful
+`:wq`/`:q` commits the most recently written version. The ordinary inline editor remains the default
+for fast rich-text work.
 
 The two-panel figure extension owns two horizontal image panels, three rich inline captions, one
 group target, and optional `a`/`b` panel targets. Its editor selects each image independently and

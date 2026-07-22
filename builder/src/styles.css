@@ -45,7 +45,8 @@ button {
   --color-primary-light: #dbe4ff;
 }
 
-.document-visual-layer,
+.document-page-layer,
+.document-block-visual-layer,
 .document-control-layer {
   position: absolute;
   inset: 0;
@@ -53,12 +54,16 @@ button {
   pointer-events: none;
 }
 
-.document-visual-layer {
+.document-page-layer {
   z-index: 1;
 }
 
-.document-control-layer {
+.document-block-visual-layer {
   z-index: 3;
+}
+
+.document-control-layer {
+  z-index: 4;
 }
 
 .document-surface,
@@ -265,6 +270,10 @@ button {
   cursor: grabbing;
 }
 
+.document-control-layer--panning .document-block-controls {
+  cursor: grabbing;
+}
+
 .document-block-controls:hover,
 .document-block-controls:focus-visible {
   border-color: rgb(77 171 247 / 55%);
@@ -285,12 +294,234 @@ button {
   position: absolute;
   z-index: 1;
   inset: 5px;
-  overflow: hidden;
+  overflow: visible;
   background: #fff;
   border: 2px solid #4c6ef5;
   border-radius: 8px;
   box-shadow: 0 18px 45px rgb(28 48 94 / 22%);
   pointer-events: auto;
+}
+
+.inline-paragraph-editor,
+.inline-code-listing-editor {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 6px;
+}
+
+.inline-paragraph-editor {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.inline-paragraph-editor > .paragraph-composer {
+  min-height: 0;
+  max-height: none;
+  padding: 10px 14px;
+  overflow: auto;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.inline-paragraph-editor__footer,
+.inline-code-listing-editor__toolbar {
+  display: flex;
+  min-width: 0;
+  min-height: 28px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 3px 6px;
+  gap: 5px;
+  color: #6b7280;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  font-size: 9px;
+}
+
+.inline-paragraph-editor__footer > span,
+.inline-code-listing-editor__toolbar > span {
+  min-width: 0;
+  margin-right: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-paragraph-editor__footer button,
+.inline-code-listing-editor__toolbar button,
+.inline-code-listing-editor__toolbar select {
+  min-height: 20px;
+  padding: 1px 7px;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.inline-paragraph-editor__inspector {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 32px));
+  padding: 10px;
+  overflow: auto;
+  gap: 9px;
+  color: #343a40;
+  background: #fff;
+  border: 1px solid #74c0fc;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgb(18 38 63 / 28%);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+}
+
+.inline-paragraph-editor__inspector > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inline-paragraph-editor__inspector > header button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: #495057;
+  background: #f1f3f5;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.inline-paragraph-editor__inspector > .danger-action {
+  justify-self: end;
+  min-height: 24px;
+  padding: 3px 8px;
+  font-size: 9px;
+}
+
+.inline-code-listing-editor {
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #20242c;
+}
+
+.inline-code-listing-editor__toolbar {
+  grid-row: 1;
+  color: #ced4da;
+  background: #2b303b;
+  border-top: 0;
+  border-bottom: 1px solid #495057;
+}
+
+.inline-code-listing-editor__toolbar select {
+  margin-right: auto;
+  color: #e9ecef;
+  background: #343a40;
+  border-color: #5c6370;
+}
+
+.inline-code-listing-editor__toolbar > span {
+  margin-right: 0;
+}
+
+.inline-code-listing-editor__surface,
+.inline-code-listing-editor__surface > pre,
+.inline-code-listing-editor__surface > .code-listing-editor__source {
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+.block-radial-backdrop {
+  position: fixed;
+  z-index: 4500;
+  inset: 0;
+  background: rgb(16 19 27 / 5%);
+}
+
+.block-radial-menu {
+  position: fixed;
+  width: 0;
+  height: 0;
+  filter: drop-shadow(0 12px 22px rgb(18 24 38 / 24%));
+}
+
+.block-radial-menu button {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  outline: 0;
+}
+
+.block-radial-menu__center {
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  color: #fff;
+  background: #343a40;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  font-size: 17px;
+  transform: translate(-50%, -50%);
+}
+
+.block-radial-menu__action {
+  width: 66px;
+  min-height: 50px;
+  grid-template-rows: 22px auto;
+  padding: 5px 4px !important;
+  color: #343a40;
+  background: rgb(255 255 255 / 97%);
+  border: 2px solid #74c0fc;
+  border-radius: 14px;
+}
+
+.block-radial-menu__action > span {
+  color: #1971c2;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.block-radial-menu__action > small {
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.block-radial-menu__action:hover,
+.block-radial-menu__action:focus-visible {
+  color: #1864ab;
+  background: #e7f5ff;
+  box-shadow: 0 0 0 3px rgb(77 171 247 / 28%);
+}
+
+.block-radial-menu__action:disabled {
+  cursor: default;
+  filter: grayscale(1);
+  opacity: 0.38;
+}
+
+.block-radial-menu__action--delete {
+  color: #c92a2a;
+  border-color: #ffa8a8;
+}
+
+.block-radial-menu__action--delete > span {
+  color: #e03131;
 }
 
 .document-block__selection-label {
@@ -1178,14 +1409,22 @@ button {
   width: 100%;
   height: 100%;
   align-items: center;
-  padding: 12px 0;
+  padding: 16px 0;
   color: #202533;
 }
 
-.latex-math-display > .latex-math-render,
-.latex-math-display > .latex-math-error {
+.latex-math-display__scroller {
   grid-column: 1;
-  justify-self: stretch;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.85em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.latex-math-display__scroller > .latex-math-render,
+.latex-math-display__scroller > .latex-math-error {
+  width: 100%;
 }
 
 .latex-math-display > .math-equation-number {
@@ -1200,8 +1439,7 @@ button {
 
 .latex-math-render--display {
   display: block;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible;
   font-size: 21px;
 }
 
@@ -1978,6 +2216,104 @@ button {
   overflow: auto;
 }
 
+.editor-dialog__body:has(.nvim-block-editor) {
+  overflow: hidden;
+}
+
+.nvim-block-editor {
+  display: grid;
+  height: min(680px, calc(100vh - 170px));
+  min-height: 440px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  color: #c0caf5;
+  background: #1a1b26;
+}
+
+.nvim-block-editor > header,
+.nvim-block-editor > footer {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 10px;
+  background: #24283b;
+  border-color: #414868;
+  font-size: 10px;
+}
+
+.nvim-block-editor > header {
+  justify-content: space-between;
+  border-bottom: 1px solid #414868;
+}
+
+.nvim-block-editor > header > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nvim-block-editor > header strong {
+  color: #7aa2f7;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.nvim-block-editor > header span,
+.nvim-block-editor > footer > span {
+  color: #a9b1d6;
+}
+
+.nvim-block-editor__mode {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  background: #1a1b26;
+  border: 1px solid #414868;
+  border-radius: 999px;
+}
+
+.nvim-block-editor__terminal {
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 10px;
+  overflow: hidden;
+  background: #1a1b26;
+}
+
+.nvim-block-editor__terminal .xterm,
+.nvim-block-editor__terminal .xterm-viewport {
+  height: 100%;
+}
+
+.nvim-block-editor > footer {
+  min-height: 38px;
+  border-top: 1px solid #414868;
+}
+
+.nvim-block-editor > footer > span {
+  margin-right: auto;
+}
+
+.nvim-block-editor > footer > strong {
+  overflow: hidden;
+  color: #ff9e64;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nvim-block-editor > footer button {
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 3px 9px;
+  color: #c0caf5;
+  background: #3b4261;
+  border: 1px solid #565f89;
+  border-radius: 6px;
+  font-size: 9px;
+  cursor: pointer;
+}
+
 .block-editor-form {
   display: flex;
   flex-direction: column;
@@ -2304,10 +2640,11 @@ button {
 
 .paragraph-toolbar button {
   display: inline-flex;
-  min-height: 20px;
+  height: 18px;
+  min-height: 18px;
   align-items: center;
   justify-content: center;
-  padding: 1px 6px;
+  padding: 0 5px;
   gap: 4px;
   color: #343a40;
   background: #fff;

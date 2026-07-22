@@ -1,6 +1,7 @@
 // Project paged/continuous document visuals below Excalidraw and controls above it.
 import type {
   CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
   ReactNode,
 } from "react";
@@ -20,6 +21,7 @@ interface DocumentVisualPageProps {
   readonly layout: DocumentLayout;
   readonly pageStyle: CSSProperties;
   readonly registry: BuilderPluginRegistry;
+  readonly layer?: "all" | "background" | "blocks";
 }
 
 function positionStyle(layout: DocumentLayout, bounds: LayoutBounds): CSSProperties {
@@ -38,6 +40,7 @@ export function DocumentVisualPage({
   layout,
   pageStyle,
   registry,
+  layer = "all",
 }: DocumentVisualPageProps) {
   const ordinals = deriveNumberedBlockOrdinals(
     layout.blocks.map(({ block }) => block),
@@ -49,13 +52,15 @@ export function DocumentVisualPage({
   const visibleBlocks = layout.blocks
     .map((blockLayout, documentIndex) => ({ blockLayout, documentIndex }))
     .filter(({ blockLayout }) => isPageVisible(layout, blockLayout.pageIndex));
+  const showBackground = layer !== "blocks";
+  const showBlocks = layer !== "background";
   return (
     <div
       className={`document-surface document-surface--${layout.mode}`}
       style={pageStyle}
       aria-label={layout.mode === "slides" ? "Slide development view" : "Document development view"}
     >
-      {layout.pages
+      {showBackground ? layout.pages
         .filter((page) => page.visible)
         .map((page) => (
           <article
@@ -79,9 +84,9 @@ export function DocumentVisualPage({
               </span>
             </header>
           </article>
-        ))}
+        )) : null}
 
-      {visibleBlocks.map(({ blockLayout, documentIndex }) => {
+      {showBlocks ? visibleBlocks.map(({ blockLayout, documentIndex }) => {
         const { block, bounds, depth, oversized } = blockLayout;
         const adapter = registry.pluginForBlock(block);
         const primaryOccurrence = registry.numberedOccurrencesForBlock(block)[0];
@@ -137,9 +142,9 @@ export function DocumentVisualPage({
             </div>
           </section>
         );
-      })}
+      }) : null}
 
-      {layout.previewBounds === null ||
+      {!showBlocks || layout.previewBounds === null ||
       layout.previewPageIndex === null ||
       !isPageVisible(layout, layout.previewPageIndex) ? null : (
         <div className="insertion-preview" style={positionStyle(layout, layout.previewBounds)}>
@@ -147,7 +152,7 @@ export function DocumentVisualPage({
         </div>
       )}
 
-      {visibleBlocks.length === 0 && layout.previewBounds === null ? (
+      {showBlocks && visibleBlocks.length === 0 && layout.previewBounds === null ? (
         <div className="empty-page-message">Drag a block here to begin the document.</div>
       ) : null}
     </div>
@@ -168,6 +173,15 @@ interface DocumentControlsProps {
   ) => void;
   readonly onDeleteSelected: () => void;
   readonly onEdit: (block: BuilderBlock) => void;
+  readonly onBlockKeyDown: (
+    block: BuilderBlock,
+    event: ReactKeyboardEvent<HTMLElement>,
+  ) => void;
+  readonly onOpenContextMenu: (
+    block: BuilderBlock,
+    clientX: number,
+    clientY: number,
+  ) => void;
   readonly inlineEditor: Readonly<{
     blockId: string;
     title: string;
@@ -183,6 +197,8 @@ export function DocumentControls({
   onBlockPointerDown,
   onDeleteSelected,
   onEdit,
+  onBlockKeyDown,
+  onOpenContextMenu,
   inlineEditor,
 }: DocumentControlsProps) {
   return (
@@ -229,14 +245,26 @@ export function DocumentControls({
                 event.preventDefault();
                 onEdit(block);
               }}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onOpenContextMenu(block, event.clientX, event.clientY);
+              }}
               onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  onEdit(block);
-                } else if ((event.key === "Delete" || event.key === "Backspace") && selected) {
-                  event.preventDefault();
-                  onDeleteSelected();
+                if (event.target !== event.currentTarget) {
+                  return;
                 }
+                if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+                  event.preventDefault();
+                  const rectangle = event.currentTarget.getBoundingClientRect();
+                  onOpenContextMenu(
+                    block,
+                    rectangle.left + rectangle.width / 2,
+                    rectangle.top + rectangle.height / 2,
+                  );
+                  return;
+                }
+                onBlockKeyDown(block, event);
               }}
             >
               {selected ? (

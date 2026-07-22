@@ -111,10 +111,18 @@ export interface BuilderBlockEditorProps {
   readonly documentResources: BuilderDocumentResourceIndex;
 }
 
+export interface BuilderBlockSourceEditor {
+  fileName(block: BuilderBlock): string;
+  source(block: BuilderBlock): string;
+  applySource(block: BuilderBlock, source: string): BuilderBlock;
+}
+
 export interface BuilderBlockEditor {
   readonly presentation?: "dialog" | "inline";
+  readonly sourceEditor?: BuilderBlockSourceEditor;
   title(block: BuilderBlock): string;
   render(props: BuilderBlockEditorProps): ReactNode;
+  renderInline?(props: BuilderBlockEditorProps): ReactNode;
 }
 
 export interface BuilderBlockPlugin extends BuilderBlockAdapter {

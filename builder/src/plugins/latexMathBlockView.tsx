@@ -22,7 +22,9 @@ export function LatexMathDisplayPreview({
 }>) {
   return (
     <div className="latex-math-display" data-latex-math-display-id={block.id} id={anchorId}>
-      <LatexMathPreview source={block.source} displayMode />
+      <div className="latex-math-display__scroller">
+        <LatexMathPreview source={block.source} displayMode />
+      </div>
       {block.numbered ? (
         <span className="math-equation-number">({ordinal ?? "?"})</span>
       ) : null}

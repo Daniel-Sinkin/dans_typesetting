@@ -200,6 +200,21 @@ async function pointerSelect(client, blockId, modifiers = {}) {
   await delay(60);
 }
 
+async function keyOnBlock(client, blockId, key, modifiers = {}) {
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='${blockId}']");
+    block.dispatchEvent(new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: ${JSON.stringify(key)},
+      ctrlKey: ${String(modifiers.ctrlKey === true)},
+      metaKey: ${String(modifiers.metaKey === true)},
+      shiftKey: ${String(modifiers.shiftKey === true)},
+    }));
+  })()`);
+  await delay(100);
+}
+
 async function pointerDrag(client, start, end) {
   await client.send("Input.dispatchMouseEvent", {
     type: "mouseMoved",
@@ -251,6 +266,23 @@ async function exerciseBuilder(client) {
   const initial = await client.evaluate(`(() => {
     const paletteLabels = [...document.querySelectorAll(".palette-card strong")].map((node) => node.textContent.trim());
     const image = document.querySelector("[data-visual-block-id='sample-image'] img");
+    const mathBlock = document.querySelector("[data-visual-block-id='sample-display-math']");
+    const mathBox = mathBlock.querySelector(".latex-math-display").getBoundingClientRect();
+    const mathContent = mathBlock.querySelector(".katex-display").getBoundingClientRect();
+    const mathRender = mathBlock.querySelector(".latex-math-render--display");
+    const mathRenderBox = mathRender.getBoundingClientRect();
+    const mathScrollerBox = mathBlock.querySelector(".latex-math-display__scroller").getBoundingClientRect();
+    const mathDescendants = [...mathRender.querySelectorAll("*")]
+      .map((node) => ({
+        className: typeof node.className === "string" ? node.className : "",
+        text: node.textContent.trim().slice(0, 20),
+        ...(() => {
+          const bounds = node.getBoundingClientRect();
+          return { top: bounds.top, bottom: bounds.bottom };
+        })(),
+      }))
+      .filter(({ top, bottom }) => bottom > top)
+      .sort((left, right) => left.top - right.top);
     return {
       blocks: document.querySelectorAll("[data-block-id]").length,
       paletteLabels,
@@ -266,7 +298,21 @@ async function exerciseBuilder(client) {
       listingLabel: document.querySelector("[data-visual-block-id='sample-code-listing'] .code-listing-content__language")?.textContent ?? "",
       listItems: document.querySelectorAll("[data-visual-block-id='sample-item-list'] li").length,
       tableCells: document.querySelectorAll("[data-visual-block-id='sample-table'] [data-table-cell-id]").length,
-      layers: [".document-visual-layer", ".excalidraw", ".document-control-layer"].map((selector) => getComputedStyle(document.querySelector(selector)).zIndex),
+      layers: [".document-page-layer", ".excalidraw", ".document-block-visual-layer", ".document-control-layer"].map((selector) => getComputedStyle(document.querySelector(selector)).zIndex),
+      displayMathContained: mathContent.top >= mathBox.top - 0.5 && mathContent.bottom <= mathBox.bottom + 0.5,
+      displayMathOverflow: getComputedStyle(mathRender).overflowY,
+      displayMathTopClearance: Math.min(...mathDescendants.filter(({ text }) => text.length > 0).map(({ top }) => top)) - mathScrollerBox.top,
+      displayMathMetrics: {
+        boxTop: mathBox.top,
+        boxBottom: mathBox.bottom,
+        contentTop: mathContent.top,
+        contentBottom: mathContent.bottom,
+        renderTop: mathRenderBox.top,
+        renderBottom: mathRenderBox.bottom,
+        scrollerTop: mathScrollerBox.top,
+        scrollerBottom: mathScrollerBox.bottom,
+        highest: mathDescendants.slice(0, 8),
+      },
     };
   })()`);
   assert(initial.blocks === initialBlockCount, "The focused starter document did not contain eleven blocks");
@@ -281,18 +327,115 @@ async function exerciseBuilder(client) {
   assert(initial.drawing && initial.displayMath && initial.listing, "A focused visual block failed to render");
   assert(initial.listingLabel.includes("Listing 1"), "The Code Listing lost its writer-owned ordinal");
   assert(initial.listItems === 2 && initial.tableCells === 4, "List or table sample data was lost");
-  assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3"]), "Canvas layering is incorrect");
+  assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3", "4"]), "Canvas layering is incorrect");
+  assert(
+    initial.displayMathContained &&
+      initial.displayMathOverflow === "visible" &&
+      initial.displayMathTopClearance >= 2,
+    `The aligned display-math superscript can still be clipped: ${JSON.stringify(initial.displayMathMetrics)}, overflow=${initial.displayMathOverflow}`,
+  );
 
   await pointerSelect(client, "sample-paragraph");
   assert(
     await client.evaluate(`document.querySelector("[data-block-id='sample-paragraph']").classList.contains("document-block-controls--selected")`),
     "Single-click selection did not select the paragraph block",
   );
+  await keyOnBlock(client, "sample-paragraph", "ArrowDown");
+  assert(
+    await client.evaluate(`document.querySelector("[data-block-id='sample-image']").classList.contains("document-block-controls--selected") && document.activeElement?.dataset.blockId === "sample-image"`),
+    "ArrowDown did not move block selection and focus",
+  );
+  await keyOnBlock(client, "sample-image", "ArrowUp");
+  await keyOnBlock(client, "sample-paragraph", "Enter");
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-editor']") !== null`);
+  const inlineWriter = await client.evaluate(`(() => ({
+    dialog: document.querySelector("[data-testid='block-editor-dialog']") !== null,
+    focused: document.activeElement?.classList.contains("paragraph-composer") ?? false,
+    mathPreview: document.querySelector(".inline-paragraph-editor .paragraph-composer__atom-preview .katex") !== null,
+    linkPreview: document.querySelector(".inline-paragraph-editor .inline-hyperlink")?.textContent === "formatted hyperlink",
+    codePreview: document.querySelector(".inline-paragraph-editor .inline-code-content")?.textContent === "cudaDeviceSynchronize()",
+  }))()`);
+  assert(
+    !inlineWriter.dialog && inlineWriter.focused,
+    "Enter did not open and focus the paragraph editor directly inside its block",
+  );
+  assert(
+    inlineWriter.mathPreview && inlineWriter.linkPreview && inlineWriter.codePreview,
+    "Inline paragraph editing did not retain semantic previews",
+  );
+  await client.send("Input.insertText", { text: " Inline keyboard edit $z^3$" });
+  await waitForCondition(client, `document.querySelector(".inline-paragraph-editor .paragraph-composer").textContent.includes("Inline keyboard edit") && document.querySelectorAll(".inline-paragraph-editor .paragraph-composer__atom-preview .katex").length >= 2`);
+  await client.evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter", ctrlKey: true }))`);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-editor']") === null && document.querySelector("[data-visual-block-id='sample-paragraph']").textContent.includes("Inline keyboard edit")`);
+  await keyOnBlock(client, "sample-paragraph", "Enter");
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-editor']") !== null`);
+  await client.evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Escape" }))`);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-editor']") === null && document.activeElement?.dataset.blockId === "sample-paragraph"`);
+
   await pointerSelect(client, "sample-display-math", { ctrlKey: true });
   assert(
     (await client.evaluate(`document.querySelectorAll(".document-block-controls--selected").length`)) === 2,
     "Same-level modifier multiselect did not retain both blocks",
   );
+
+  await pointerSelect(client, "sample-page-break");
+  await keyOnBlock(client, "sample-page-break", "Delete");
+  await waitForCondition(client, `document.querySelector("[data-block-id='sample-page-break']") === null && document.querySelector("[data-block-id='sample-section']").classList.contains("document-block-controls--selected")`);
+  assert(
+    await client.evaluate(`document.activeElement?.dataset.blockId === "sample-section"`),
+    "Deleting a block did not select and focus the following block",
+  );
+
+  const zoomGesture = await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-paragraph']");
+    const bounds = block.getBoundingClientRect();
+    const before = document.querySelector(".document-controls").style.transform;
+    const wheel = new WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2,
+      deltaY: -8,
+      ctrlKey: true,
+    });
+    block.dispatchEvent(wheel);
+    return { before, prevented: wheel.defaultPrevented };
+  })()`);
+  assert(zoomGesture.prevented, "Ctrl-wheel over a document block was not claimed by the canvas");
+  await waitForCondition(client, `document.querySelector(".document-controls").style.transform !== ${JSON.stringify(zoomGesture.before)}`);
+
+  const panGesture = await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-paragraph']");
+    const bounds = block.getBoundingClientRect();
+    const before = document.querySelector(".document-controls").style.transform;
+    block.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 1,
+      buttons: 4,
+      pointerId: 29,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2,
+    }));
+    window.dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true,
+      cancelable: true,
+      buttons: 4,
+      pointerId: 29,
+      clientX: bounds.left + bounds.width / 2 + 42,
+      clientY: bounds.top + bounds.height / 2 + 24,
+    }));
+    window.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      cancelable: true,
+      button: 1,
+      pointerId: 29,
+      clientX: bounds.left + bounds.width / 2 + 42,
+      clientY: bounds.top + bounds.height / 2 + 24,
+    }));
+    return before;
+  })()`);
+  await waitForCondition(client, `document.querySelector(".document-controls").style.transform !== ${JSON.stringify(panGesture)}`);
 
   await pointerSelect(client, "sample-section");
   await pointerSelect(client, "sample-paragraph");
@@ -315,7 +458,27 @@ async function exerciseBuilder(client) {
     "Contiguous multiselect dragging did not preserve block order",
   );
 
-  await client.evaluate(`document.querySelector("[data-block-id='sample-paragraph']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-paragraph']");
+    const bounds = block.getBoundingClientRect();
+    block.dispatchEvent(new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2,
+    }));
+  })()`);
+  await waitForCondition(client, `document.querySelector("[data-testid='block-radial-menu']") !== null`);
+  const radialLabels = await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].map((button) => button.textContent.trim())`);
+  assert(
+      radialLabels.some((label) => label.includes("Edit")) &&
+      radialLabels.some((label) => label.includes("Full editor")) &&
+      radialLabels.some((label) => label.includes("Neovim")) &&
+      radialLabels.some((label) => label.includes("Duplicate")) &&
+      radialLabels.some((label) => label.includes("Delete")),
+    "The block context menu did not expose the expected radial actions",
+  );
+  await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.includes("Full editor")).click()`);
   await waitForCondition(client, `document.querySelector("[data-testid='block-editor-dialog'] .paragraph-editor") !== null`);
   const writer = await client.evaluate(`(() => ({
     modes: [...document.querySelectorAll(".paragraph-editor__modes button")].map((button) => button.textContent.trim()),
@@ -323,7 +486,7 @@ async function exerciseBuilder(client) {
     linkPreview: document.querySelector(".paragraph-composer__atom-preview .inline-hyperlink")?.textContent === "formatted hyperlink",
     codePreview: document.querySelector(".paragraph-composer__atom-preview .inline-code-content")?.textContent === "cudaDeviceSynchronize()",
     grayDescriptions: document.querySelectorAll(".paragraph-composer__atom small").length,
-    compactToolbar: parseFloat(getComputedStyle(document.querySelector(".paragraph-toolbar button")).height) <= 22,
+    compactToolbar: parseFloat(getComputedStyle(document.querySelector(".paragraph-toolbar button")).height) <= 19,
   }))()`);
   assert(JSON.stringify(writer.modes) === JSON.stringify(["Write", "Source", "Preview"]), "The paragraph editor did not expose three editing modes");
   assert(writer.mathPreview && writer.linkPreview && writer.codePreview, "Semantic inlines were not previewed inside the writing surface");
@@ -349,6 +512,61 @@ async function exerciseBuilder(client) {
     await client.evaluate(`document.querySelector("[data-visual-block-id='sample-paragraph']").textContent.includes("Added")`),
     "Source-mode paragraph edits did not commit to the document preview",
   );
+
+  await pointerSelect(client, "sample-code-listing");
+  await keyOnBlock(client, "sample-code-listing", "Enter");
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-code-listing-editor']") !== null`);
+  assert(
+    await client.evaluate(`document.activeElement?.dataset.testid === "inline-code-listing-source" && document.querySelector("[data-testid='block-editor-dialog']") === null`),
+    "Enter did not open the code listing as a focused inline editor",
+  );
+  await client.evaluate(`(() => {
+    const textarea = document.querySelector("[data-testid='inline-code-listing-source']");
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    setter.call(textarea, textarea.value + "\\n// keyboard-only edit");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-code-listing-source']").value.includes("keyboard-only edit")`);
+  await client.evaluate(`document.querySelector("[data-testid='inline-code-listing-source']").dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter", ctrlKey: true }))`);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-code-listing-editor']") === null && document.querySelector("[data-visual-block-id='sample-code-listing']").textContent.includes("keyboard-only edit")`);
+
+  await keyOnBlock(client, "sample-code-listing", "v");
+  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']")?.textContent.includes("normal config loaded") && document.querySelector(".xterm-rows")?.textContent.length > 0`);
+  await delay(1_800);
+  await screenshot(client, "nvim-editor.png");
+  await client.evaluate(`document.querySelector(".xterm-helper-textarea").focus()`);
+  await client.send("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+    nativeVirtualKeyCode: 27,
+  });
+  await client.send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+    nativeVirtualKeyCode: 27,
+  });
+  await client.send("Input.insertText", {
+    text: ':call append(line("$"), "// nvim browser bridge") | write | quit',
+  });
+  await client.send("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Enter",
+    code: "Enter",
+    windowsVirtualKeyCode: 13,
+    nativeVirtualKeyCode: 13,
+  });
+  await client.send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Enter",
+    code: "Enter",
+    windowsVirtualKeyCode: 13,
+    nativeVirtualKeyCode: 13,
+  });
+  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null && document.querySelector("[data-visual-block-id='sample-code-listing']").textContent.includes("nvim browser bridge")`, 20_000);
 
   await client.evaluate(`document.querySelector("[data-block-id='sample-excalidraw-drawing']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
   await waitForCondition(client, `document.querySelector("[data-testid='excalidraw-drawing-editor']") !== null`);

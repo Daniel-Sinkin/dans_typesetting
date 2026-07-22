@@ -3,6 +3,7 @@ import { createElement } from "react";
 
 import type { BuilderInlinePluginRegistry } from "../builder/inlinePlugin";
 import type { BuilderBlockPlugin } from "../builder/plugin";
+import { sourceBufferFileName } from "../builder/sourceEditing";
 import {
   codeListingTypeId,
   createCodeListingBlock,
@@ -11,7 +12,11 @@ import {
   codeListingLanguageLabel,
   requireCodeListing,
 } from "./codeListingSupport";
-import { CodeListingEditor, CodeListingPreview } from "./codeListingView";
+import {
+  CodeListingEditor,
+  CodeListingPreview,
+  InlineCodeListingEditor,
+} from "./codeListingView";
 import { copyRichCaption, richCaptionPlainText } from "./richCaption";
 
 export function createCodeListingPlugin(
@@ -74,8 +79,40 @@ export function createCodeListingPlugin(
       });
     },
     editor: {
+      presentation: "inline",
+      sourceEditor: {
+        fileName(block) {
+          const listing = requireCodeListing(block);
+          const extension = {
+            cpp: "cpp",
+            cuda: "cu",
+            julia: "jl",
+            raw: "txt",
+          }[listing.language];
+          return sourceBufferFileName(listing.id, extension);
+        },
+        source(block) {
+          return requireCodeListing(block).code;
+        },
+        applySource(block, source) {
+          const listing = requireCodeListing(block);
+          return createCodeListingBlock(
+            listing.id,
+            listing.language,
+            source,
+            listing.captionInlines,
+            listing.referenceId,
+          );
+        },
+      },
       title(block) {
         return `Edit code listing · ${requireCodeListing(block).id}`;
+      },
+      renderInline(props) {
+        return createElement(InlineCodeListingEditor, {
+          ...props,
+          inlineRegistry,
+        });
       },
       render(props) {
         return createElement(CodeListingEditor, {

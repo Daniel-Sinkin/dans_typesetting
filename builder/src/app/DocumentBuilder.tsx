@@ -18,6 +18,7 @@ import {
   useState,
   useSyncExternalStore,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
@@ -39,6 +40,11 @@ import {
 } from "../builder/numbering";
 import { createPageAnchor, pageAnchorId } from "../canvas/pageAnchor";
 import {
+  viewportAfterMiddleDrag,
+  viewportAfterWheel,
+  type CanvasViewportUpdate,
+} from "../canvas/viewportGestures";
+import {
   childBlockSequences,
   createBlockId,
   findBuilderBlock,
@@ -50,10 +56,16 @@ import {
 } from "../model/document";
 import type { CanonicalDocumentTransport } from "../transport/documentTransport";
 import { BlockPalette } from "./BlockPalette";
+import {
+  BlockRadialMenu,
+  type BlockRadialAction,
+} from "./BlockRadialMenu";
+import { adjacentBlockId, blockIdAfterDeletion } from "./blockNavigation";
 import { DetachConfirmation } from "./DetachConfirmation";
 import { DocumentControls, DocumentVisualPage } from "./DocumentPage";
 import { DragGhost } from "./DragGhost";
 import { EditorDialog } from "./EditorDialog";
+import { NvimBlockEditor } from "./NvimBlockEditor";
 import { PresentationView } from "./PresentationView";
 
 const blocksSidebarName = "document-blocks";
@@ -115,6 +127,21 @@ interface PendingDetach {
   readonly clientX: number;
   readonly clientY: number;
 }
+
+interface BlockContextMenuState {
+  readonly blockId: string;
+  readonly clientX: number;
+  readonly clientY: number;
+}
+
+interface MiddlePanGesture {
+  readonly pointerId: number;
+  readonly clientX: number;
+  readonly clientY: number;
+  readonly viewport: CanvasViewportUpdate;
+}
+
+type EditorPresentation = "dialog" | "inline" | "nvim";
 
 function viewportFromAppState(appState: AppState): CanvasViewport {
   return {
@@ -198,6 +225,9 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const [pendingDetach, setPendingDetach] = useState<PendingDetach | null>(null);
   const [editingBlock, setEditingBlock] = useState<BuilderBlock | null>(null);
   const [editingDraft, setEditingDraft] = useState<BuilderBlock | null>(null);
+  const [editingPresentation, setEditingPresentation] = useState<EditorPresentation | null>(null);
+  const [blockContextMenu, setBlockContextMenu] = useState<BlockContextMenuState | null>(null);
+  const [middlePanning, setMiddlePanning] = useState(false);
   const [transportError, setTransportError] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<DocumentLayoutMode>("continuous");
   const [pageRange, setPageRange] = useState<PageRange>({ start: 1, end: 3 });
@@ -208,6 +238,53 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const pendingBlockDragRef = useRef<PendingBlockDrag | null>(null);
   const selectedBlockIdsRef = useRef<readonly string[]>([]);
   const selectionAnchorRef = useRef<string | null>(null);
+  const middlePanRef = useRef<MiddlePanGesture | null>(null);
+  const documentControlLayerRef = useRef<HTMLDivElement>(null);
+
+  const focusBlockControl = useCallback((blockId: string): void => {
+    requestAnimationFrame(() => {
+      const control = [...document.querySelectorAll<HTMLElement>("[data-block-id]")]
+        .find((candidate) => candidate.dataset.blockId === blockId);
+      control?.focus({ preventScroll: true });
+    });
+  }, []);
+
+  const selectSingleBlock = useCallback(
+    (blockId: string, focus = true): void => {
+      const next = Object.freeze([blockId]);
+      selectedBlockIdsRef.current = next;
+      selectionAnchorRef.current = blockId;
+      setSelectedBlockIds(next);
+      if (focus) {
+        focusBlockControl(blockId);
+      }
+    },
+    [focusBlockControl],
+  );
+
+  const deleteBlocks = useCallback((blockIds: readonly string[]): void => {
+    if (blockIds.length === 0) {
+      return;
+    }
+    const orderedBlockIds = flattenBuilderBlocks(snapshot.blocks).map(({ id }) => id);
+    const nextBlockId = blockIdAfterDeletion(orderedBlockIds, blockIds);
+    if (editingBlock !== null && blockIds.includes(editingBlock.id)) {
+      setEditingBlock(null);
+      setEditingDraft(null);
+      setEditingPresentation(null);
+    }
+    setBlockContextMenu(null);
+    blockIds.forEach((blockId) => {
+      port.dispatch({ kind: "delete", blockId });
+    });
+    if (nextBlockId === null) {
+      selectedBlockIdsRef.current = Object.freeze([]);
+      selectionAnchorRef.current = null;
+      setSelectedBlockIds(selectedBlockIdsRef.current);
+    } else {
+      selectSingleBlock(nextBlockId);
+    }
+  }, [editingBlock, port, selectSingleBlock, snapshot.blocks]);
 
   const publishViewport = useCallback((appState: AppState) => {
     const nextViewport = viewportFromAppState(appState);
@@ -223,6 +300,112 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     },
     [publishViewport],
   );
+
+  const routeDocumentWheelToCanvas = useCallback(
+    (event: WheelEvent): void => {
+      if (canvasApi === null) {
+        return;
+      }
+      const target = event.target;
+      const insideEditor =
+        target instanceof Element && target.closest(".inline-block-editor") !== null;
+      if (insideEditor && !event.ctrlKey && !event.metaKey) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setBlockContextMenu(null);
+      const nextViewport = viewportAfterWheel(canvasApi.getAppState(), {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        deltaX: event.deltaX,
+        deltaY: event.deltaY,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+      });
+      canvasApi.updateScene({
+        appState: nextViewport,
+        captureUpdate: CaptureUpdateAction.NEVER,
+      });
+      publishViewport(canvasApi.getAppState());
+    },
+    [canvasApi, publishViewport],
+  );
+
+  useEffect(() => {
+    const layer = documentControlLayerRef.current;
+    if (layer === null) {
+      return;
+    }
+    layer.addEventListener("wheel", routeDocumentWheelToCanvas, { passive: false });
+    return () => {
+      layer.removeEventListener("wheel", routeDocumentWheelToCanvas);
+    };
+  }, [routeDocumentWheelToCanvas]);
+
+  const beginDocumentMiddlePan = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>): void => {
+      if (event.button !== 1 || canvasApi === null) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const appState = canvasApi.getAppState();
+      middlePanRef.current = {
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        viewport: {
+          scrollX: appState.scrollX,
+          scrollY: appState.scrollY,
+          zoom: appState.zoom,
+        },
+      };
+      setBlockContextMenu(null);
+      setMiddlePanning(true);
+    },
+    [canvasApi],
+  );
+
+  useEffect(() => {
+    if (canvasApi === null) {
+      return;
+    }
+    const handlePointerMove = (event: PointerEvent): void => {
+      const gesture = middlePanRef.current;
+      if (gesture?.pointerId !== event.pointerId) {
+        return;
+      }
+      event.preventDefault();
+      const nextViewport = viewportAfterMiddleDrag(
+        gesture.viewport,
+        event.clientX - gesture.clientX,
+        event.clientY - gesture.clientY,
+      );
+      canvasApi.updateScene({
+        appState: nextViewport,
+        captureUpdate: CaptureUpdateAction.NEVER,
+      });
+      publishViewport(canvasApi.getAppState());
+    };
+    const finishPan = (event: PointerEvent): void => {
+      if (middlePanRef.current?.pointerId !== event.pointerId) {
+        return;
+      }
+      event.preventDefault();
+      middlePanRef.current = null;
+      setMiddlePanning(false);
+    };
+    window.addEventListener("pointermove", handlePointerMove, { passive: false });
+    window.addEventListener("pointerup", finishPan, { passive: false });
+    window.addEventListener("pointercancel", finishPan);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", finishPan);
+      window.removeEventListener("pointercancel", finishPan);
+    };
+  }, [canvasApi, publishViewport]);
 
   useEffect(() => {
     if (canvasApi === null) {
@@ -391,7 +574,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         }
         if (readDetachPreference()) {
           clearDrag();
-          port.dispatch({ kind: "delete", blockId: completedDrag.block.id });
+          deleteBlocks([completedDrag.block.id]);
           return;
         }
         const detached = {
@@ -444,6 +627,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     };
   }, [
     clearDrag,
+    deleteBlocks,
     isDragging,
     port,
     registry,
@@ -456,6 +640,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     (drag: ActiveDrag, initialPlacement: Placement | null) => {
       setEditingBlock(null);
       setEditingDraft(null);
+      setEditingPresentation(null);
+      setBlockContextMenu(null);
       dragRef.current = drag;
       setActiveDrag(drag);
       setPlacement(initialPlacement);
@@ -496,6 +682,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         return;
       }
       event.stopPropagation();
+      setBlockContextMenu(null);
       event.currentTarget.focus();
 
       const siblings = siblingBlocks(snapshot.blocks, parentId, parentSequenceId);
@@ -767,30 +954,29 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   }, [snapshot.blocks]);
 
   const deleteSelectedBlocks = useCallback(() => {
-    const blockIds = selectedBlockIdsRef.current;
-    if (blockIds.length === 0) {
-      return;
-    }
-    if (editingBlock !== null && blockIds.includes(editingBlock.id)) {
-      setEditingBlock(null);
-      setEditingDraft(null);
-    }
-    selectedBlockIdsRef.current = Object.freeze([]);
-    setSelectedBlockIds(selectedBlockIdsRef.current);
-    selectionAnchorRef.current = null;
-    blockIds.forEach((blockId) => {
-      port.dispatch({ kind: "delete", blockId });
-    });
-  }, [editingBlock, port]);
+    deleteBlocks(selectedBlockIdsRef.current);
+  }, [deleteBlocks]);
 
   const beginEdit = useCallback(
-    (block: BuilderBlock) => {
-      if (registry.editorForBlock(block) === null) {
+    (block: BuilderBlock, requestedPresentation?: EditorPresentation) => {
+      const descriptor = registry.editorForBlock(block);
+      if (descriptor === null) {
         console.info("Trying to Edit", { blockId: block.id, typeId: block.typeId });
         return;
       }
+      const defaultPresentation = descriptor.presentation ?? "dialog";
+      const presentation = requestedPresentation ?? defaultPresentation;
+      if (presentation === "inline" && descriptor.renderInline === undefined) {
+        throw new Error(`Block editor ${block.typeId} does not provide an inline surface`);
+      }
+      if (presentation === "nvim" && descriptor.sourceEditor === undefined) {
+        throw new Error(`Block editor ${block.typeId} does not provide source editing`);
+      }
+      selectSingleBlock(block.id, false);
+      setBlockContextMenu(null);
       setEditingBlock(block);
       setEditingDraft(block);
+      setEditingPresentation(presentation);
       const blockLayout = layout.blocks.find(({ block: candidate }) => candidate.id === block.id);
       if (canvasApi !== null && blockLayout !== undefined) {
         const { x, y, width, height } = blockLayout.bounds;
@@ -813,15 +999,76 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         });
       }
     },
-    [canvasApi, layout.blocks, registry],
+    [canvasApi, layout.blocks, registry, selectSingleBlock],
   );
 
   const editingDescriptor =
     editingBlock === null ? null : registry.editorForBlock(editingBlock);
   const closeEditor = useCallback(() => {
+    const blockId = editingBlock?.id ?? null;
     setEditingBlock(null);
     setEditingDraft(null);
-  }, []);
+    setEditingPresentation(null);
+    if (blockId !== null) {
+      focusBlockControl(blockId);
+    }
+  }, [editingBlock, focusBlockControl]);
+
+  const handleBlockKeyDown = useCallback(
+    (block: BuilderBlock, event: ReactKeyboardEvent<HTMLElement>): void => {
+      if (
+        selectedBlockIdsRef.current.length !== 1 ||
+        selectedBlockIdsRef.current[0] !== block.id
+      ) {
+        return;
+      }
+      const orderedBlockIds = flattenBuilderBlocks(snapshot.blocks).map(({ id }) => id);
+      if (event.key === "Enter") {
+        event.preventDefault();
+        beginEdit(block);
+        return;
+      }
+      if (
+        event.key.toLowerCase() === "v" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        registry.editorForBlock(block)?.sourceEditor !== undefined
+      ) {
+        event.preventDefault();
+        beginEdit(block, "nvim");
+        return;
+      }
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        deleteBlocks([block.id]);
+        return;
+      }
+      const direction =
+        event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : null;
+      const targetId =
+        direction === null
+          ? event.key === "Home"
+            ? orderedBlockIds[0] ?? null
+            : event.key === "End"
+              ? orderedBlockIds.at(-1) ?? null
+              : null
+          : adjacentBlockId(orderedBlockIds, block.id, direction);
+      if (targetId !== null) {
+        event.preventDefault();
+        selectSingleBlock(targetId);
+      }
+    },
+    [beginEdit, deleteBlocks, registry, selectSingleBlock, snapshot.blocks],
+  );
+
+  const openBlockContextMenu = useCallback(
+    (block: BuilderBlock, clientX: number, clientY: number): void => {
+      selectSingleBlock(block.id, false);
+      setBlockContextMenu({ blockId: block.id, clientX, clientY });
+    },
+    [selectSingleBlock],
+  );
   const beginPresentation = useCallback(() => {
     if (layoutMode !== "slides") {
       return;
@@ -830,6 +1077,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     setPendingDetach(null);
     setEditingBlock(null);
     setEditingDraft(null);
+    setEditingPresentation(null);
+    setBlockContextMenu(null);
     setPresentationSlide(layout.visiblePageRange.start);
     setPresentationOpen(true);
     void document.documentElement.requestFullscreen().catch(() => {
@@ -888,13 +1137,151 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           documentResources,
         };
   const inlineEditor =
-    editingDescriptor?.presentation === "inline" && editorProps !== null
+    editingPresentation === "inline" &&
+    editingDescriptor?.renderInline !== undefined &&
+    editorProps !== null
       ? {
           blockId: editorProps.block.id,
           title: editingDescriptor.title(editorProps.block),
-          content: editingDescriptor.render(editorProps),
+          content: editingDescriptor.renderInline(editorProps),
         }
       : null;
+
+  const moveBlockBy = useCallback(
+    (block: BuilderBlock, direction: -1 | 1): void => {
+      const location = findBuilderBlock(snapshot.blocks, block.id);
+      if (location === null) {
+        return;
+      }
+      const siblings = siblingBlocks(
+        snapshot.blocks,
+        location.parentId,
+        location.parentSequenceId,
+      );
+      const targetIndex = location.index + direction;
+      if (targetIndex < 0 || targetIndex >= siblings.length) {
+        return;
+      }
+      port.dispatch({
+        kind: "move",
+        blockId: block.id,
+        parentId: location.parentId,
+        parentSequenceId: location.parentSequenceId,
+        index: targetIndex,
+      });
+      selectSingleBlock(block.id);
+    },
+    [port, selectSingleBlock, snapshot.blocks],
+  );
+
+  const duplicateBlock = useCallback(
+    (block: BuilderBlock): void => {
+      const location = findBuilderBlock(snapshot.blocks, block.id);
+      if (location === null) {
+        return;
+      }
+      const copy = copyBuilderBlockForInsert(block, registry);
+      port.dispatch({
+        kind: "insert",
+        parentId: location.parentId,
+        parentSequenceId: location.parentSequenceId,
+        index: location.index + 1,
+        block: copy,
+      });
+      selectSingleBlock(copy.id);
+    },
+    [port, registry, selectSingleBlock, snapshot.blocks],
+  );
+
+  const contextBlockLocation =
+    blockContextMenu === null
+      ? null
+      : findBuilderBlock(snapshot.blocks, blockContextMenu.blockId);
+  const contextBlock = contextBlockLocation?.block ?? null;
+  const contextEditor =
+    contextBlock === null ? null : registry.editorForBlock(contextBlock);
+  const contextSiblings =
+    contextBlockLocation === null
+      ? []
+      : siblingBlocks(
+          snapshot.blocks,
+          contextBlockLocation.parentId,
+          contextBlockLocation.parentSequenceId,
+        );
+  const contextActions: readonly BlockRadialAction[] =
+    contextBlock === null
+      ? []
+      : [
+          {
+            id: "edit",
+            label: "Edit",
+            glyph: "✎",
+            disabled: contextEditor === null,
+            run: () => {
+              beginEdit(contextBlock);
+            },
+          },
+          ...(contextEditor?.presentation === "inline"
+            ? [
+                {
+                  id: "details",
+                  label: "Full editor",
+                  glyph: "▣",
+                  run: () => {
+                    beginEdit(contextBlock, "dialog");
+                  },
+                },
+              ]
+            : []),
+          ...(contextEditor?.sourceEditor === undefined
+            ? []
+            : [
+                {
+                  id: "nvim",
+                  label: "Neovim",
+                  glyph: "V",
+                  run: () => {
+                    beginEdit(contextBlock, "nvim");
+                  },
+                },
+              ]),
+          {
+            id: "up",
+            label: "Move up",
+            glyph: "↑",
+            disabled: contextBlockLocation?.index === 0,
+            run: () => {
+              moveBlockBy(contextBlock, -1);
+            },
+          },
+          {
+            id: "down",
+            label: "Move down",
+            glyph: "↓",
+            disabled:
+              contextBlockLocation === null ||
+              contextBlockLocation.index + 1 >= contextSiblings.length,
+            run: () => {
+              moveBlockBy(contextBlock, 1);
+            },
+          },
+          {
+            id: "duplicate",
+            label: "Duplicate",
+            glyph: "⧉",
+            run: () => {
+              duplicateBlock(contextBlock);
+            },
+          },
+          {
+            id: "delete",
+            label: "Delete",
+            glyph: "×",
+            run: () => {
+              deleteBlocks([contextBlock.id]);
+            },
+          },
+        ];
 
   const saveDocument = useCallback((): void => {
     try {
@@ -927,6 +1314,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         setPendingDetach(null);
         setEditingBlock(null);
         setEditingDraft(null);
+        setEditingPresentation(null);
+        setBlockContextMenu(null);
         port.dispatch({ kind: "replace_all", ...decoded });
         setTransportError(null);
       } catch (error) {
@@ -939,9 +1328,14 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   return (
     <main className="builder-shell">
       <section className="canvas-host" aria-label="Excalidraw notes canvas and document builder">
-        <div className="document-visual-layer" aria-hidden={pageStyle === undefined}>
+        <div className="document-page-layer" aria-hidden={pageStyle === undefined}>
           {pageStyle === undefined ? null : (
-            <DocumentVisualPage layout={layout} pageStyle={pageStyle} registry={registry} />
+            <DocumentVisualPage
+              layout={layout}
+              pageStyle={pageStyle}
+              registry={registry}
+              layer="background"
+            />
           )}
         </div>
 
@@ -984,7 +1378,28 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           </Footer>
         </Excalidraw>
 
-        <div className="document-control-layer" aria-hidden={pageStyle === undefined}>
+        <div className="document-block-visual-layer" aria-hidden={pageStyle === undefined}>
+          {pageStyle === undefined ? null : (
+            <DocumentVisualPage
+              layout={layout}
+              pageStyle={pageStyle}
+              registry={registry}
+              layer="blocks"
+            />
+          )}
+        </div>
+
+        <div
+          ref={documentControlLayerRef}
+          className={`document-control-layer${middlePanning ? " document-control-layer--panning" : ""}`}
+          aria-hidden={pageStyle === undefined}
+          onPointerDown={beginDocumentMiddlePan}
+          onAuxClick={(event) => {
+            if (event.button === 1) {
+              event.preventDefault();
+            }
+          }}
+        >
           {pageStyle === undefined ? null : (
             <DocumentControls
               layout={layout}
@@ -994,10 +1409,26 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
               onBlockPointerDown={beginDocumentPointer}
               onDeleteSelected={deleteSelectedBlocks}
               onEdit={beginEdit}
+              onBlockKeyDown={handleBlockKeyDown}
+              onOpenContextMenu={openBlockContextMenu}
               inlineEditor={inlineEditor}
             />
           )}
         </div>
+
+        {blockContextMenu === null || contextBlock === null ? null : (
+          <BlockRadialMenu
+            label={registry.pluginForBlock(contextBlock).palette.label}
+            glyph={registry.pluginForBlock(contextBlock).palette.glyph}
+            clientX={blockContextMenu.clientX}
+            clientY={blockContextMenu.clientY}
+            actions={contextActions}
+            onClose={() => {
+              setBlockContextMenu(null);
+              focusBlockControl(contextBlock.id);
+            }}
+          />
+        )}
 
         {activeDrag === null ? null : (
           <DragGhost
@@ -1029,7 +1460,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
                 if (doNotAskAgain) {
                   saveDetachPreference();
                 }
-                port.dispatch({ kind: "delete", blockId: pendingDetach.block.id });
+                deleteBlocks([pendingDetach.block.id]);
                 setPendingDetach(null);
               }}
             />
@@ -1037,13 +1468,27 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         )}
 
         {editingDescriptor === null ||
-        editingDescriptor.presentation === "inline" ||
+        editingPresentation !== "dialog" ||
         editorProps === null ? null : (
           <EditorDialog
             title={editingDescriptor.title(editorProps.block)}
             onClose={closeEditor}
           >
             {editingDescriptor.render(editorProps)}
+          </EditorDialog>
+        )}
+
+        {editingDescriptor?.sourceEditor === undefined ||
+        editingPresentation !== "nvim" ||
+        editorProps === null ? null : (
+          <EditorDialog
+            title={`Neovim · ${editingDescriptor.title(editorProps.block)}`}
+            onClose={closeEditor}
+          >
+            <NvimBlockEditor
+              {...editorProps}
+              sourceEditor={editingDescriptor.sourceEditor}
+            />
           </EditorDialog>
         )}
 
