@@ -269,7 +269,6 @@ export function DocumentControls({
             >
               {selected ? (
                 <div className="document-block__selection-label">
-                  <span>{adapter.palette.label}</span>
                   <button
                     type="button"
                     aria-label="Delete selected blocks"
@@ -284,6 +283,7 @@ export function DocumentControls({
                   >
                     ×
                   </button>
+                  <span>{adapter.palette.label}</span>
                 </div>
               ) : null}
               {activeEditor === null ? null : (

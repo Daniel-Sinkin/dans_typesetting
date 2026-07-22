@@ -37,7 +37,6 @@ export function ContentImageEditor({
   const [error, setError] = useState<string | null>(null);
   const [isReading, setIsReading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const openedPickerRef = useRef(false);
   const valid = !isReading && source.trim().length > 0;
   const draft = useMemo(
     () =>
@@ -50,14 +49,6 @@ export function ContentImageEditor({
       ),
     [image.id, pixelHeight, pixelWidth, source, widthFraction],
   );
-
-  useEffect(() => {
-    if (openedPickerRef.current) {
-      return;
-    }
-    openedPickerRef.current = true;
-    inputRef.current?.click();
-  }, []);
 
   useEffect(() => {
     if (valid) {

@@ -146,8 +146,10 @@ async function startSession(
     lastSource: request.source,
     disposed: false,
   };
-  session.watcher = watch(filePath, () => {
-    scheduleSourceRead(socket, session);
+  session.watcher = watch(directory, (_eventType, filename) => {
+    if (filename === request.fileName) {
+      scheduleSourceRead(socket, session);
+    }
   });
   let readySent = false;
   terminal.onData((data) => {

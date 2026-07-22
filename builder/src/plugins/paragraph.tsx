@@ -93,6 +93,9 @@ export function createParagraphPlugin(
     editor: {
       presentation: "inline",
       sourceEditor: {
+        preloadOnSelection: true,
+        presentation: "inline",
+        primaryEdit: true,
         fileName(block) {
           return sourceBufferFileName(requireParagraph(block).id, "md");
         },

@@ -8,6 +8,7 @@ import {
   imageTypeId,
   requireImageBlock,
 } from "./imageModel";
+import { replaceImageFromPicker } from "./imageReplacement";
 import { copyRichCaption, richCaptionPlainText } from "./richCaption";
 
 export function createImagePlugin(
@@ -72,6 +73,17 @@ export function createImagePlugin(
       );
     },
     editor: {
+      contextActions: [
+        {
+          kind: "command",
+          id: "replace-image",
+          label: "Replace image",
+          glyph: "↻",
+          run(block) {
+            return replaceImageFromPicker(requireImageBlock(block));
+          },
+        },
+      ],
       title(block) {
         return `Edit image · ${requireImageBlock(block).id}`;
       },

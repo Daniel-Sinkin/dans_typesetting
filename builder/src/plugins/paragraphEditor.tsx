@@ -619,6 +619,10 @@ export function InlineParagraphEditor({
   const paragraph = requireParagraph(block);
   const composerRef = useRef<ParagraphComposerHandle>(null);
   const [inlines, setInlines] = useState<readonly BuilderInlineNode[]>(paragraph.inlines);
+  const [editingMode, setEditingMode] = useState<"write" | "source">("write");
+  const [sourceText, setSourceText] = useState(() =>
+    paragraphInlinesToSource(paragraph.inlines),
+  );
   const [selectedInlineId, setSelectedInlineId] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const identity = useState(() => ({ id: paragraph.id, typeId: paragraph.typeId }))[0];
@@ -648,6 +652,7 @@ export function InlineParagraphEditor({
   const acceptComposerChange = useCallback(
     (nextInlines: readonly BuilderInlineNode[]): void => {
       setInlines(nextInlines);
+      setSourceText(paragraphInlinesToSource(nextInlines));
       setSelectedInlineId((current) =>
         current !== null && nextInlines.some((inline) => inline.id === current)
           ? current
@@ -681,6 +686,16 @@ export function InlineParagraphEditor({
     }
   };
 
+  const chooseEditingMode = (mode: "write" | "source"): void => {
+    if (mode === "source") {
+      setSourceText(paragraphInlinesToSource(inlines));
+    } else {
+      setInlines(parseParagraphSource(sourceText).inlines);
+    }
+    setSelectedInlineId(null);
+    setEditingMode(mode);
+  };
+
   return (
     <form
       className="inline-paragraph-editor"
@@ -701,27 +716,59 @@ export function InlineParagraphEditor({
         }
       }}
     >
-      <ParagraphComposer
-        ref={composerRef}
-        initialInlines={inlines}
-        registry={inlineRegistry}
-        context={editorContext}
-        autoFocus
-        onChange={acceptComposerChange}
-        onSelectedInlineChange={setSelectedInlineId}
-        onImageFiles={(files) => {
-          void insertImageFiles(files);
-        }}
-      />
+      {editingMode === "write" ? (
+        <ParagraphComposer
+          ref={composerRef}
+          initialInlines={inlines}
+          registry={inlineRegistry}
+          context={editorContext}
+          autoFocus
+          onChange={acceptComposerChange}
+          onSelectedInlineChange={setSelectedInlineId}
+          onImageFiles={(files) => {
+            void insertImageFiles(files);
+          }}
+        />
+      ) : (
+        <textarea
+          autoFocus
+          className="inline-paragraph-editor__source"
+          data-testid="inline-paragraph-source"
+          aria-label="Paragraph source"
+          spellCheck={false}
+          value={sourceText}
+          onChange={(event) => {
+            const nextSource = event.target.value;
+            setSourceText(nextSource);
+            setInlines(parseParagraphSource(nextSource).inlines);
+          }}
+        />
+      )}
       {imageError === null ? null : <p className="editor-error">{imageError}</p>}
       <footer className="inline-paragraph-editor__footer">
+        <div className="inline-paragraph-editor__modes" role="tablist" aria-label="Paragraph mode">
+          {(["write", "source"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              role="tab"
+              aria-selected={editingMode === mode}
+              className={editingMode === mode ? "selected" : ""}
+              onClick={() => {
+                chooseEditingMode(mode);
+              }}
+            >
+              {mode === "write" ? "Write" : "Source"}
+            </button>
+          ))}
+        </div>
         <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> save · <kbd>Esc</kbd> cancel</span>
         <button type="button" onClick={onCancel}>Cancel</button>
         <button className="primary-action" type="submit" disabled={inlines.length === 0}>
           Save
         </button>
       </footer>
-      {selectedInline === null ? null : (
+      {editingMode !== "write" || selectedInline === null ? null : (
         <aside className="inline-paragraph-editor__inspector" aria-label="Selected inline details">
           <header>
             <strong>{inlineRegistry.adapterForInline(selectedInline).palette.label}</strong>

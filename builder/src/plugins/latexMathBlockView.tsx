@@ -32,6 +32,73 @@ export function LatexMathDisplayPreview({
   );
 }
 
+export function InlineLatexMathDisplayEditor({
+  block,
+  onCommit,
+  onCancel,
+  onPreview,
+}: BuilderBlockEditorProps) {
+  const math = requireLatexMathDisplay(block);
+  const [source, setSource] = useState(math.source);
+  const sourceError = latexMathSourceError(source, false);
+  const draft = useMemo<LatexMathDisplayBlock>(
+    () => Object.freeze({ ...math, source }),
+    [math, source],
+  );
+
+  useEffect(() => {
+    if (sourceError === null) {
+      onPreview(draft);
+    }
+  }, [draft, onPreview, sourceError]);
+
+  const save = (): void => {
+    if (sourceError === null) {
+      onCommit(draft);
+    }
+  };
+
+  return (
+    <form
+      className="inline-latex-math-editor"
+      data-testid="inline-latex-math-editor"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+      onKeyDownCapture={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          onCancel();
+        } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+          event.preventDefault();
+          event.stopPropagation();
+          save();
+        }
+      }}
+    >
+      <textarea
+        autoFocus
+        data-testid="inline-latex-math-source"
+        aria-label="Display math LaTeX source"
+        spellCheck={false}
+        value={source}
+        onChange={(event) => {
+          setSource(event.target.value);
+        }}
+      />
+      <footer>
+        <span className={sourceError === null ? "field-status" : "field-error"}>
+          {sourceError ?? "Implicit $$ … $$"}
+        </span>
+        <button type="button" onClick={onCancel}>Cancel</button>
+        <button type="submit" disabled={sourceError !== null}>Save</button>
+      </footer>
+    </form>
+  );
+}
+
 export function LatexMathDisplayEditor({
   block,
   onCommit,

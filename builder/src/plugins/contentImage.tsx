@@ -1,11 +1,15 @@
 // Register a bare image block independently from figure/caption semantics.
 import type { BuilderBlockPlugin } from "../builder/plugin";
-import { ContentImageEditor, ContentImagePreview } from "./contentImageEditor";
+import {
+  ContentImageEditor,
+  ContentImagePreview,
+} from "./contentImageEditor";
 import {
   contentImageTypeId,
   createContentImageBlock,
   requireContentImageBlock,
 } from "./contentImageModel";
+import { replaceContentImageFromPicker } from "./imageReplacement";
 
 export const contentImagePlugin: BuilderBlockPlugin = {
   typeId: contentImageTypeId,
@@ -39,6 +43,17 @@ export const contentImagePlugin: BuilderBlockPlugin = {
     return <ContentImagePreview image={requireContentImageBlock(block)} />;
   },
   editor: {
+    contextActions: [
+      {
+        kind: "command",
+        id: "replace-image",
+        label: "Replace image",
+        glyph: "↻",
+        run(block) {
+          return replaceContentImageFromPicker(requireContentImageBlock(block));
+        },
+      },
+    ],
     title(block) {
       return `Edit image · ${requireContentImageBlock(block).id}`;
     },

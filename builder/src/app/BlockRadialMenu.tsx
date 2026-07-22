@@ -63,7 +63,9 @@ export function BlockRadialMenu({
       onContextMenu={(event) => {
         event.preventDefault();
       }}
-      onPointerDown={onClose}
+      onPointerDown={() => {
+        onClose();
+      }}
     >
       <div
         ref={menuRef}
@@ -90,7 +92,9 @@ export function BlockRadialMenu({
           type="button"
           aria-label="Close block actions"
           title={label}
-          onClick={onClose}
+          onClick={() => {
+            onClose();
+          }}
         >
           <span>{glyph}</span>
         </button>
@@ -103,8 +107,8 @@ export function BlockRadialMenu({
             disabled={action.disabled}
             style={actionPosition(index, actions.length)}
             onClick={() => {
-              onClose();
               action.run();
+              onClose();
             }}
           >
             <span>{action.glyph}</span>

@@ -3,6 +3,10 @@ import type { BuilderBlock } from "../model/document";
 import { validateOptionalReferenceId } from "../model/referenceId";
 
 export const excalidrawDrawingTypeId = "dans.drawing.excalidraw";
+export const excalidrawArtboardWidth = 960;
+export const defaultExcalidrawArtboardHeight = 540;
+export const minimumExcalidrawArtboardHeight = 240;
+export const maximumExcalidrawArtboardHeight = 1_200;
 
 export interface ExcalidrawScenePayload {
   readonly type: string;
@@ -18,6 +22,7 @@ export interface ExcalidrawDrawingBlock extends BuilderBlock {
   readonly caption: string;
   readonly referenceId: string | null;
   readonly widthFraction: number;
+  readonly artboardHeight: number;
   readonly scene: ExcalidrawScenePayload;
 }
 
@@ -126,6 +131,8 @@ export function isExcalidrawDrawingBlock(
     (block.referenceId === null || typeof block.referenceId === "string") &&
     "widthFraction" in block &&
     typeof block.widthFraction === "number" &&
+    "artboardHeight" in block &&
+    typeof block.artboardHeight === "number" &&
     "scene" in block
   );
 }
@@ -151,6 +158,15 @@ export function validateExcalidrawDrawingBlock(block: ExcalidrawDrawingBlock): v
     block.widthFraction > 1
   ) {
     throw new Error("Excalidraw drawing widthFraction must be in (0, 1]");
+  }
+  if (
+    !Number.isFinite(block.artboardHeight) ||
+    block.artboardHeight < minimumExcalidrawArtboardHeight ||
+    block.artboardHeight > maximumExcalidrawArtboardHeight
+  ) {
+    throw new Error(
+      `Excalidraw drawing artboardHeight must be in [${String(minimumExcalidrawArtboardHeight)}, ${String(maximumExcalidrawArtboardHeight)}]`,
+    );
   }
   normalizeExcalidrawScene(block.scene);
 }

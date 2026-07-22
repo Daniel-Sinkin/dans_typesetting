@@ -19,6 +19,7 @@ function drawingBlock(): ExcalidrawDrawingBlock {
     caption: "A semantic drawing.",
     referenceId: "fig:drawing",
     widthFraction: 0.82,
+    artboardHeight: 540,
     scene: createEmptyExcalidrawScene(),
   });
 }
@@ -48,6 +49,8 @@ describe("embedded Excalidraw drawing transport", () => {
     expect(restored.scene).toEqual(createEmptyExcalidrawScene());
     expect(Object.isFrozen(restored.scene.elements)).toBe(true);
     expect(restored.referenceId).toBe("fig:drawing");
+    expect(restored.artboardHeight).toBe(540);
+    expect(source).toContain('"artboardHeight": 540');
     expect(source).not.toContain("canvasHeight");
   });
 
@@ -56,6 +59,7 @@ describe("embedded Excalidraw drawing transport", () => {
       caption: "Drawing",
       referenceId: null,
       widthFraction: 1,
+      artboardHeight: 540,
       scene: createEmptyExcalidrawScene(),
     };
     expect(() =>
@@ -63,6 +67,11 @@ describe("embedded Excalidraw drawing transport", () => {
         sourceWithPayload({ ...validPayload, widthFraction: 1.01 }),
       ),
     ).toThrow(/widthFraction/u);
+    expect(() =>
+      projectDocumentTransport.fromString(
+        sourceWithPayload({ ...validPayload, artboardHeight: 100 }),
+      ),
+    ).toThrow(/artboardHeight/u);
     expect(() =>
       projectDocumentTransport.fromString(
         sourceWithPayload({ ...validPayload, referenceId: "not a reference" }),
@@ -94,5 +103,6 @@ describe("embedded Excalidraw drawing transport", () => {
 
     expect(normalized).not.toContain("canvasHeight");
     expect(normalized).toContain('"widthFraction": 0.75');
+    expect(normalized).toContain('"artboardHeight": 540');
   });
 });

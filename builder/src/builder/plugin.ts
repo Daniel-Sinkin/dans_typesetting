@@ -112,14 +112,40 @@ export interface BuilderBlockEditorProps {
 }
 
 export interface BuilderBlockSourceEditor {
+  readonly preloadOnContextMenu?: boolean;
+  readonly preloadOnSelection?: boolean;
+  readonly presentation?: "dialog" | "inline";
+  readonly primaryEdit?: boolean;
   fileName(block: BuilderBlock): string;
   source(block: BuilderBlock): string;
   applySource(block: BuilderBlock, source: string): BuilderBlock;
 }
 
+export interface BuilderBlockContextEditorAction {
+  readonly kind: "editor";
+  readonly id: string;
+  readonly label: string;
+  readonly glyph: string;
+  title(block: BuilderBlock): string;
+  render(props: BuilderBlockEditorProps): ReactNode;
+}
+
+export interface BuilderBlockContextCommandAction {
+  readonly kind: "command";
+  readonly id: string;
+  readonly label: string;
+  readonly glyph: string;
+  run(block: BuilderBlock): BuilderBlock | null | Promise<BuilderBlock | null>;
+}
+
+export type BuilderBlockContextAction =
+  | BuilderBlockContextEditorAction
+  | BuilderBlockContextCommandAction;
+
 export interface BuilderBlockEditor {
   readonly presentation?: "dialog" | "inline";
   readonly sourceEditor?: BuilderBlockSourceEditor;
+  readonly contextActions?: readonly BuilderBlockContextAction[];
   title(block: BuilderBlock): string;
   render(props: BuilderBlockEditorProps): ReactNode;
   renderInline?(props: BuilderBlockEditorProps): ReactNode;

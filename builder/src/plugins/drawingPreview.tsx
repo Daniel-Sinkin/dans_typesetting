@@ -6,8 +6,10 @@ import { exportExcalidrawSceneToSvg } from "./drawingScene";
 
 export function DrawingScenePreview({
   scene,
+  artboardHeight,
 }: {
   readonly scene: ExcalidrawScenePayload;
+  readonly artboardHeight: number;
 }) {
   const [rendered, setRendered] = useState<{
     readonly scene: ExcalidrawScenePayload;
@@ -19,13 +21,9 @@ export function DrawingScenePreview({
     let disposed = false;
     let objectUrl: string | null = null;
     const timer = globalThis.setTimeout(() => {
-      void exportExcalidrawSceneToSvg(scene)
+      void exportExcalidrawSceneToSvg(scene, artboardHeight)
         .then((svg) => {
           if (disposed) {
-            return;
-          }
-          if (svg === null) {
-            setRendered({ scene, source: null, error: null });
             return;
           }
           objectUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
@@ -48,7 +46,7 @@ export function DrawingScenePreview({
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [scene]);
+  }, [artboardHeight, scene]);
 
   const source = rendered?.scene === scene ? rendered.source : null;
   const error = rendered?.scene === scene ? rendered.error : null;
@@ -56,7 +54,7 @@ export function DrawingScenePreview({
     return <div className="drawing-preview-status drawing-preview-status--error">{error}</div>;
   }
   if (source === null) {
-    return <div className="drawing-preview-status">Empty drawing · choose Edit to sketch</div>;
+    return <div className="drawing-preview-status">Rendering fixed artboard…</div>;
   }
   return <img src={source} alt="Rendered Excalidraw scene" />;
 }

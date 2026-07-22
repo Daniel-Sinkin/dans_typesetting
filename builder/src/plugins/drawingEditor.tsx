@@ -1,10 +1,25 @@
-// In-document Excalidraw editor; drafts reflow without mutating the document port.
-import { Excalidraw } from "@excalidraw/excalidraw";
-import { useCallback, useEffect, useState } from "react";
+// Fixed-artboard Excalidraw editing and separately invoked document settings.
+import {
+  CaptureUpdateAction,
+  Excalidraw,
+  convertToExcalidrawElements,
+} from "@excalidraw/excalidraw";
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { BuilderBlockEditorProps } from "../builder/plugin";
 import { editableReferenceIdError } from "../builder/referenceEditing";
 import {
+  excalidrawArtboardWidth,
+  maximumExcalidrawArtboardHeight,
+  minimumExcalidrawArtboardHeight,
   requireExcalidrawDrawingBlock,
   type ExcalidrawDrawingBlock,
 } from "./drawingModel";
@@ -13,6 +28,41 @@ import {
   exportExcalidrawSceneToSvg,
   restoreExcalidrawScene,
 } from "./drawingScene";
+
+const artboardGuideId = "dans-builder-drawing-artboard-guide";
+
+interface LockedCamera {
+  readonly scrollX: number;
+  readonly scrollY: number;
+  readonly zoom: ReturnType<ExcalidrawImperativeAPI["getAppState"]>["zoom"];
+}
+
+function createArtboardGuide(height: number): ExcalidrawElement {
+  const [guide] = convertToExcalidrawElements(
+    [
+      {
+        id: artboardGuideId,
+        type: "rectangle",
+        x: 0,
+        y: 0,
+        width: excalidrawArtboardWidth,
+        height,
+        strokeColor: "#4c6ef5",
+        backgroundColor: "#ffffff",
+        fillStyle: "solid",
+        strokeStyle: "dashed",
+        roughness: 0,
+        opacity: 38,
+        locked: true,
+      },
+    ],
+    { regenerateIds: false },
+  );
+  if (guide === undefined) {
+    throw new Error("Could not create the drawing artboard guide");
+  }
+  return guide;
+}
 
 function downloadText(filename: string, text: string, type: string): void {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -32,67 +82,133 @@ export function ExcalidrawDrawingEditor({
   onPreview,
   onCommit,
   onCancel,
-  referenceTargets,
 }: BuilderBlockEditorProps) {
   const [draft, setDraft] = useState<ExcalidrawDrawingBlock>(() =>
     requireExcalidrawDrawingBlock(block),
   );
-  const [exportState, setExportState] = useState<
-    "idle" | "working" | "empty" | "failed"
-  >("idle");
-  const initialScene = useState(() => restoreExcalidrawScene(draft.scene))[0];
-
-  const referenceError = editableReferenceIdError(
-    draft.referenceId ?? "",
-    draft.id,
-    referenceTargets,
-  );
-  const valid = draft.caption.trim().length > 0 && referenceError === null;
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const cameraRef = useRef<LockedCamera | null>(null);
+  const fitFrameRef = useRef<number | null>(null);
+  const [initialScene] = useState(() => {
+    const restored = restoreExcalidrawScene(draft.scene);
+    return {
+      elements: [createArtboardGuide(draft.artboardHeight), ...restored.elements],
+      appState: restored.appState,
+      files: restored.files,
+    };
+  });
 
   useEffect(() => {
-    if (valid) {
-      onPreview(draft);
-    }
-  }, [draft, onPreview, valid]);
+    onPreview(draft);
+  }, [draft, onPreview]);
 
-  const updateDraft = useCallback(
-    (change: Partial<Omit<ExcalidrawDrawingBlock, "id" | "typeId">>) => {
-      setDraft((current) => Object.freeze({ ...current, ...change }));
+  const fitArtboard = useCallback((): void => {
+    const api = apiRef.current;
+    if (api === null) {
+      return;
+    }
+    cameraRef.current = null;
+    api.scrollToContent(artboardGuideId, {
+      fitToViewport: true,
+      viewportZoomFactor: 0.9,
+      animate: false,
+      canvasOffsets: { top: 38, right: 38, bottom: 38, left: 292 },
+      minZoom: 0.1,
+      maxZoom: 2,
+    });
+    if (fitFrameRef.current !== null) {
+      cancelAnimationFrame(fitFrameRef.current);
+    }
+    fitFrameRef.current = requestAnimationFrame(() => {
+      fitFrameRef.current = null;
+      const appState = api.getAppState();
+      cameraRef.current = {
+        scrollX: appState.scrollX,
+        scrollY: appState.scrollY,
+        zoom: appState.zoom,
+      };
+    });
+  }, []);
+
+  const installApi = useCallback(
+    (api: ExcalidrawImperativeAPI): void => {
+      apiRef.current = api;
+      requestAnimationFrame(fitArtboard);
     },
-    [],
+    [fitArtboard],
   );
 
-  const exportSvg = useCallback(async () => {
-    setExportState("working");
-    try {
-      const svg = await exportExcalidrawSceneToSvg(draft.scene);
-      if (svg === null) {
-        setExportState("empty");
-        return;
-      }
-      downloadText(`${draft.id}.svg`, svg, "image/svg+xml;charset=utf-8");
-      setExportState("idle");
-    } catch {
-      setExportState("failed");
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas === null) {
+      return;
     }
-  }, [draft.id, draft.scene]);
+    const observer = new ResizeObserver(fitArtboard);
+    observer.observe(canvas);
+    return () => {
+      observer.disconnect();
+      if (fitFrameRef.current !== null) {
+        cancelAnimationFrame(fitFrameRef.current);
+      }
+    };
+  }, [fitArtboard]);
 
   return (
     <div className="drawing-editor" data-testid="excalidraw-drawing-editor">
-      <div className="drawing-editor__canvas">
+      <div
+        ref={canvasRef}
+        className="drawing-editor__canvas"
+        onWheelCapture={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onPointerDownCapture={(event) => {
+          if (event.button === 1) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }}
+      >
         <Excalidraw
           name={`Drawing ${draft.id}`}
           initialData={{
             elements: initialScene.elements,
             appState: {
               ...initialScene.appState,
-              viewBackgroundColor: "#ffffff",
+              viewBackgroundColor: "#eef1f5",
             },
             files: initialScene.files,
-            scrollToContent: true,
+            scrollToContent: false,
+          }}
+          excalidrawAPI={installApi}
+          onScrollChange={(scrollX, scrollY, zoom) => {
+            const locked = cameraRef.current;
+            const api = apiRef.current;
+            if (
+              locked === null ||
+              api === null ||
+              locked.scrollX === scrollX &&
+                locked.scrollY === scrollY &&
+                locked.zoom.value === zoom.value
+            ) {
+              return;
+            }
+            api.updateScene({
+              appState: {
+                scrollX: locked.scrollX,
+                scrollY: locked.scrollY,
+                zoom: locked.zoom,
+              },
+              captureUpdate: CaptureUpdateAction.NEVER,
+            });
           }}
           onChange={(elements, appState, files) => {
-            const scene = captureExcalidrawScene(elements, appState, files);
+            const scene = captureExcalidrawScene(
+              elements.filter(({ id }) => id !== artboardGuideId),
+              appState,
+              files,
+            );
             setDraft((current) =>
               JSON.stringify(current.scene) === JSON.stringify(scene)
                 ? current
@@ -103,6 +219,8 @@ export function ExcalidrawDrawingEditor({
           handleKeyboardGlobally={false}
           UIOptions={{
             canvasActions: {
+              changeViewBackgroundColor: false,
+              clearCanvas: false,
               loadScene: false,
               saveToActiveFile: false,
               saveAsImage: false,
@@ -113,76 +231,154 @@ export function ExcalidrawDrawingEditor({
           }}
         />
       </div>
-      <aside className="drawing-editor__settings">
-        <header>
-          <strong>Embedded scene</strong>
-          <small>Changes are drafts until saved.</small>
-        </header>
-        <label>
-          <span>Caption</span>
-          <textarea
-            value={draft.caption}
-            onChange={(event) => {
-              updateDraft({ caption: event.target.value });
-            }}
-          />
-        </label>
-        {referenceError === null ? null : (
-          <small className="editor-error">{referenceError}</small>
-        )}
-        <label>
-          <span>Reference ID</span>
-          <input
-            value={draft.referenceId ?? ""}
-            pattern="[A-Za-z][A-Za-z0-9_.:-]*"
-            placeholder="fig:diagram"
-            onChange={(event) => {
-              updateDraft({
-                referenceId: event.target.value.trim().length === 0 ? null : event.target.value,
-              });
-            }}
-          />
-        </label>
-        <label>
-          <span>Width · {Math.round(draft.widthFraction * 100)}%</span>
+      <div className="drawing-editor__actions">
+        <button type="button" onClick={onCancel}>Cancel</button>
+        <button
+          className="primary-action"
+          type="button"
+          onClick={() => {
+            onCommit(draft);
+          }}
+        >
+          Save drawing
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function ExcalidrawDrawingSettingsEditor({
+  block,
+  onPreview,
+  onCommit,
+  onCancel,
+  referenceTargets,
+}: BuilderBlockEditorProps) {
+  const drawing = requireExcalidrawDrawingBlock(block);
+  const [caption, setCaption] = useState(drawing.caption);
+  const [referenceId, setReferenceId] = useState(drawing.referenceId ?? "");
+  const [widthPercent, setWidthPercent] = useState(drawing.widthFraction * 100);
+  const [artboardHeight, setArtboardHeight] = useState(drawing.artboardHeight);
+  const [exportState, setExportState] = useState<"idle" | "working" | "failed">("idle");
+  const referenceError = editableReferenceIdError(
+    referenceId,
+    drawing.id,
+    referenceTargets,
+  );
+  const valid =
+    caption.trim().length > 0 &&
+    referenceError === null &&
+    Number.isFinite(widthPercent) &&
+    widthPercent >= 20 &&
+    widthPercent <= 100 &&
+    Number.isFinite(artboardHeight) &&
+    artboardHeight >= minimumExcalidrawArtboardHeight &&
+    artboardHeight <= maximumExcalidrawArtboardHeight;
+  const draft = useMemo<ExcalidrawDrawingBlock>(
+    () => Object.freeze({
+      ...drawing,
+      caption,
+      referenceId: referenceId.trim().length === 0 ? null : referenceId,
+      widthFraction: widthPercent / 100,
+      artboardHeight,
+    }),
+    [artboardHeight, caption, drawing, referenceId, widthPercent],
+  );
+
+  useEffect(() => {
+    if (valid) {
+      onPreview(draft);
+    }
+  }, [draft, onPreview, valid]);
+
+  const exportSvg = async (): Promise<void> => {
+    setExportState("working");
+    try {
+      const svg = await exportExcalidrawSceneToSvg(draft.scene, draft.artboardHeight);
+      downloadText(`${draft.id}.svg`, svg, "image/svg+xml;charset=utf-8");
+      setExportState("idle");
+    } catch {
+      setExportState("failed");
+    }
+  };
+
+  return (
+    <form
+      className="block-editor-form drawing-settings-editor"
+      data-testid="drawing-settings-editor"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (valid) {
+          onCommit(draft);
+        }
+      }}
+    >
+      <label className="editor-field">
+        <span>Caption</span>
+        <textarea
+          value={caption}
+          onChange={(event) => {
+            setCaption(event.target.value);
+          }}
+        />
+      </label>
+      {referenceError === null ? null : <p className="editor-error">{referenceError}</p>}
+      <label className="editor-field">
+        <span>Reference ID · optional</span>
+        <input
+          value={referenceId}
+          pattern="[A-Za-z][A-Za-z0-9_.:-]*"
+          placeholder="fig:diagram"
+          onChange={(event) => {
+            setReferenceId(event.target.value);
+          }}
+        />
+      </label>
+      <div className="drawing-settings-editor__dimensions">
+        <label className="editor-field">
+          <span>Document width (%)</span>
           <input
             data-testid="drawing-width"
-            type="range"
-            min="30"
+            type="number"
+            min="20"
             max="100"
             step="1"
-            value={Math.round(draft.widthFraction * 100)}
+            value={widthPercent}
             onChange={(event) => {
-              updateDraft({ widthFraction: Number(event.target.value) / 100 });
+              setWidthPercent(Number(event.target.value));
             }}
           />
         </label>
-        <small>The drawing height follows its content automatically.</small>
-        <button
-          type="button"
-          disabled={exportState === "working"}
-          onClick={() => void exportSvg()}
-        >
-          {exportState === "working" ? "Rendering SVG…" : "Export SVG"}
-        </button>
-        {exportState === "empty" ? <small>Draw something before exporting.</small> : null}
-        {exportState === "failed" ? <small>Could not render this scene as SVG.</small> : null}
-        <div className="drawing-editor__actions">
-          <button type="button" onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            className="primary-action"
-            type="button"
-            disabled={!valid}
-            onClick={() => {
-              onCommit(draft);
+        <label className="editor-field">
+          <span>Artboard height ({String(excalidrawArtboardWidth)}-unit width)</span>
+          <input
+            data-testid="drawing-height"
+            type="number"
+            min={minimumExcalidrawArtboardHeight}
+            max={maximumExcalidrawArtboardHeight}
+            step="10"
+            value={artboardHeight}
+            onChange={(event) => {
+              setArtboardHeight(Number(event.target.value));
             }}
-          >
-            Save drawing
-          </button>
-        </div>
-      </aside>
-    </div>
+          />
+        </label>
+      </div>
+      <small>
+        The artboard is fixed while drawing. At 100%, its width is exactly the document content width.
+      </small>
+      <button
+        type="button"
+        disabled={exportState === "working" || !valid}
+        onClick={() => void exportSvg()}
+      >
+        {exportState === "working" ? "Rendering SVG…" : "Export SVG"}
+      </button>
+      {exportState === "failed" ? <small>Could not render this scene as SVG.</small> : null}
+      <div className="editor-actions">
+        <button type="button" onClick={onCancel}>Cancel</button>
+        <button className="primary-action" type="submit" disabled={!valid}>Save settings</button>
+      </div>
+    </form>
   );
 }

@@ -10,11 +10,12 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types";
 
 import {
+  excalidrawArtboardWidth,
   normalizeExcalidrawScene,
   type ExcalidrawScenePayload,
 } from "./drawingModel";
 
-const drawingExportPadding = 16;
+const exportArtboardGuideId = "dans-builder-export-artboard";
 
 export function captureExcalidrawScene(
   elements: readonly ExcalidrawElement[],
@@ -90,27 +91,50 @@ export function createSampleExcalidrawScene(): ExcalidrawScenePayload {
 
 export async function exportExcalidrawSceneToSvg(
   scene: ExcalidrawScenePayload,
-): Promise<string | null> {
+  artboardHeight: number,
+): Promise<string> {
   const restored = restoreExcalidrawScene(scene);
   const elements = getNonDeletedElements(restored.elements);
-  if (elements.length === 0) {
-    return null;
+  const [artboard] = convertToExcalidrawElements(
+    [
+      {
+        id: exportArtboardGuideId,
+        type: "rectangle",
+        x: 0,
+        y: 0,
+        width: excalidrawArtboardWidth,
+        height: artboardHeight,
+        strokeColor: "transparent",
+        backgroundColor: "#ffffff",
+        fillStyle: "solid",
+        roughness: 0,
+        locked: true,
+      },
+    ],
+    { regenerateIds: false },
+  );
+  if (artboard === undefined) {
+    throw new Error("Could not create the drawing export artboard");
   }
   // Excalidraw's published declaration references its private @excalidraw/utils
   // alias. TypeScript resolves the public return type, while typed ESLint marks
   // the call as an error type; constrain the one upstream boundary explicitly.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
   const svg: SVGSVGElement = await exportToSvg({
-    elements,
+    elements: [artboard, ...elements],
     appState: {
       exportBackground: true,
       exportWithDarkMode: false,
       viewBackgroundColor: restored.appState.viewBackgroundColor,
     },
     files: restored.files,
-    exportPadding: drawingExportPadding,
+    exportPadding: 0,
     renderEmbeddables: false,
     skipInliningFonts: true,
   });
+  svg.setAttribute("viewBox", `0 0 ${String(excalidrawArtboardWidth)} ${String(artboardHeight)}`);
+  svg.setAttribute("width", String(excalidrawArtboardWidth));
+  svg.setAttribute("height", String(artboardHeight));
+  svg.setAttribute("overflow", "hidden");
   return new XMLSerializer().serializeToString(svg);
 }

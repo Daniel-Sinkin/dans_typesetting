@@ -81,7 +81,6 @@ export function ImageEditor({
   const [error, setError] = useState<string | null>(null);
   const [isReading, setIsReading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const openedPickerRef = useRef(false);
   const referenceError = editableReferenceIdError(
     referenceId,
     image.id,
@@ -116,14 +115,6 @@ export function ImageEditor({
     ],
   );
   const renderContext = { referenceTargets, inlineOrdinals, documentResources };
-
-  useEffect(() => {
-    if (openedPickerRef.current) {
-      return;
-    }
-    openedPickerRef.current = true;
-    inputRef.current?.click();
-  }, []);
 
   useEffect(() => {
     if (valid) {

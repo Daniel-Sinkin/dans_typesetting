@@ -8,6 +8,9 @@ import {
 } from "../transport/documentTransport";
 import { decodeOptionalReferenceId } from "../model/referenceId";
 import {
+  defaultExcalidrawArtboardHeight,
+  excalidrawArtboardWidth,
+  excalidrawSceneAspectRatio,
   excalidrawDrawingTypeId,
   normalizeExcalidrawScene,
   requireExcalidrawDrawingBlock,
@@ -23,11 +26,20 @@ export const excalidrawDrawingTransportCodec: BlockTransportCodec = {
       caption: drawing.caption,
       referenceId: drawing.referenceId,
       widthFraction: drawing.widthFraction,
+      artboardHeight: drawing.artboardHeight,
       scene: drawing.scene,
     };
   },
   decode(id, payload): BuilderBlock {
     const data = requireTransportRecord(payload, "Excalidraw drawing payload");
+    const scene = normalizeExcalidrawScene(data.scene);
+    const migratedArtboardHeight = Math.min(
+      1_200,
+      Math.max(
+        240,
+        Math.round(excalidrawArtboardWidth / excalidrawSceneAspectRatio(scene)),
+      ),
+    );
     const drawing = Object.freeze({
       id,
       typeId: excalidrawDrawingTypeId,
@@ -41,7 +53,17 @@ export const excalidrawDrawingTransportCodec: BlockTransportCodec = {
         "widthFraction",
         "Excalidraw drawing payload",
       ),
-      scene: normalizeExcalidrawScene(data.scene),
+      artboardHeight:
+        data.artboardHeight === undefined
+          ? (Number.isFinite(migratedArtboardHeight)
+              ? migratedArtboardHeight
+              : defaultExcalidrawArtboardHeight)
+          : requireTransportNumber(
+              data,
+              "artboardHeight",
+              "Excalidraw drawing payload",
+            ),
+      scene,
     }) satisfies ExcalidrawDrawingBlock;
     validateExcalidrawDrawingBlock(drawing);
     return drawing;

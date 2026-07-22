@@ -30,7 +30,11 @@ import {
   type InsertionPreview,
   type PageRange,
 } from "../builder/layout";
-import type { BuilderBlockPlugin, BuilderPluginRegistry } from "../builder/plugin";
+import type {
+  BuilderBlockContextEditorAction,
+  BuilderBlockPlugin,
+  BuilderPluginRegistry,
+} from "../builder/plugin";
 import { copyBuilderBlockForInsert } from "../builder/copyBlock";
 import { deriveReferenceTargets } from "../builder/referenceTargets";
 import { deriveDocumentResources } from "../builder/documentResources";
@@ -52,6 +56,8 @@ import {
   removeBuilderBlockFromTree,
   replaceBuilderBlockInTree,
   type BuilderBlock,
+  type BuilderBlockLocation,
+  type DocumentCommand,
   type DocumentPort,
 } from "../model/document";
 import type { CanonicalDocumentTransport } from "../transport/documentTransport";
@@ -141,7 +147,22 @@ interface MiddlePanGesture {
   readonly viewport: CanvasViewportUpdate;
 }
 
-type EditorPresentation = "dialog" | "inline" | "nvim";
+type EditorPresentation =
+  | "dialog"
+  | "inline"
+  | "nvim"
+  | "nvim_inline"
+  | "nvim_preload";
+
+type InsertCommand = Extract<DocumentCommand, Readonly<{ kind: "insert" }>>;
+type MoveCommand = Extract<
+  DocumentCommand,
+  Readonly<{ kind: "move" | "move_many" }>
+>;
+
+interface StructuralUndoEntry {
+  readonly undo: () => readonly string[];
+}
 
 function viewportFromAppState(appState: AppState): CanvasViewport {
   return {
@@ -216,6 +237,11 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const subscribe = useCallback((listener: () => void) => port.subscribe(listener), [port]);
   const getSnapshot = useCallback(() => port.getSnapshot(), [port]);
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const [initialHotBlock] = useState<BuilderBlock | null>(() =>
+    flattenBuilderBlocks(snapshot.blocks).find(
+      (block) => registry.editorForBlock(block)?.sourceEditor?.preloadOnSelection === true,
+    ) ?? null,
+  );
   const [canvasApi, setCanvasApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [viewport, setViewport] = useState<CanvasViewport | null>(null);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
@@ -223,9 +249,13 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const [selectedBlockIds, setSelectedBlockIds] = useState<readonly string[]>([]);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [pendingDetach, setPendingDetach] = useState<PendingDetach | null>(null);
-  const [editingBlock, setEditingBlock] = useState<BuilderBlock | null>(null);
-  const [editingDraft, setEditingDraft] = useState<BuilderBlock | null>(null);
-  const [editingPresentation, setEditingPresentation] = useState<EditorPresentation | null>(null);
+  const [editingBlock, setEditingBlock] = useState<BuilderBlock | null>(initialHotBlock);
+  const [editingDraft, setEditingDraft] = useState<BuilderBlock | null>(initialHotBlock);
+  const [editingPresentation, setEditingPresentation] = useState<EditorPresentation | null>(
+    initialHotBlock === null ? null : "nvim_preload",
+  );
+  const [editingContextActionId, setEditingContextActionId] = useState<string | null>(null);
+  const [preloadSuppressedBlockId, setPreloadSuppressedBlockId] = useState<string | null>(null);
   const [blockContextMenu, setBlockContextMenu] = useState<BlockContextMenuState | null>(null);
   const [middlePanning, setMiddlePanning] = useState(false);
   const [transportError, setTransportError] = useState<string | null>(null);
@@ -240,6 +270,78 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const selectionAnchorRef = useRef<string | null>(null);
   const middlePanRef = useRef<MiddlePanGesture | null>(null);
   const documentControlLayerRef = useRef<HTMLDivElement>(null);
+  const undoStackRef = useRef<StructuralUndoEntry[]>([]);
+
+  const activateEditor = useCallback(
+    (
+      block: BuilderBlock,
+      presentation: EditorPresentation,
+      contextActionId: string | null = null,
+    ): void => {
+      setEditingBlock(block);
+      setEditingDraft(block);
+      setEditingPresentation(presentation);
+      setEditingContextActionId(contextActionId);
+    },
+    [],
+  );
+
+  const clearEditorState = useCallback((): void => {
+    setEditingBlock(null);
+    setEditingDraft(null);
+    setEditingPresentation(null);
+    setEditingContextActionId(null);
+  }, []);
+
+  const prepareSelectionEditor = useCallback(
+    (blockId: string | null): void => {
+      if (
+        preloadSuppressedBlockId !== null &&
+        preloadSuppressedBlockId !== blockId
+      ) {
+        setPreloadSuppressedBlockId(null);
+      }
+      if (blockId === null) {
+        return;
+      }
+
+      const block = findBuilderBlock(port.getSnapshot().blocks, blockId)?.block ?? null;
+      const sourceEditor = block === null
+        ? undefined
+        : registry.editorForBlock(block)?.sourceEditor;
+      const shouldPreload =
+        block !== null &&
+        sourceEditor?.preloadOnSelection === true &&
+        preloadSuppressedBlockId !== blockId;
+
+      if (editingBlock?.id === blockId) {
+        if (!shouldPreload && editingPresentation === "nvim_preload") {
+          clearEditorState();
+        }
+        return;
+      }
+      if (shouldPreload) {
+        if (editingPresentation !== null) {
+          clearEditorState();
+        }
+        activateEditor(block, "nvim_preload");
+      } else if (
+        editingPresentation !== null &&
+        editingPresentation !== "nvim_preload"
+      ) {
+        clearEditorState();
+      }
+    },
+    [
+      activateEditor,
+      clearEditorState,
+      editingBlock,
+      editingPresentation,
+      port,
+      preloadSuppressedBlockId,
+      registry,
+    ],
+  );
 
   const focusBlockControl = useCallback((blockId: string): void => {
     requestAnimationFrame(() => {
@@ -255,11 +357,94 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       selectedBlockIdsRef.current = next;
       selectionAnchorRef.current = blockId;
       setSelectedBlockIds(next);
+      prepareSelectionEditor(blockId);
       if (focus) {
         focusBlockControl(blockId);
       }
     },
-    [focusBlockControl],
+    [focusBlockControl, prepareSelectionEditor],
+  );
+
+  const clearBlockSelection = useCallback((): void => {
+    selectedBlockIdsRef.current = Object.freeze([]);
+    selectionAnchorRef.current = null;
+    setSelectedBlockIds(selectedBlockIdsRef.current);
+    setBlockContextMenu(null);
+    if (editingPresentation !== null && editingPresentation !== "nvim_preload") {
+      setPreloadSuppressedBlockId(editingBlock?.id ?? null);
+      clearEditorState();
+    }
+  }, [clearEditorState, editingBlock, editingPresentation]);
+
+  const insertBlocksWithUndo = useCallback(
+    (commands: readonly InsertCommand[]): void => {
+      const beforeRevision = port.getSnapshot().revision;
+      commands.forEach((command) => {
+        port.dispatch(command);
+      });
+      if (port.getSnapshot().revision === beforeRevision) {
+        return;
+      }
+      const insertedIds = commands.map(({ block }) => block.id);
+      undoStackRef.current.push({
+        undo: () => {
+          const orderedIds = flattenBuilderBlocks(port.getSnapshot().blocks).map(({ id }) => id);
+          const nextBlockId = blockIdAfterDeletion(orderedIds, insertedIds);
+          insertedIds.forEach((blockId) => {
+            if (findBuilderBlock(port.getSnapshot().blocks, blockId) !== null) {
+              port.dispatch({ kind: "delete", blockId });
+            }
+          });
+          return nextBlockId === null ? [] : [nextBlockId];
+        },
+      });
+    },
+    [port],
+  );
+
+  const moveBlocksWithUndo = useCallback(
+    (command: MoveCommand, blockIds: readonly string[]): void => {
+      const locations = blockIds
+        .map((blockId) => findBuilderBlock(port.getSnapshot().blocks, blockId))
+        .filter((location): location is BuilderBlockLocation => location !== null)
+        .sort((left, right) => left.index - right.index);
+      const first = locations[0];
+      if (first === undefined || locations.length !== blockIds.length) {
+        return;
+      }
+      const beforeRevision = port.getSnapshot().revision;
+      port.dispatch(command);
+      if (port.getSnapshot().revision === beforeRevision) {
+        return;
+      }
+      const orderedIds = locations.map(({ block }) => block.id);
+      undoStackRef.current.push({
+        undo: () => {
+          if (orderedIds.length === 1) {
+            const blockId = orderedIds[0];
+            if (blockId !== undefined) {
+              port.dispatch({
+                kind: "move",
+                blockId,
+                parentId: first.parentId,
+                parentSequenceId: first.parentSequenceId,
+                index: first.index,
+              });
+            }
+          } else {
+            port.dispatch({
+              kind: "move_many",
+              blockIds: orderedIds,
+              parentId: first.parentId,
+              parentSequenceId: first.parentSequenceId,
+              index: first.index,
+            });
+          }
+          return orderedIds;
+        },
+      });
+    },
+    [port],
   );
 
   const deleteBlocks = useCallback((blockIds: readonly string[]): void => {
@@ -268,15 +453,34 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     }
     const orderedBlockIds = flattenBuilderBlocks(snapshot.blocks).map(({ id }) => id);
     const nextBlockId = blockIdAfterDeletion(orderedBlockIds, blockIds);
+    const deletedLocations = blockIds
+      .map((blockId) => findBuilderBlock(snapshot.blocks, blockId))
+      .filter((location): location is BuilderBlockLocation => location !== null)
+      .sort((left, right) => left.index - right.index);
     if (editingBlock !== null && blockIds.includes(editingBlock.id)) {
-      setEditingBlock(null);
-      setEditingDraft(null);
-      setEditingPresentation(null);
+      clearEditorState();
     }
     setBlockContextMenu(null);
+    const beforeRevision = port.getSnapshot().revision;
     blockIds.forEach((blockId) => {
       port.dispatch({ kind: "delete", blockId });
     });
+    if (port.getSnapshot().revision !== beforeRevision && deletedLocations.length > 0) {
+      undoStackRef.current.push({
+        undo: () => {
+          deletedLocations.forEach((location) => {
+            port.dispatch({
+              kind: "insert",
+              parentId: location.parentId,
+              parentSequenceId: location.parentSequenceId,
+              index: location.index,
+              block: location.block,
+            });
+          });
+          return deletedLocations.map(({ block }) => block.id);
+        },
+      });
+    }
     if (nextBlockId === null) {
       selectedBlockIdsRef.current = Object.freeze([]);
       selectionAnchorRef.current = null;
@@ -284,7 +488,53 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     } else {
       selectSingleBlock(nextBlockId);
     }
-  }, [editingBlock, port, selectSingleBlock, snapshot.blocks]);
+  }, [clearEditorState, editingBlock, port, selectSingleBlock, snapshot.blocks]);
+
+  useEffect(() => {
+    const handleUndo = (event: KeyboardEvent): void => {
+      if (
+        event.key.toLowerCase() !== "z" ||
+        (!event.ctrlKey && !event.metaKey) ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("input, textarea, [contenteditable='true'], .editor-dialog, .nvim-editor-host") !== null
+      ) {
+        return;
+      }
+      const entry = undoStackRef.current.pop();
+      if (entry === undefined) {
+        return;
+      }
+      event.preventDefault();
+      setBlockContextMenu(null);
+      clearEditorState();
+      const restoredSelection = entry.undo();
+      const firstSelection = restoredSelection[0];
+      if (firstSelection === undefined) {
+        selectedBlockIdsRef.current = Object.freeze([]);
+        selectionAnchorRef.current = null;
+        setSelectedBlockIds(selectedBlockIdsRef.current);
+      } else {
+        const retained = restoredSelection.filter(
+          (blockId) => findBuilderBlock(port.getSnapshot().blocks, blockId) !== null,
+        );
+        selectedBlockIdsRef.current = Object.freeze(retained);
+        selectionAnchorRef.current = firstSelection;
+        setSelectedBlockIds(selectedBlockIdsRef.current);
+        focusBlockControl(firstSelection);
+      }
+    };
+    window.addEventListener("keydown", handleUndo);
+    return () => {
+      window.removeEventListener("keydown", handleUndo);
+    };
+  }, [clearEditorState, focusBlockControl, port]);
 
   const publishViewport = useCallback((appState: AppState) => {
     const nextViewport = viewportFromAppState(appState);
@@ -526,43 +776,52 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       if (finalPlacement !== null) {
         clearDrag();
         if (completedDrag.source === "palette") {
-          port.dispatch({
-            kind: "insert",
-            parentId: finalPlacement.parentId,
-            parentSequenceId: finalPlacement.parentSequenceId,
-            index: finalPlacement.index,
-            block: completedDrag.block,
-          });
+          insertBlocksWithUndo([
+            {
+              kind: "insert",
+              parentId: finalPlacement.parentId,
+              parentSequenceId: finalPlacement.parentSequenceId,
+              index: finalPlacement.index,
+              block: completedDrag.block,
+            },
+          ]);
           return;
         }
         if (completedDrag.copy) {
-          completedDrag.blocks.forEach((block, offset) => {
-            port.dispatch({
+          insertBlocksWithUndo(
+            completedDrag.blocks.map((block, offset) => ({
               kind: "insert",
               parentId: finalPlacement.parentId,
               parentSequenceId: finalPlacement.parentSequenceId,
               index: finalPlacement.index + offset,
               block: copyBuilderBlockForInsert(block, registry),
-            });
-          });
+            })),
+          );
           return;
         }
         if (completedDrag.blocks.length === 1) {
-          port.dispatch({
-            kind: "move",
-            blockId: completedDrag.block.id,
-            parentId: finalPlacement.parentId,
-            parentSequenceId: finalPlacement.parentSequenceId,
-            index: finalPlacement.index,
-          });
+          moveBlocksWithUndo(
+            {
+              kind: "move",
+              blockId: completedDrag.block.id,
+              parentId: finalPlacement.parentId,
+              parentSequenceId: finalPlacement.parentSequenceId,
+              index: finalPlacement.index,
+            },
+            [completedDrag.block.id],
+          );
         } else {
-          port.dispatch({
-            kind: "move_many",
-            blockIds: completedDrag.blocks.map(({ id }) => id),
-            parentId: finalPlacement.parentId,
-            parentSequenceId: finalPlacement.parentSequenceId,
-            index: finalPlacement.index,
-          });
+          const blockIds = completedDrag.blocks.map(({ id }) => id);
+          moveBlocksWithUndo(
+            {
+              kind: "move_many",
+              blockIds,
+              parentId: finalPlacement.parentId,
+              parentSequenceId: finalPlacement.parentSequenceId,
+              index: finalPlacement.index,
+            },
+            blockIds,
+          );
         }
         return;
       }
@@ -629,6 +888,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     clearDrag,
     deleteBlocks,
     isDragging,
+    insertBlocksWithUndo,
+    moveBlocksWithUndo,
     port,
     registry,
     resolvePlacement,
@@ -638,15 +899,15 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
 
   const beginDrag = useCallback(
     (drag: ActiveDrag, initialPlacement: Placement | null) => {
-      setEditingBlock(null);
-      setEditingDraft(null);
-      setEditingPresentation(null);
+      if (editingPresentation !== "nvim_preload") {
+        clearEditorState();
+      }
       setBlockContextMenu(null);
       dragRef.current = drag;
       setActiveDrag(drag);
       setPlacement(initialPlacement);
     },
-    [],
+    [clearEditorState, editingPresentation],
   );
 
   const beginPaletteDrag = useCallback(
@@ -718,6 +979,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       }
       selectedBlockIdsRef.current = Object.freeze([...next]);
       setSelectedBlockIds(selectedBlockIdsRef.current);
+      prepareSelectionEditor(next.length === 1 ? next[0] ?? null : null);
 
       const selectedSet = new Set(next);
       const ordered = siblings.filter(({ id }) => selectedSet.has(id));
@@ -742,7 +1004,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       pendingBlockDragRef.current = pending;
       setPendingBlockDrag(pending);
     },
-    [snapshot.blocks],
+    [prepareSelectionEditor, snapshot.blocks],
   );
 
   useEffect(() => {
@@ -964,21 +1226,33 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         console.info("Trying to Edit", { blockId: block.id, typeId: block.typeId });
         return;
       }
-      const defaultPresentation = descriptor.presentation ?? "dialog";
+      const sourceEditor = descriptor.sourceEditor;
+      const defaultPresentation: EditorPresentation =
+        sourceEditor?.primaryEdit === true
+          ? sourceEditor.presentation === "inline"
+            ? "nvim_inline"
+            : "nvim"
+          : descriptor.presentation ?? "dialog";
       const presentation = requestedPresentation ?? defaultPresentation;
       if (presentation === "inline" && descriptor.renderInline === undefined) {
         throw new Error(`Block editor ${block.typeId} does not provide an inline surface`);
       }
-      if (presentation === "nvim" && descriptor.sourceEditor === undefined) {
+      if (
+        (presentation === "nvim" || presentation === "nvim_inline") &&
+        descriptor.sourceEditor === undefined
+      ) {
         throw new Error(`Block editor ${block.typeId} does not provide source editing`);
       }
       selectSingleBlock(block.id, false);
       setBlockContextMenu(null);
-      setEditingBlock(block);
-      setEditingDraft(block);
-      setEditingPresentation(presentation);
+      setPreloadSuppressedBlockId(null);
+      activateEditor(block, presentation);
       const blockLayout = layout.blocks.find(({ block: candidate }) => candidate.id === block.id);
-      if (canvasApi !== null && blockLayout !== undefined) {
+      if (
+        presentation !== "nvim_inline" &&
+        canvasApi !== null &&
+        blockLayout !== undefined
+      ) {
         const { x, y, width, height } = blockLayout.bounds;
         const fitted = zoomToFitBounds({
           bounds: [x, y, x + width, y + height],
@@ -999,20 +1273,19 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         });
       }
     },
-    [canvasApi, layout.blocks, registry, selectSingleBlock],
+    [activateEditor, canvasApi, layout.blocks, registry, selectSingleBlock],
   );
 
   const editingDescriptor =
     editingBlock === null ? null : registry.editorForBlock(editingBlock);
   const closeEditor = useCallback(() => {
     const blockId = editingBlock?.id ?? null;
-    setEditingBlock(null);
-    setEditingDraft(null);
-    setEditingPresentation(null);
+    setPreloadSuppressedBlockId(blockId);
+    clearEditorState();
     if (blockId !== null) {
       focusBlockControl(blockId);
     }
-  }, [editingBlock, focusBlockControl]);
+  }, [clearEditorState, editingBlock, focusBlockControl]);
 
   const handleBlockKeyDown = useCallback(
     (block: BuilderBlock, event: ReactKeyboardEvent<HTMLElement>): void => {
@@ -1036,7 +1309,11 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         registry.editorForBlock(block)?.sourceEditor !== undefined
       ) {
         event.preventDefault();
-        beginEdit(block, "nvim");
+        const sourceEditor = registry.editorForBlock(block)?.sourceEditor;
+        beginEdit(
+          block,
+          sourceEditor?.presentation === "inline" ? "nvim_inline" : "nvim",
+        );
         return;
       }
       if (event.key === "Delete" || event.key === "Backspace") {
@@ -1065,9 +1342,17 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const openBlockContextMenu = useCallback(
     (block: BuilderBlock, clientX: number, clientY: number): void => {
       selectSingleBlock(block.id, false);
+      const sourceEditor = registry.editorForBlock(block)?.sourceEditor;
+      if (
+        sourceEditor?.preloadOnContextMenu === true &&
+        (editingPresentation === null || editingPresentation === "nvim_preload") &&
+        editingBlock?.id !== block.id
+      ) {
+        activateEditor(block, "nvim_preload");
+      }
       setBlockContextMenu({ blockId: block.id, clientX, clientY });
     },
-    [selectSingleBlock],
+    [activateEditor, editingBlock, editingPresentation, registry, selectSingleBlock],
   );
   const beginPresentation = useCallback(() => {
     if (layoutMode !== "slides") {
@@ -1075,16 +1360,14 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     }
     clearDrag();
     setPendingDetach(null);
-    setEditingBlock(null);
-    setEditingDraft(null);
-    setEditingPresentation(null);
+    clearEditorState();
     setBlockContextMenu(null);
     setPresentationSlide(layout.visiblePageRange.start);
     setPresentationOpen(true);
     void document.documentElement.requestFullscreen().catch(() => {
       // The overlay remains usable when a browser denies fullscreen access.
     });
-  }, [clearDrag, layout.visiblePageRange.start, layoutMode]);
+  }, [clearDrag, clearEditorState, layout.visiblePageRange.start, layoutMode]);
   const exitPresentation = useCallback(() => {
     setPresentationOpen(false);
     if (document.fullscreenElement !== null) {
@@ -1136,6 +1419,13 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           blockOrdinals,
           documentResources,
         };
+  const editingContextAction =
+    editingContextActionId === null
+      ? null
+      : editingDescriptor?.contextActions?.find(
+          (action): action is BuilderBlockContextEditorAction =>
+            action.kind === "editor" && action.id === editingContextActionId,
+        ) ?? null;
   const inlineEditor =
     editingPresentation === "inline" &&
     editingDescriptor?.renderInline !== undefined &&
@@ -1146,6 +1436,39 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           content: editingDescriptor.renderInline(editorProps),
         }
       : null;
+  const nvimInlineStyle = useMemo<CSSProperties | undefined>(() => {
+    if (
+      editingPresentation !== "nvim_inline" ||
+      editingBlock === null ||
+      viewport === null
+    ) {
+      return undefined;
+    }
+    const blockLayout = layout.blocks.find(
+      ({ block: candidate }) => candidate.id === editingBlock.id,
+    );
+    if (blockLayout === undefined) {
+      return undefined;
+    }
+    const origin = sceneCoordsToViewportCoords(
+      { sceneX: blockLayout.bounds.x, sceneY: blockLayout.bounds.y },
+      viewport,
+    );
+    const width = Math.min(
+      globalThis.innerWidth - 24,
+      Math.max(560, blockLayout.bounds.width * viewport.zoom.value),
+    );
+    const height = Math.min(
+      globalThis.innerHeight - 24,
+      Math.max(280, blockLayout.bounds.height * viewport.zoom.value),
+    );
+    return {
+      left: Math.min(globalThis.innerWidth - width - 12, Math.max(12, origin.x)),
+      top: Math.min(globalThis.innerHeight - height - 12, Math.max(12, origin.y)),
+      width,
+      height,
+    };
+  }, [editingBlock, editingPresentation, layout.blocks, viewport]);
 
   const moveBlockBy = useCallback(
     (block: BuilderBlock, direction: -1 | 1): void => {
@@ -1162,16 +1485,19 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       if (targetIndex < 0 || targetIndex >= siblings.length) {
         return;
       }
-      port.dispatch({
-        kind: "move",
-        blockId: block.id,
-        parentId: location.parentId,
-        parentSequenceId: location.parentSequenceId,
-        index: targetIndex,
-      });
+      moveBlocksWithUndo(
+        {
+          kind: "move",
+          blockId: block.id,
+          parentId: location.parentId,
+          parentSequenceId: location.parentSequenceId,
+          index: targetIndex,
+        },
+        [block.id],
+      );
       selectSingleBlock(block.id);
     },
-    [port, selectSingleBlock, snapshot.blocks],
+    [moveBlocksWithUndo, selectSingleBlock, snapshot.blocks],
   );
 
   const duplicateBlock = useCallback(
@@ -1181,16 +1507,18 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         return;
       }
       const copy = copyBuilderBlockForInsert(block, registry);
-      port.dispatch({
-        kind: "insert",
-        parentId: location.parentId,
-        parentSequenceId: location.parentSequenceId,
-        index: location.index + 1,
-        block: copy,
-      });
+      insertBlocksWithUndo([
+        {
+          kind: "insert",
+          parentId: location.parentId,
+          parentSequenceId: location.parentSequenceId,
+          index: location.index + 1,
+          block: copy,
+        },
+      ]);
       selectSingleBlock(copy.id);
     },
-    [port, registry, selectSingleBlock, snapshot.blocks],
+    [insertBlocksWithUndo, registry, selectSingleBlock, snapshot.blocks],
   );
 
   const contextBlockLocation =
@@ -1208,6 +1536,13 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           contextBlockLocation.parentId,
           contextBlockLocation.parentSequenceId,
         );
+  const beginContextEditor = useCallback(
+    (block: BuilderBlock, action: BuilderBlockContextEditorAction): void => {
+      beginEdit(block, "dialog");
+      setEditingContextActionId(action.id);
+    },
+    [beginEdit],
+  );
   const contextActions: readonly BlockRadialAction[] =
     contextBlock === null
       ? []
@@ -1233,7 +1568,21 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
                 },
               ]
             : []),
+          ...(contextEditor?.sourceEditor?.primaryEdit === true &&
+          contextEditor.renderInline !== undefined
+            ? [
+                {
+                  id: "visual-edit",
+                  label: "Visual edit",
+                  glyph: "¶",
+                  run: () => {
+                    beginEdit(contextBlock, "inline");
+                  },
+                },
+              ]
+            : []),
           ...(contextEditor?.sourceEditor === undefined
+            || contextEditor.sourceEditor.primaryEdit === true
             ? []
             : [
                 {
@@ -1241,10 +1590,49 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
                   label: "Neovim",
                   glyph: "V",
                   run: () => {
-                    beginEdit(contextBlock, "nvim");
+                    beginEdit(
+                      contextBlock,
+                      contextEditor.sourceEditor?.presentation === "inline"
+                        ? "nvim_inline"
+                        : "nvim",
+                    );
                   },
                 },
               ]),
+          ...(contextEditor?.contextActions ?? []).map((action) => ({
+            id: action.id,
+            label: action.label,
+            glyph: action.glyph,
+            run: () => {
+              if (action.kind === "editor") {
+                beginContextEditor(contextBlock, action);
+                return;
+              }
+              void Promise.resolve(action.run(contextBlock))
+                .then((replacement) => {
+                  if (replacement === null) {
+                    return;
+                  }
+                  if (
+                    replacement.id !== contextBlock.id ||
+                    replacement.typeId !== contextBlock.typeId
+                  ) {
+                    throw new Error("A block context action must preserve block identity");
+                  }
+                  port.dispatch({
+                    kind: "replace",
+                    blockId: contextBlock.id,
+                    block: replacement,
+                  });
+                  setTransportError(null);
+                })
+                .catch((error: unknown) => {
+                  setTransportError(
+                    error instanceof Error ? error.message : "The block action failed",
+                  );
+                });
+            },
+          })),
           {
             id: "up",
             label: "Move up",
@@ -1312,17 +1700,16 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         deriveDocumentResources(decoded.blocks, registry);
         clearDrag();
         setPendingDetach(null);
-        setEditingBlock(null);
-        setEditingDraft(null);
-        setEditingPresentation(null);
+        clearEditorState();
         setBlockContextMenu(null);
+        undoStackRef.current = [];
         port.dispatch({ kind: "replace_all", ...decoded });
         setTransportError(null);
       } catch (error) {
         setTransportError(error instanceof Error ? error.message : "Could not load document");
       }
     },
-    [clearDrag, port, registry, transport],
+    [clearDrag, clearEditorState, port, registry, transport],
   );
 
   return (
@@ -1350,6 +1737,9 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
             },
           }}
           excalidrawAPI={installCanvasApi}
+          onPointerDown={() => {
+            clearBlockSelection();
+          }}
           onChange={(_elements, appState) => {
             publishViewport(appState);
           }}
@@ -1471,25 +1861,41 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         editingPresentation !== "dialog" ||
         editorProps === null ? null : (
           <EditorDialog
-            title={editingDescriptor.title(editorProps.block)}
+            title={
+              editingContextAction === null
+                ? editingDescriptor.title(editorProps.block)
+                : editingContextAction.title(editorProps.block)
+            }
             onClose={closeEditor}
           >
-            {editingDescriptor.render(editorProps)}
+            {editingContextAction === null
+              ? editingDescriptor.render(editorProps)
+              : editingContextAction.render(editorProps)}
           </EditorDialog>
         )}
 
         {editingDescriptor?.sourceEditor === undefined ||
-        editingPresentation !== "nvim" ||
+        (editingPresentation !== "nvim" &&
+          editingPresentation !== "nvim_inline" &&
+          editingPresentation !== "nvim_preload") ||
         editorProps === null ? null : (
-          <EditorDialog
-            title={`Neovim · ${editingDescriptor.title(editorProps.block)}`}
-            onClose={closeEditor}
+          <div
+            className={`nvim-editor-host nvim-editor-host--${
+              editingPresentation === "nvim_preload"
+                ? "preload"
+                : editingPresentation === "nvim_inline"
+                  ? "inline"
+                  : "dialog"
+            }`}
+            style={nvimInlineStyle}
+            aria-hidden={editingPresentation === "nvim_preload"}
           >
             <NvimBlockEditor
               {...editorProps}
               sourceEditor={editingDescriptor.sourceEditor}
+              visible={editingPresentation !== "nvim_preload"}
             />
-          </EditorDialog>
+          </div>
         )}
 
         {presentationOpen ? (

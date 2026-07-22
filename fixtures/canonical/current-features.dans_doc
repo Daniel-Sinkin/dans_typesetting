@@ -416,6 +416,7 @@
         "caption": "A canonical embedded drawing.",
         "referenceId": "fig:canonical-drawing",
         "widthFraction": 0.9,
+        "artboardHeight": 540,
         "scene": {
           "type": "excalidraw",
           "version": 2,

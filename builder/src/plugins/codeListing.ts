@@ -81,6 +81,9 @@ export function createCodeListingPlugin(
     editor: {
       presentation: "inline",
       sourceEditor: {
+        preloadOnContextMenu: true,
+        preloadOnSelection: true,
+        presentation: "dialog",
         fileName(block) {
           const listing = requireCodeListing(block);
           const extension = {
@@ -99,7 +102,7 @@ export function createCodeListingPlugin(
           return createCodeListingBlock(
             listing.id,
             listing.language,
-            source,
+            source.replace(/(?:\r?\n)+$/u, ""),
             listing.captionInlines,
             listing.referenceId,
           );

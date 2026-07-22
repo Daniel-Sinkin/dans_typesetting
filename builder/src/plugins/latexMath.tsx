@@ -11,6 +11,7 @@ import {
   requireLatexMathInline,
 } from "./latexMathModel";
 import {
+  InlineLatexMathDisplayEditor,
   LatexMathDisplayEditor,
   LatexMathDisplayPreview,
 } from "./latexMathBlockView";
@@ -95,11 +96,15 @@ export const latexMathDisplayPlugin: BuilderBlockPlugin = {
     );
   },
   editor: {
+    presentation: "inline",
     title(block: BuilderBlock) {
       return `Edit LaTeX equation · ${requireLatexMathDisplay(block).id}`;
     },
     render(props) {
       return <LatexMathDisplayEditor {...props} />;
+    },
+    renderInline(props) {
+      return <InlineLatexMathDisplayEditor {...props} />;
     },
   },
 };

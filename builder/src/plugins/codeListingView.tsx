@@ -58,7 +58,10 @@ export function CodeListingPreview({
       </div>
       <pre>
         <code data-code-language={listing.language}>
-          <HighlightedCode language={listing.language} code={listing.code} />
+          <HighlightedCode
+            language={listing.language}
+            code={listing.code.replace(/(?:\r?\n)+$/u, "")}
+          />
         </code>
       </pre>
       {listing.captionInlines === null ? null : (
@@ -167,7 +170,7 @@ export function InlineCodeListingEditor({
       <div className="code-editor-surface inline-code-listing-editor__surface">
         <pre ref={highlightRef} aria-hidden="true">
           <code>
-            <HighlightedCode language={language} code={`${code}\n`} />
+            <HighlightedCode language={language} code={code} />
           </code>
         </pre>
         <textarea
@@ -329,7 +332,7 @@ export function CodeListingEditor({
         <div className="code-editor-surface">
           <pre ref={highlightRef} aria-hidden="true">
             <code>
-              <HighlightedCode language={language} code={`${code}\n`} />
+              <HighlightedCode language={language} code={code} />
             </code>
           </pre>
           <textarea

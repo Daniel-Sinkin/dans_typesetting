@@ -1,10 +1,14 @@
 // Graphical writer adapter for an embedded, referenceable Excalidraw scene.
 import type { BuilderBlockPlugin } from "../builder/plugin";
 import type { BuilderBlock } from "../model/document";
-import { ExcalidrawDrawingEditor } from "./drawingEditor";
+import {
+  ExcalidrawDrawingEditor,
+  ExcalidrawDrawingSettingsEditor,
+} from "./drawingEditor";
 import {
   createEmptyExcalidrawScene,
-  excalidrawSceneAspectRatio,
+  defaultExcalidrawArtboardHeight,
+  excalidrawArtboardWidth,
   excalidrawDrawingTypeId,
   requireExcalidrawDrawingBlock,
 } from "./drawingModel";
@@ -26,6 +30,7 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
       caption: "An embedded drawing.",
       referenceId: null,
       widthFraction: 1,
+      artboardHeight: defaultExcalidrawArtboardHeight,
       scene: createEmptyExcalidrawScene(),
     });
   },
@@ -50,8 +55,8 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
       throw new Error("Excalidraw drawing requires positive available width");
     }
     const renderedWidth = availableWidth * drawing.widthFraction;
-    const renderedHeight = renderedWidth / excalidrawSceneAspectRatio(drawing.scene);
-    return Math.max(224, renderedHeight + 104);
+    const renderedHeight = renderedWidth * drawing.artboardHeight / excalidrawArtboardWidth;
+    return Math.max(224, renderedHeight + 78);
   },
   renderPreview(block, context) {
     const drawing = requireExcalidrawDrawingBlock(block);
@@ -59,9 +64,15 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
       <figure className="drawing-content">
         <div
           className="drawing-content__scene"
-          style={{ width: `${String(drawing.widthFraction * 100)}%` }}
+          style={{
+            width: `${String(drawing.widthFraction * 100)}%`,
+            aspectRatio: `${String(excalidrawArtboardWidth)} / ${String(drawing.artboardHeight)}`,
+          }}
         >
-          <DrawingScenePreview scene={drawing.scene} />
+          <DrawingScenePreview
+            scene={drawing.scene}
+            artboardHeight={drawing.artboardHeight}
+          />
         </div>
         <figcaption>
           <strong>Figure {String(context.ordinal ?? "?")}:</strong> {drawing.caption}
@@ -70,7 +81,17 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
     );
   },
   editor: {
-    title: (block) => `Edit embedded drawing · ${requireExcalidrawDrawingBlock(block).id}`,
+    contextActions: [
+      {
+        kind: "editor",
+        id: "drawing-settings",
+        label: "Drawing settings",
+        glyph: "⚙",
+        title: (block) => `Drawing settings · ${requireExcalidrawDrawingBlock(block).id}`,
+        render: (props) => <ExcalidrawDrawingSettingsEditor {...props} />,
+      },
+    ],
+    title: (block) => `Drawing · ${requireExcalidrawDrawingBlock(block).id}`,
     render: (props) => <ExcalidrawDrawingEditor {...props} />,
   },
 };

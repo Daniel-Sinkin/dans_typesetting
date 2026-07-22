@@ -17,6 +17,7 @@ import {
 
 interface NvimBlockEditorProps extends BuilderBlockEditorProps {
   readonly sourceEditor: BuilderBlockSourceEditor;
+  readonly visible: boolean;
 }
 
 interface NvimEditorCallbacks {
@@ -40,12 +41,16 @@ function send(socket: WebSocket, message: NvimClientMessage): void {
 export function NvimBlockEditor({
   block,
   sourceEditor,
+  visible,
   onPreview,
   onCommit,
   onCancel,
 }: NvimBlockEditorProps) {
   const terminalHostRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const visibleRef = useRef(visible);
   const cancelledRef = useRef(false);
   const exitReceivedRef = useRef(false);
   const draftRef = useRef<BuilderBlock>(block);
@@ -69,6 +74,33 @@ export function NvimBlockEditor({
   }, [onCancel, onCommit, onPreview, sourceEditor]);
 
   useEffect(() => {
+    visibleRef.current = visible;
+    if (!visible) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      try {
+        fitAddonRef.current?.fit();
+        terminalRef.current?.focus();
+        const socket = socketRef.current;
+        const terminal = terminalRef.current;
+        if (socket !== null && terminal !== null) {
+          send(socket, {
+            type: "resize",
+            columns: Math.max(20, terminal.cols),
+            rows: Math.max(5, terminal.rows),
+          });
+        }
+      } catch {
+        // The host can take one animation frame to acquire its visible size.
+      }
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [visible]);
+
+  useEffect(() => {
     const terminalHost = terminalHostRef.current;
     if (terminalHost === null) {
       return;
@@ -90,6 +122,8 @@ export function NvimBlockEditor({
       },
     });
     const fitAddon = new FitAddon();
+    terminalRef.current = terminal;
+    fitAddonRef.current = fitAddon;
     terminal.loadAddon(fitAddon);
     terminal.open(terminalHost);
     const socket = new WebSocket(socketUrl());
@@ -121,7 +155,9 @@ export function NvimBlockEditor({
         columns: Math.max(20, terminal.cols),
         rows: Math.max(5, terminal.rows),
       });
-      terminal.focus();
+      if (visibleRef.current) {
+        terminal.focus();
+      }
     });
     socket.addEventListener("message", (event) => {
       try {
@@ -132,7 +168,9 @@ export function NvimBlockEditor({
         }
         if (message.type === "ready") {
           setStatus(`${message.fileName} · normal config loaded`);
-          terminal.focus();
+          if (visibleRef.current) {
+            terminal.focus();
+          }
           return;
         }
         if (message.type === "write") {
@@ -200,6 +238,8 @@ export function NvimBlockEditor({
       }
       socket.close();
       terminal.dispose();
+      terminalRef.current = null;
+      fitAddonRef.current = null;
       socketRef.current = null;
     };
   }, [session]);
@@ -215,7 +255,11 @@ export function NvimBlockEditor({
   };
 
   return (
-    <section className="nvim-block-editor" data-testid="nvim-block-editor">
+    <section
+      className="nvim-block-editor"
+      data-testid="nvim-block-editor"
+      data-visible={visible ? "true" : "false"}
+    >
       <header>
         <div>
           <strong>NEOVIM · {session.fileName}</strong>

@@ -37,8 +37,6 @@ import { hyperlinkInlinePlugin } from "../plugins/hyperlink";
 import { inlineCodePlugin } from "../plugins/inlineCode";
 import { createInlineCode } from "../plugins/inlineCodeModel";
 import { inlineImagePlugin } from "../plugins/inlineImage";
-import { createItemListPlugin } from "../plugins/itemListPlugin";
-import { createBuilderListItem, itemListTypeId } from "../plugins/itemListModel";
 import {
   latexMathDisplayPlugin,
   latexMathInlinePlugin,
@@ -50,13 +48,6 @@ import {
 import { opaqueBlockAdapter } from "../plugins/opaque";
 import { createParagraphPlugin } from "../plugins/paragraph";
 import { referenceInlinePlugin } from "../plugins/reference";
-import { tableCsvCapability } from "../plugins/tableCsv";
-import {
-  createBuilderTableCell,
-  createBuilderTableRow,
-  createRichTableBlock,
-} from "../plugins/tableModel";
-import { createTablePlugin } from "../plugins/tablePlugin";
 import { opaqueInlineAdapter, textInlinePlugin } from "../plugins/text";
 import { projectDocumentTransport } from "../transport/projectTransport";
 import { DocumentBuilder } from "./DocumentBuilder";
@@ -141,6 +132,7 @@ const initialBlocks = [
     caption: "An Excalidraw scene stored as semantic plugin data.",
     referenceId: null,
     widthFraction: 0.9,
+    artboardHeight: 540,
     scene: createSampleExcalidrawScene(),
   }),
   createLatexMathDisplay(
@@ -164,31 +156,6 @@ E &= T + V
       "}",
     ].join("\n"),
   ),
-  Object.freeze({
-    id: "sample-item-list",
-    typeId: itemListTypeId,
-    presentation: "itemized",
-    items: Object.freeze([
-      createBuilderListItem("sample-list-a", [createText("Keyboard-first writing")]),
-      createBuilderListItem("sample-list-b", [createText("Semantic live previews")]),
-    ]),
-  }),
-  createRichTableBlock(
-    "sample-table",
-    [createText("Representative values.")],
-    [
-      createBuilderTableRow("sample-table-head", [
-        createBuilderTableCell("sample-table-head-a", [createText("Name", undefined, "bold")]),
-        createBuilderTableCell("sample-table-head-b", [createText("Value", undefined, "bold")]),
-      ]),
-      createBuilderTableRow("sample-table-row", [
-        createBuilderTableCell("sample-table-row-a", [createText("Iterations")]),
-        createBuilderTableCell("sample-table-row-b", [createText("32")]),
-      ]),
-    ],
-    ["left", "right"],
-    1,
-  ),
 ] satisfies readonly BuilderBlock[];
 
 const documentPort = new MemoryDocumentPort(initialBlocks);
@@ -203,8 +170,6 @@ const pluginRegistry = new BuilderPluginRegistry(
     excalidrawDrawingPlugin,
     latexMathDisplayPlugin,
     createCodeListingPlugin(inlinePluginRegistry),
-    createItemListPlugin(inlinePluginRegistry),
-    createTablePlugin(inlinePluginRegistry, tableCsvCapability),
   ],
   opaqueBlockAdapter,
 );
