@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import type { BuilderBlockEditorProps } from "../builder/plugin";
 import { editableReferenceIdError } from "../builder/referenceEditing";
 import {
-  drawingCanvasHeight,
   requireExcalidrawDrawingBlock,
   type ExcalidrawDrawingBlock,
 } from "./drawingModel";
@@ -147,6 +146,7 @@ export function ExcalidrawDrawingEditor({
         <label>
           <span>Width · {Math.round(draft.widthFraction * 100)}%</span>
           <input
+            data-testid="drawing-width"
             type="range"
             min="30"
             max="100"
@@ -157,20 +157,7 @@ export function ExcalidrawDrawingEditor({
             }}
           />
         </label>
-        <label>
-          <span>Canvas height · {draft.canvasHeight}px</span>
-          <input
-            data-testid="drawing-height"
-            type="range"
-            min={drawingCanvasHeight.minimum}
-            max={drawingCanvasHeight.maximum}
-            step="10"
-            value={draft.canvasHeight}
-            onChange={(event) => {
-              updateDraft({ canvasHeight: Number(event.target.value) });
-            }}
-          />
-        </label>
+        <small>The drawing height follows its content automatically.</small>
         <button
           type="button"
           disabled={exportState === "working"}

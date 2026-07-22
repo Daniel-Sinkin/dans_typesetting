@@ -64,11 +64,13 @@ advance following content. Page/slide range controls project at most five surfac
 mode also exposes a fullscreen-friendly one-slide reader with keyboard navigation; it consumes the
 same graphical plugin adapters rather than maintaining a second presentation model.
 
-Paragraph editing preserves the ordered inline sequence, supports drag-reordering, and renders a
-live composed preview. Normal/bold/italic/bold-italic text, semantic single-line code, semantic RGB
-colour spans, hyperlinks, live cross-references, live citations, numbered footnotes, and text-authored inline math are
-editable. Emoji-sized inline images expose live source/file selection and text-relative height
-without acquiring figure numbering or captions. Unsupported inline nodes remain visible as named read-only chips. Footnotes render
+Paragraph editing is a direct writing surface backed by the ordered inline sequence. Ordinary text
+is typed and selected in place, bold/italic formatting uses familiar controls and keyboard
+shortcuts, and semantic code, colour, links, cross-references, citations, footnotes, math, and images
+are inserted at the caret without dragging cards. Clicking a rich inline pill opens only that
+element's focused inspector. Image files can be chosen from the toolbar or pasted directly into the
+paragraph; emoji-sized inline images retain text-relative height without acquiring figure numbering
+or captions. Unsupported inline nodes remain visible as named read-only pills. Footnotes render
 as live superscript markers
 with hover/focus previews; their editor composes, adds, removes, and reorders a nested inline
 sequence. Markers are derived from current document traversal rather than stored in the payload,
@@ -126,11 +128,11 @@ numbered inline occurrences such as footnotes: duplicating a paragraph or list
 creates a distinct note occurrence while preserving its content.
 
 An Excalidraw drawing is a semantic figure block rather than part of the surrounding note canvas.
-Choose Edit to mount a second, clipped Excalidraw instance directly inside that block. Caption,
-reference ID, preferred width, and editor height reflow the document as drafts; Cancel restores the
-published block and Save commits one replacement transaction. The scene preview is rendered through
-an isolated SVG image boundary, and Export SVG renders the same scene for an external writer.
-The outer canvas remains available around and above the document throughout editing.
+Choose Edit to open a focused modal containing the second Excalidraw instance. Caption, reference
+ID, and percentage width remain editable; displayed height is derived automatically from the scene's
+visible bounds. Cancel discards the draft and Save commits one replacement transaction. The scene
+preview is rendered through an isolated SVG image boundary, and Export SVG renders the same scene
+for an external writer.
 
 Itemized and enumerated lists are one semantic plugin. Every stable item owns the same ordered
 inline sequence as a paragraph, so existing text-style, colour, hyperlink, and mathematics plugins

@@ -3,6 +3,23 @@
 This file records recovery information for a fresh development session. Update
 it at every milestone rather than relying on conversation history.
 
+## Direct builder authoring milestone
+
+Native PDF work is intentionally parked. The active builder now edits a
+paragraph through one contenteditable writing surface rather than one draggable
+card per inline node. Core text is typed in place and selection formatting
+lowers back to stable semantic text runs. Non-text nodes appear as compact
+atomic pills, are inserted at the caret from buttons, and expose one focused
+inspector when selected. Image files can be selected or pasted at the caret.
+The underlying Inline Sequence and existing plugin payload editors remain the
+transport boundary.
+
+Embedded Excalidraw editing now opens in the ordinary modal editor host rather
+than expanding inside the document block. Width remains a stored percentage;
+manual canvas height has been removed from the runtime and canonical payload,
+and preview height is derived from visible scene bounds. Decoding accepts the
+former `canvasHeight` property and normalizes it away.
+
 ## Native paragraph publication milestone
 
 The current working slice introduces strict canonical-to-semantic
@@ -456,8 +473,8 @@ The preceding embedded Excalidraw drawing slice adds:
 
 - `dans.drawing.excalidraw` as an ordinary referenceable semantic block;
 - a plugin-owned, validated and canonically round-trippable scene payload;
-- a real isolated Excalidraw editor mounted directly inside the document page;
-- transactional draft preview, live width/height reflow, cancel restoration,
+- a real isolated Excalidraw editor mounted in a focused modal;
+- transactional draft preview, live width/aspect reflow, cancel restoration,
   scene editing, image-file preservation, and explicit SVG export;
 - safe asynchronous SVG previews that cannot publish a stale scene;
 - a native semantic plugin and a LaTeX adapter with an injected asset resolver;
@@ -561,7 +578,8 @@ Current deliberate compromises to reassess later:
   the semantic command and identity boundaries are complete, but the gesture
   should converge with the rest of the builder after interaction tuning.
 - footnote nested-segment editing currently uses explicit move buttons; the
-  surrounding paragraph sequence still uses pointer dragging.
+  surrounding paragraph now uses direct writing plus a selected-inline
+  inspector.
 - direct footnote nesting is rejected, but a future generic containment policy
   should decide whether another wrapper may indirectly contain a footnote.
 - the first table model is deliberately rectangular: row/column spans,

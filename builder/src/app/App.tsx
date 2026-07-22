@@ -293,7 +293,6 @@ const initialBlocks = [
     caption: "An Excalidraw scene stored as semantic plugin data.",
     referenceId: "fig:embedded-drawing",
     widthFraction: 0.9,
-    canvasHeight: 390,
     scene: createSampleExcalidrawScene(),
   }),
   createCaptionedBlock(

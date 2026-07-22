@@ -4,6 +4,7 @@ import type { BuilderBlock } from "../model/document";
 import { ExcalidrawDrawingEditor } from "./drawingEditor";
 import {
   createEmptyExcalidrawScene,
+  excalidrawSceneAspectRatio,
   excalidrawDrawingTypeId,
   requireExcalidrawDrawingBlock,
 } from "./drawingModel";
@@ -14,7 +15,7 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
   numberingSeries: "Figure",
   palette: {
     label: "Excalidraw drawing",
-    description: "A bounded scene edited directly inside the document",
+    description: "A scene edited in a focused popup window",
     glyph: "✎",
     accentColor: "#f08c00",
   },
@@ -25,7 +26,6 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
       caption: "An embedded drawing.",
       referenceId: null,
       widthFraction: 1,
-      canvasHeight: 380,
       scene: createEmptyExcalidrawScene(),
     });
   },
@@ -49,7 +49,9 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
     if (availableWidth <= 0) {
       throw new Error("Excalidraw drawing requires positive available width");
     }
-    return drawing.canvasHeight + 104;
+    const renderedWidth = availableWidth * drawing.widthFraction;
+    const renderedHeight = renderedWidth / excalidrawSceneAspectRatio(drawing.scene);
+    return Math.max(224, renderedHeight + 104);
   },
   renderPreview(block, context) {
     const drawing = requireExcalidrawDrawingBlock(block);
@@ -68,7 +70,6 @@ export const excalidrawDrawingPlugin: BuilderBlockPlugin = {
     );
   },
   editor: {
-    presentation: "inline",
     title: (block) => `Edit embedded drawing · ${requireExcalidrawDrawingBlock(block).id}`,
     render: (props) => <ExcalidrawDrawingEditor {...props} />,
   },

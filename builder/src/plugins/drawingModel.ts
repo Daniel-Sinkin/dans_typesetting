@@ -3,7 +3,6 @@ import type { BuilderBlock } from "../model/document";
 import { validateOptionalReferenceId } from "../model/referenceId";
 
 export const excalidrawDrawingTypeId = "dans.drawing.excalidraw";
-export const drawingCanvasHeight = Object.freeze({ minimum: 240, maximum: 720 });
 
 export interface ExcalidrawScenePayload {
   readonly type: string;
@@ -19,12 +18,57 @@ export interface ExcalidrawDrawingBlock extends BuilderBlock {
   readonly caption: string;
   readonly referenceId: string | null;
   readonly widthFraction: number;
-  readonly canvasHeight: number;
   readonly scene: ExcalidrawScenePayload;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const drawingExportPadding = 16;
+const emptyDrawingAspectRatio = 16 / 9;
+
+function finiteNumber(record: Readonly<Record<string, unknown>>, key: string): number | null {
+  const value = record[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+export function excalidrawSceneAspectRatio(scene: ExcalidrawScenePayload): number {
+  let minimumX = Number.POSITIVE_INFINITY;
+  let minimumY = Number.POSITIVE_INFINITY;
+  let maximumX = Number.NEGATIVE_INFINITY;
+  let maximumY = Number.NEGATIVE_INFINITY;
+  for (const value of scene.elements) {
+    if (!isRecord(value) || value.isDeleted === true) {
+      continue;
+    }
+    const x = finiteNumber(value, "x");
+    const y = finiteNumber(value, "y");
+    const width = finiteNumber(value, "width");
+    const height = finiteNumber(value, "height");
+    if (x === null || y === null || width === null || height === null) {
+      continue;
+    }
+    const angle = finiteNumber(value, "angle") ?? 0;
+    const rotatedWidth =
+      Math.abs(width * Math.cos(angle)) + Math.abs(height * Math.sin(angle));
+    const rotatedHeight =
+      Math.abs(width * Math.sin(angle)) + Math.abs(height * Math.cos(angle));
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    minimumX = Math.min(minimumX, centerX - rotatedWidth / 2);
+    maximumX = Math.max(maximumX, centerX + rotatedWidth / 2);
+    minimumY = Math.min(minimumY, centerY - rotatedHeight / 2);
+    maximumY = Math.max(maximumY, centerY + rotatedHeight / 2);
+  }
+  if (![minimumX, minimumY, maximumX, maximumY].every(Number.isFinite)) {
+    return emptyDrawingAspectRatio;
+  }
+  const contentWidth = maximumX - minimumX + drawingExportPadding * 2;
+  const contentHeight = maximumY - minimumY + drawingExportPadding * 2;
+  return contentWidth > 0 && contentHeight > 0
+    ? contentWidth / contentHeight
+    : emptyDrawingAspectRatio;
 }
 
 function deepFreezeJson(value: unknown): unknown {
@@ -82,8 +126,6 @@ export function isExcalidrawDrawingBlock(
     (block.referenceId === null || typeof block.referenceId === "string") &&
     "widthFraction" in block &&
     typeof block.widthFraction === "number" &&
-    "canvasHeight" in block &&
-    typeof block.canvasHeight === "number" &&
     "scene" in block
   );
 }
@@ -103,17 +145,12 @@ export function validateExcalidrawDrawingBlock(block: ExcalidrawDrawingBlock): v
     throw new Error("An Excalidraw drawing requires a caption");
   }
   validateOptionalReferenceId(block.referenceId, "Excalidraw drawing reference ID");
-  if (block.widthFraction <= 0 || block.widthFraction > 1) {
-    throw new Error("Excalidraw drawing widthFraction must be in (0, 1]");
-  }
   if (
-    !Number.isSafeInteger(block.canvasHeight) ||
-    block.canvasHeight < drawingCanvasHeight.minimum ||
-    block.canvasHeight > drawingCanvasHeight.maximum
+    !Number.isFinite(block.widthFraction) ||
+    block.widthFraction <= 0 ||
+    block.widthFraction > 1
   ) {
-    throw new Error(
-      `Excalidraw drawing canvasHeight must be an integer in [${String(drawingCanvasHeight.minimum)}, ${String(drawingCanvasHeight.maximum)}]`,
-    );
+    throw new Error("Excalidraw drawing widthFraction must be in (0, 1]");
   }
   normalizeExcalidrawScene(block.scene);
 }

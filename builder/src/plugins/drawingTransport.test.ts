@@ -19,7 +19,6 @@ function drawingBlock(): ExcalidrawDrawingBlock {
     caption: "A semantic drawing.",
     referenceId: "fig:drawing",
     widthFraction: 0.82,
-    canvasHeight: 420,
     scene: createEmptyExcalidrawScene(),
   });
 }
@@ -49,21 +48,21 @@ describe("embedded Excalidraw drawing transport", () => {
     expect(restored.scene).toEqual(createEmptyExcalidrawScene());
     expect(Object.isFrozen(restored.scene.elements)).toBe(true);
     expect(restored.referenceId).toBe("fig:drawing");
+    expect(source).not.toContain("canvasHeight");
   });
 
-  it("rejects malformed scenes, dimensions, and reference IDs at the plugin codec", () => {
+  it("rejects malformed scenes, widths, and reference IDs at the plugin codec", () => {
     const validPayload = {
       caption: "Drawing",
       referenceId: null,
       widthFraction: 1,
-      canvasHeight: 380,
       scene: createEmptyExcalidrawScene(),
     };
     expect(() =>
       projectDocumentTransport.fromString(
-        sourceWithPayload({ ...validPayload, canvasHeight: 721 }),
+        sourceWithPayload({ ...validPayload, widthFraction: 1.01 }),
       ),
-    ).toThrow(/canvasHeight/u);
+    ).toThrow(/widthFraction/u);
     expect(() =>
       projectDocumentTransport.fromString(
         sourceWithPayload({ ...validPayload, referenceId: "not a reference" }),
@@ -77,5 +76,23 @@ describe("embedded Excalidraw drawing transport", () => {
         }),
       ),
     ).toThrow(/scene/u);
+  });
+
+  it("accepts and drops the former manual canvas-height field", () => {
+    const decoded = projectDocumentTransport.fromString(
+      sourceWithPayload({
+        caption: "Legacy drawing",
+        referenceId: null,
+        widthFraction: 0.75,
+        canvasHeight: 520,
+        scene: createEmptyExcalidrawScene(),
+      }),
+    );
+    const normalized = projectDocumentTransport.toString(
+      new MemoryDocumentPort(decoded.blocks, decoded.metadata).getSnapshot(),
+    );
+
+    expect(normalized).not.toContain("canvasHeight");
+    expect(normalized).toContain('"widthFraction": 0.75');
   });
 });

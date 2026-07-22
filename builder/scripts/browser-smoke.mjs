@@ -722,23 +722,26 @@ async function exerciseBuilder(client) {
   const drawingEditorInitial = await client.evaluate(`(() => {
     const block = document.querySelector("[data-block-id='sample-excalidraw-drawing']");
     return {
+      popupEditor: document.querySelector("[data-testid='block-editor-dialog'] [data-testid='excalidraw-drawing-editor']") !== null,
       inlineEditor: block.querySelector("[data-testid='excalidraw-drawing-editor']") !== null,
       excalidrawInstances: document.querySelectorAll(".excalidraw").length,
       height: Number.parseFloat(block.style.height),
+      manualHeight: document.querySelector("input[data-testid='drawing-height']") !== null,
     };
   })()`);
-  assert(drawingEditorInitial.inlineEditor, "The drawing editor was not mounted in its document block");
+  assert(drawingEditorInitial.popupEditor && !drawingEditorInitial.inlineEditor, "The drawing editor did not open in a focused popup");
   assert(drawingEditorInitial.excalidrawInstances === 2, "The bounded drawing scene was not isolated from the notes canvas");
+  assert(!drawingEditorInitial.manualHeight, "The drawing editor still exposed a manual height setting");
   await client.evaluate(`(() => {
-    const slider = document.querySelector("input[data-testid='drawing-height']");
+    const slider = document.querySelector("input[data-testid='drawing-width']");
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    setter.call(slider, "520");
+    setter.call(slider, "60");
     slider.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
   await delay(180);
   assert(
-    (await client.evaluate(`Number.parseFloat(document.querySelector("[data-block-id='sample-excalidraw-drawing']").style.height)`)) > drawingEditorInitial.height + 100,
-    "A drawing height draft did not reflow the document immediately",
+    (await client.evaluate(`Number.parseFloat(document.querySelector("[data-block-id='sample-excalidraw-drawing']").style.height)`)) < drawingEditorInitial.height - 30,
+    "The percentage width did not reflow the drawing at its automatic aspect ratio",
   );
   await client.evaluate(`(() => {
     const editor = document.querySelector("[data-testid='excalidraw-drawing-editor']");
@@ -747,7 +750,7 @@ async function exerciseBuilder(client) {
   await delay(150);
   assert(
     Math.abs((await client.evaluate(`Number.parseFloat(document.querySelector("[data-block-id='sample-excalidraw-drawing']").style.height)`)) - drawingEditorInitial.height) < 1,
-    "Cancelling an inline drawing draft did not restore the semantic layout",
+    "Cancelling a drawing popup did not restore the semantic layout",
   );
 
   await client.evaluate(`(() => {
@@ -759,7 +762,7 @@ async function exerciseBuilder(client) {
     const editor = document.querySelector("[data-testid='excalidraw-drawing-editor']");
     const caption = editor.querySelector("textarea");
     const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
-    textareaSetter.call(caption, "Edited directly inside the document.");
+    textareaSetter.call(caption, "Edited in a focused popup window.");
     caption.dispatchEvent(new Event("input", { bubbles: true }));
     const rectangle = editor.querySelector(".drawing-editor__canvas input[aria-label='Rectangle']");
     rectangle.click();
@@ -776,7 +779,7 @@ async function exerciseBuilder(client) {
     !(await client.evaluate(`document.querySelector(".drawing-editor__canvas button[aria-label='Undo']").disabled`)),
     "The nested Excalidraw editor did not receive drawing input",
   );
-  await screenshot(client, "inline-excalidraw-editor.png");
+  await screenshot(client, "popup-excalidraw-editor.png");
   await client.evaluate(`(() => {
     const editor = document.querySelector("[data-testid='excalidraw-drawing-editor']");
     [...editor.querySelectorAll("button")].find((button) => button.textContent.includes("Save drawing")).click();
@@ -785,10 +788,10 @@ async function exerciseBuilder(client) {
   assert(
     await client.evaluate(`(() => {
       const drawing = document.querySelector("[data-visual-block-id='sample-excalidraw-drawing']");
-      return drawing.textContent.includes("Edited directly inside the document") &&
+      return drawing.textContent.includes("Edited in a focused popup window") &&
         drawing.querySelector("img")?.src.startsWith("blob:");
     })()`),
-    "The inline drawing editor did not commit its scene and caption",
+    "The popup drawing editor did not commit its scene and caption",
   );
 
   await reloadBuilder(client);
@@ -965,37 +968,99 @@ async function exerciseBuilder(client) {
     [...block.querySelectorAll("button")].find((button) => button.textContent.trim() === "Edit").click();
   })()`);
   await delay(80);
+  assert(
+    await client.evaluate(`document.querySelector("[data-testid='paragraph-composer']") !== null && document.querySelector(".inline-editor-sequence") === null`),
+    "The paragraph did not open as a direct writing surface",
+  );
   await client.evaluate(`(() => {
-    const textarea = document.querySelector("textarea[data-inline-id='sample-introduction-text-a']");
-    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
-    textareaSetter.call(textarea, "Edited by the browser smoke test. ");
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    const composer = document.querySelector("[data-testid='paragraph-composer']");
+    const firstText = composer.querySelector("[data-paragraph-text-id='sample-introduction-text-a']");
+    firstText.textContent = "Edited by the browser smoke test. ";
+    composer.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText" }));
+    const styled = composer.querySelector("[data-paragraph-text-id='sample-introduction-styled-text']");
+    const range = document.createRange();
+    range.selectNodeContents(styled);
+    const selection = document.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+  })()`);
+  await delay(40);
+  await client.evaluate(`[
+    ...document.querySelectorAll(".paragraph-toolbar button")
+  ].find((button) => button.textContent.trim() === "Clear").click()`);
+  await delay(40);
+  await client.evaluate(`document.querySelector("button[aria-label='Italicize selected text']").click()`);
+  await delay(40);
+
+  await client.evaluate(`document.querySelector("[data-paragraph-atom-id='sample-introduction-colour']").click()`);
+  await delay(40);
+  await client.evaluate(`(() => {
     const color = document.querySelector("input[data-color-span-id='sample-introduction-colour']");
     const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
     inputSetter.call(color, "#c92a2a");
     color.dispatchEvent(new Event("input", { bubbles: true }));
-    const style = document.querySelector("select[data-inline-style-id='sample-introduction-styled-text']");
-    const selectSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set;
-    selectSetter.call(style, "italic");
-    style.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await delay(40);
+
+  await client.evaluate(`document.querySelector("[data-paragraph-atom-id='sample-introduction-link']").click()`);
+  await delay(40);
+  await client.evaluate(`(() => {
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
     const hyperlink = document.querySelector("input[data-hyperlink-id='sample-introduction-link']");
     inputSetter.call(hyperlink, "www.google.com");
     hyperlink.dispatchEvent(new Event("input", { bubbles: true }));
     const hyperlinkLabel = document.querySelector("textarea[data-inline-id='sample-introduction-link-label']");
     textareaSetter.call(hyperlinkLabel, "updated link");
     hyperlinkLabel.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(40);
+
+  await client.evaluate(`document.querySelector("[data-paragraph-atom-id='sample-introduction-footnote']").click()`);
+  await delay(40);
+  await client.evaluate(`(() => {
+    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
     const footnoteText = document.querySelector("textarea[data-inline-id='sample-introduction-footnote-text']");
     textareaSetter.call(footnoteText, "Updated footnote with ");
     footnoteText.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(40);
+
+  await client.evaluate(`document.querySelector("[data-paragraph-atom-id='sample-introduction-inline-code']").click()`);
+  await delay(40);
+  await client.evaluate(`(() => {
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
     const inlineCode = document.querySelector("input[data-inline-code-id='sample-introduction-inline-code']");
     inputSetter.call(inlineCode, "cudaGetLastError()");
     inlineCode.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(40);
+
+  await client.evaluate(`document.querySelector("[data-paragraph-atom-id='sample-introduction-citation']").click()`);
+  await delay(40);
+  await client.evaluate(`(() => {
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
     const citation = document.querySelector("input[data-citation-editor-id='sample-introduction-citation']");
     inputSetter.call(citation, "orus2014");
     citation.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(40);
+
+  await client.evaluate(`document.querySelector("[data-paragraph-atom-id='sample-introduction-inline-math']").click()`);
+  await delay(40);
+  await client.evaluate(`(() => {
+    const textareaSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
     const inlineMath = document.querySelector("textarea[data-latex-math-inline-source='sample-introduction-inline-math']");
     textareaSetter.call(inlineMath, "\\\\alpha + \\\\beta");
     inlineMath.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await delay(40);
+
+  await client.evaluate(`document.querySelector("[data-paragraph-atom-id='sample-introduction-inline-image']").click()`);
+  await delay(40);
+  await client.evaluate(`(() => {
+    const inputSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
     const inlineImageHeight = document.querySelector("input[data-inline-image-height='sample-introduction-inline-image']");
     inputSetter.call(inlineImageHeight, "1.6");
     inlineImageHeight.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1007,8 +1072,8 @@ async function exerciseBuilder(client) {
     return {
       text: preview.textContent.includes("Edited by the browser smoke test"),
       colour: getComputedStyle(colour).color,
-      segments: document.querySelectorAll("[data-inline-editor-id]").length,
-      inlineMathEditor: document.querySelector("textarea[data-latex-math-inline-source='sample-introduction-inline-math']")?.value === "\\\\alpha + \\\\beta",
+      segments: document.querySelectorAll("[data-paragraph-text-id], [data-paragraph-atom-id]").length,
+      cards: document.querySelectorAll(".inline-editor-item").length,
       inlineMathPreview: preview.querySelector("[data-latex-math-inline-id='sample-introduction-inline-math'] .katex-html")?.textContent.includes("α+β") ?? false,
       hyperlink: preview.querySelector("a[href='https://www.google.com']")?.textContent === "updated link",
       styled: preview.querySelector("em")?.textContent === "Styled text",
@@ -1024,11 +1089,12 @@ async function exerciseBuilder(client) {
   assert(paragraphLive.colour === "rgb(201, 42, 42)", "Colour-span preview did not update");
   assert(
     paragraphLive.segments === initialParagraphSegmentCount,
-    "The paragraph did not expose all inline segments",
+    "The paragraph writing surface did not preserve all semantic nodes",
   );
+  assert(paragraphLive.cards === 0, "The paragraph still exposed one editor card per inline node");
   assert(
-    paragraphLive.inlineMathEditor && paragraphLive.inlineMathPreview,
-    "Text-authored inline math did not update its editor and live preview",
+    paragraphLive.inlineMathPreview,
+    "Text-authored inline math did not update the live preview",
   );
   assert(paragraphLive.hyperlink, "Hyperlink target and label did not live-update");
   assert(paragraphLive.styled, "Core Text style did not live-update");
@@ -1037,10 +1103,11 @@ async function exerciseBuilder(client) {
   assert(paragraphLive.inlineCode, "Inline-code editing did not update the live preview");
   assert(paragraphLive.inlineImage, "Inline-image height editing did not update the live preview");
   assert(paragraphLive.citation, "Citation editing did not update the live resource lookup");
+  await screenshot(client, "paragraph-editor.png");
 
-  await client.evaluate(`(() => {
-    document.querySelector(".footnote-editor__add button").click();
-  })()`);
+  await client.evaluate(`document.querySelector("[data-paragraph-atom-id='sample-introduction-footnote']").click()`);
+  await delay(40);
+  await client.evaluate(`document.querySelector(".footnote-editor__add button").click()`);
   await delay(80);
   const addedFootnoteInlineId = await client.evaluate(`(() => {
     const segments = [...document.querySelectorAll("[data-footnote-inline-id]")];
@@ -1071,52 +1138,63 @@ async function exerciseBuilder(client) {
     "Footnote editor did not remove a nested segment",
   );
 
-  const addSegmentPoints = await client.evaluate(`(() => {
-    const center = (element) => {
-      const bounds = element.getBoundingClientRect();
-      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-    };
-    const sequence = document.querySelector(".inline-editor-sequence").getBoundingClientRect();
-    return {
-      start: center(document.querySelector("[data-inline-palette='dans.core.text']")),
-      end: { x: sequence.x + sequence.width / 2, y: sequence.bottom - 3 },
-    };
+  await client.evaluate(`(() => {
+    const composer = document.querySelector("[data-testid='paragraph-composer']");
+    const range = document.createRange();
+    range.selectNodeContents(composer);
+    range.collapse(false);
+    const selection = document.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
   })()`);
-  await pointerDrag(client, addSegmentPoints.start, addSegmentPoints.end);
+  const paragraphDocumentRoot = await client.send("DOM.getDocument", { depth: -1, pierce: true });
+  const paragraphImageInput = await client.send("DOM.querySelector", {
+    nodeId: paragraphDocumentRoot.root.nodeId,
+    selector: `input[data-testid="paragraph-image-file-input"]`,
+  });
+  assert(paragraphImageInput.nodeId !== 0, "The paragraph image action did not create a file input");
+  await client.send("DOM.setFileInputFiles", {
+    nodeId: paragraphImageInput.nodeId,
+    files: [sampleImagePath],
+  });
+  await delay(220);
+  assert(
+    (await client.evaluate(`document.querySelectorAll("[data-paragraph-inline-type='dans.image.inline']").length`)) === 2,
+    "Choosing an image did not insert it at the paragraph caret",
+  );
+  await client.evaluate(`document.querySelector(".paragraph-inspector__actions .danger-action").click()`);
+  await delay(40);
+
+  await client.evaluate(`document.querySelector("[data-inline-insert='dans.code.inline']").click()`);
+  await delay(40);
   const addedInlineId = await client.evaluate(`(() => {
-    const items = [...document.querySelectorAll("[data-inline-editor-id]")];
-    return items.length === ${String(initialParagraphSegmentCount + 1)}
-      ? items.at(-1).dataset.inlineEditorId
+    const items = [...document.querySelectorAll("[data-paragraph-inline-type='dans.code.inline']")];
+    const added = items.at(-1);
+    return document.querySelectorAll("[data-paragraph-text-id], [data-paragraph-atom-id]").length === ${String(initialParagraphSegmentCount + 1)}
+      ? added.getAttribute("data-paragraph-atom-id")
       : null;
   })()`);
-  assert(addedInlineId !== null, "Dragging from the inline palette did not add a segment");
-
-  const reorderSegmentPoints = await client.evaluate(`(() => {
-    const center = (element) => {
-      const bounds = element.getBoundingClientRect();
-      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-    };
-    const grip = document.querySelector("[data-inline-grip-id='${addedInlineId}']");
-    grip.scrollIntoView({ block: "center" });
-    const items = [...document.querySelectorAll("[data-inline-editor-id]")];
-    const previous = items.at(-2).getBoundingClientRect();
+  assert(addedInlineId !== null, "Clicking an inline tool did not insert content at the caret");
+  await client.evaluate(`document.querySelector("button[aria-label='Move selected inline left']").click()`);
+  await delay(40);
+  const movedInlinePosition = await client.evaluate(`(() => {
+    const nodes = [...document.querySelectorAll("[data-paragraph-text-id], [data-paragraph-atom-id]")];
     return {
-      start: center(grip),
-      end: { x: previous.x + previous.width / 2, y: previous.y + 2 },
+      position: nodes.findIndex((node) => node.getAttribute("data-paragraph-atom-id") === '${addedInlineId}'),
+      count: nodes.length,
+      tail: nodes.slice(-3).map((node) => node.getAttribute("data-paragraph-atom-id") ?? node.getAttribute("data-paragraph-text-id")),
     };
   })()`);
-  await pointerDrag(client, reorderSegmentPoints.start, reorderSegmentPoints.end);
   assert(
-    (await client.evaluate(`[
-      ...document.querySelectorAll("[data-inline-editor-id]")
-    ].at(-2).dataset.inlineEditorId`)) === addedInlineId,
-    "Inline segment drag did not reorder the paragraph sequence",
+    movedInlinePosition.position === movedInlinePosition.count - 2,
+    `The inline inspector did not move content without a drag gesture: ${JSON.stringify(movedInlinePosition)}`,
   );
-  await client.evaluate(`(() => {
-    const item = document.querySelector("[data-inline-editor-id='${addedInlineId}']");
-    [...item.querySelectorAll("button")].find((button) => button.textContent.trim() === "Remove").click();
-    [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Save paragraph")).click();
-  })()`);
+  await client.evaluate(`document.querySelector(".paragraph-inspector__actions .danger-action").click()`);
+  await delay(40);
+  await client.evaluate(`[
+    ...document.querySelectorAll("button")
+  ].find((button) => button.textContent.includes("Save paragraph")).click()`);
   const paragraphEdited = await client.evaluate(`(() => {
     const paragraph = document.querySelector("[data-visual-block-id='sample-introduction']");
     return paragraph.textContent.includes("Edited by the browser smoke test") &&

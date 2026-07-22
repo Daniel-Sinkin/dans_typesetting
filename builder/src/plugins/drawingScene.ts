@@ -14,6 +14,8 @@ import {
   type ExcalidrawScenePayload,
 } from "./drawingModel";
 
+const drawingExportPadding = 16;
+
 export function captureExcalidrawScene(
   elements: readonly ExcalidrawElement[],
   appState: AppState,
@@ -106,7 +108,7 @@ export async function exportExcalidrawSceneToSvg(
       viewBackgroundColor: restored.appState.viewBackgroundColor,
     },
     files: restored.files,
-    exportPadding: 16,
+    exportPadding: drawingExportPadding,
     renderEmbeddables: false,
     skipInliningFonts: true,
   });

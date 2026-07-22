@@ -23,7 +23,6 @@ export const excalidrawDrawingTransportCodec: BlockTransportCodec = {
       caption: drawing.caption,
       referenceId: drawing.referenceId,
       widthFraction: drawing.widthFraction,
-      canvasHeight: drawing.canvasHeight,
       scene: drawing.scene,
     };
   },
@@ -40,11 +39,6 @@ export const excalidrawDrawingTransportCodec: BlockTransportCodec = {
       widthFraction: requireTransportNumber(
         data,
         "widthFraction",
-        "Excalidraw drawing payload",
-      ),
-      canvasHeight: requireTransportNumber(
-        data,
-        "canvasHeight",
         "Excalidraw drawing payload",
       ),
       scene: normalizeExcalidrawScene(data.scene),
