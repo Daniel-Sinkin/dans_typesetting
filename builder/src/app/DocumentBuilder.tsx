@@ -7,7 +7,6 @@ import {
   newElementWith,
   sceneCoordsToViewportCoords,
   viewportCoordsToSceneCoords,
-  zoomToFitBounds,
 } from "@excalidraw/excalidraw";
 import type { AppState, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import {
@@ -166,6 +165,11 @@ interface StructuralUndoEntry {
   readonly undo: () => readonly string[];
 }
 
+interface BlockClipboard {
+  readonly block: BuilderBlock;
+  readonly mode: "copy" | "cut";
+}
+
 function viewportFromAppState(appState: AppState): CanvasViewport {
   return {
     zoom: appState.zoom,
@@ -276,6 +280,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const middlePanRef = useRef<MiddlePanGesture | null>(null);
   const documentControlLayerRef = useRef<HTMLDivElement>(null);
   const nvimInlineHostRef = useRef<HTMLDivElement>(null);
+  const blockClipboardRef = useRef<BlockClipboard | null>(null);
   const undoStackRef = useRef<StructuralUndoEntry[]>([]);
 
   const activateEditor = useCallback(
@@ -499,6 +504,88 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       selectSingleBlock(nextBlockId);
     }
   }, [clearEditorState, editingBlock, port, selectSingleBlock, snapshot.blocks]);
+
+  useEffect(() => {
+    const handleBlockClipboard = (event: KeyboardEvent): void => {
+      if (
+        (!event.ctrlKey && !event.metaKey) ||
+        event.altKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key !== "c" && key !== "x" && key !== "v") {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest(
+          "input, textarea, select, button, [contenteditable='true'], .editor-dialog, .inline-block-editor, .nvim-editor-host",
+        ) !== null
+      ) {
+        return;
+      }
+      const selectedIds = selectedBlockIdsRef.current;
+      const selectedId = selectedIds[0];
+      if (selectedIds.length !== 1 || selectedId === undefined) {
+        return;
+      }
+      const selectedLocation = findBuilderBlock(
+        port.getSnapshot().blocks,
+        selectedId,
+      );
+      if (selectedLocation === null) {
+        return;
+      }
+
+      if (key === "c" || key === "x") {
+        event.preventDefault();
+        event.stopPropagation();
+        blockClipboardRef.current = {
+          block: selectedLocation.block,
+          mode: key === "x" ? "cut" : "copy",
+        };
+        if (key === "x") {
+          deleteBlocks([selectedId]);
+        }
+        return;
+      }
+
+      const clipboard = blockClipboardRef.current;
+      if (clipboard === null) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const currentBlocks = port.getSnapshot().blocks;
+      const currentLocation = findBuilderBlock(currentBlocks, selectedId);
+      if (currentLocation === null) {
+        return;
+      }
+      const pasted =
+        clipboard.mode === "cut" &&
+        findBuilderBlock(currentBlocks, clipboard.block.id) === null
+          ? clipboard.block
+          : copyBuilderBlockForInsert(clipboard.block, registry);
+      insertBlocksWithUndo([
+        {
+          kind: "insert",
+          parentId: currentLocation.parentId,
+          parentSequenceId: currentLocation.parentSequenceId,
+          index: currentLocation.index + 1,
+          block: pasted,
+        },
+      ]);
+      blockClipboardRef.current = { block: clipboard.block, mode: "copy" };
+      selectSingleBlock(pasted.id);
+    };
+    window.addEventListener("keydown", handleBlockClipboard, true);
+    return () => {
+      window.removeEventListener("keydown", handleBlockClipboard, true);
+    };
+  }, [deleteBlocks, insertBlocksWithUndo, port, registry, selectSingleBlock]);
 
   useEffect(() => {
     const handleUndo = (event: KeyboardEvent): void => {
@@ -1275,33 +1362,8 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       setBlockContextMenu(null);
       setPreloadSuppressedBlockId(null);
       activateEditor(block, presentation);
-      const blockLayout = layout.blocks.find(({ block: candidate }) => candidate.id === block.id);
-      if (
-        presentation !== "nvim_inline" &&
-        canvasApi !== null &&
-        blockLayout !== undefined
-      ) {
-        const { x, y, width, height } = blockLayout.bounds;
-        const fitted = zoomToFitBounds({
-          bounds: [x, y, x + width, y + height],
-          appState: canvasApi.getAppState(),
-          canvasOffsets: { top: 70, right: 340, bottom: 70, left: 50 },
-          fitToViewport: true,
-          viewportZoomFactor: 0.82,
-          minZoom: 0.45,
-          maxZoom: 1,
-        });
-        canvasApi.updateScene({
-          appState: {
-            scrollX: fitted.appState.scrollX,
-            scrollY: fitted.appState.scrollY,
-            zoom: fitted.appState.zoom,
-          },
-          captureUpdate: CaptureUpdateAction.NEVER,
-        });
-      }
     },
-    [activateEditor, canvasApi, layout.blocks, registry, selectSingleBlock],
+    [activateEditor, registry, selectSingleBlock],
   );
 
   const editingDescriptor =

@@ -739,6 +739,37 @@ export function insertionTargetAtScenePoint(
   let candidates = layout.insertionSlots.filter((slot) =>
     visiblePageIndices.has(slot.pageIndex),
   );
+  const containingPage = layout.pages.find(
+    ({ bounds, visible }) =>
+      visible &&
+      sceneX >= bounds.x &&
+      sceneX <= bounds.x + bounds.width &&
+      sceneY >= bounds.y &&
+      sceneY <= bounds.y + bounds.height,
+  );
+  if (containingPage !== undefined) {
+    candidates = candidates.filter(
+      ({ pageIndex }) => pageIndex === containingPage.pageIndex,
+    );
+  }
+  const rootX = Math.min(
+    ...candidates.filter(({ depth }) => depth === 0).map(({ x }) => x),
+  );
+  if (Number.isFinite(rootX)) {
+    const maximumDepthAtPointer = Math.max(
+      0,
+      Math.floor(
+        (sceneX - rootX + 0.001) /
+        geometryForLayoutMode(layout.mode).sectionIndent,
+      ),
+    );
+    const depthCandidates = candidates.filter(
+      ({ depth }) => depth <= maximumDepthAtPointer,
+    );
+    if (depthCandidates.length > 0) {
+      candidates = depthCandidates;
+    }
+  }
   const containingSequences = [...layout.childSequenceLayouts]
     .filter(
       ({ bounds, pageIndex }) =>

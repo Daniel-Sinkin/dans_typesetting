@@ -3,10 +3,12 @@ import {
   CaptureUpdateAction,
   Excalidraw,
   convertToExcalidrawElements,
-  zoomToFitBounds,
 } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type {
+  ExcalidrawImperativeAPI,
+  NormalizedZoomValue,
+} from "@excalidraw/excalidraw/types";
 import {
   useCallback,
   useEffect,
@@ -31,17 +33,46 @@ import {
 } from "./drawingScene";
 
 const artboardGuideId = "dans-builder-drawing-artboard-guide";
+const cameraBottomInset = 72;
 const cameraInsets = Object.freeze({
-  top: 12,
+  top: Math.round(cameraBottomInset * 1.2),
   right: 20,
-  bottom: 72,
-  left: 272,
+  bottom: cameraBottomInset,
+  left: 136,
 });
+const maximumDrawingEditorWidth =
+  excalidrawArtboardWidth + cameraInsets.left + cameraInsets.right;
 
 interface LockedCamera {
   readonly scrollX: number;
   readonly scrollY: number;
   readonly zoom: ReturnType<ExcalidrawImperativeAPI["getAppState"]>["zoom"];
+}
+
+function cameraMatches(
+  appState: ReturnType<ExcalidrawImperativeAPI["getAppState"]>,
+  camera: LockedCamera,
+): boolean {
+  return (
+    appState.scrollX === camera.scrollX &&
+    appState.scrollY === camera.scrollY &&
+    appState.zoom.value === camera.zoom.value
+  );
+}
+
+function writeCameraDiagnostics(
+  canvas: HTMLDivElement,
+  camera: LockedCamera,
+  artboardHeight: number,
+): void {
+  canvas.dataset.artboardViewportLeft = String(camera.scrollX * camera.zoom.value);
+  canvas.dataset.artboardViewportRight = String(
+    (camera.scrollX + excalidrawArtboardWidth) * camera.zoom.value,
+  );
+  canvas.dataset.artboardViewportTop = String(camera.scrollY * camera.zoom.value);
+  canvas.dataset.artboardViewportBottom = String(
+    (camera.scrollY + artboardHeight) * camera.zoom.value,
+  );
 }
 
 function editorHeightForWidth(width: number, artboardHeight: number): number {
@@ -115,7 +146,10 @@ export function ExcalidrawDrawingEditor({
   const fitFrameRef = useRef<number | null>(null);
   const [editorHeight, setEditorHeight] = useState(() =>
     editorHeightForWidth(
-      Math.min(1_440, Math.max(320, globalThis.innerWidth - 32)),
+      Math.min(
+        maximumDrawingEditorWidth,
+        Math.max(320, globalThis.innerWidth - 32),
+      ),
       draft.artboardHeight,
     ),
   );
@@ -141,32 +175,28 @@ export function ExcalidrawDrawingEditor({
     if (canvas === null) {
       return;
     }
+    delete canvas.dataset.cameraSettled;
     cameraRef.current = null;
-    const appState = api.getAppState();
-    const fitted = zoomToFitBounds({
-      bounds: [0, 0, excalidrawArtboardWidth, draft.artboardHeight],
-      appState,
-      canvasOffsets: cameraInsets,
-      fitToViewport: true,
-      viewportZoomFactor: 1,
-      minZoom: 0.1,
-      maxZoom: 1,
-    });
-    const zoom = fitted.appState.zoom;
+    const zoomValue = Math.max(
+      0.1,
+      Math.min(
+        1,
+        (canvas.clientWidth - cameraInsets.left - cameraInsets.right) /
+          excalidrawArtboardWidth,
+        (canvas.clientHeight - cameraInsets.top - cameraInsets.bottom) /
+          draft.artboardHeight,
+      ),
+    );
+    const zoom = { value: zoomValue as NormalizedZoomValue };
     const scrollX =
       (canvas.clientWidth - cameraInsets.right) / zoom.value -
       excalidrawArtboardWidth;
     const scrollY = cameraInsets.top / zoom.value;
-    canvas.dataset.artboardViewportLeft = String(scrollX * zoom.value);
-    canvas.dataset.artboardViewportRight = String(
-      (scrollX + excalidrawArtboardWidth) * zoom.value,
-    );
-    canvas.dataset.artboardViewportTop = String(scrollY * zoom.value);
-    canvas.dataset.artboardViewportBottom = String(
-      (scrollY + draft.artboardHeight) * zoom.value,
-    );
+    const lockedCamera = { scrollX, scrollY, zoom } satisfies LockedCamera;
+    cameraRef.current = lockedCamera;
+    writeCameraDiagnostics(canvas, lockedCamera, draft.artboardHeight);
     api.updateScene({
-      appState: { scrollX, scrollY, zoom },
+      appState: lockedCamera,
       captureUpdate: CaptureUpdateAction.NEVER,
     });
     if (fitFrameRef.current !== null) {
@@ -174,12 +204,25 @@ export function ExcalidrawDrawingEditor({
     }
     fitFrameRef.current = requestAnimationFrame(() => {
       fitFrameRef.current = null;
-      const nextAppState = api.getAppState();
-      cameraRef.current = {
-        scrollX: nextAppState.scrollX,
-        scrollY: nextAppState.scrollY,
-        zoom: nextAppState.zoom,
-      };
+      if (!cameraMatches(api.getAppState(), lockedCamera)) {
+        api.updateScene({
+          appState: lockedCamera,
+          captureUpdate: CaptureUpdateAction.NEVER,
+        });
+      }
+      const actual = api.getAppState();
+      writeCameraDiagnostics(
+        canvas,
+        {
+          scrollX: actual.scrollX,
+          scrollY: actual.scrollY,
+          zoom: actual.zoom,
+        },
+        draft.artboardHeight,
+      );
+      canvas.dataset.cameraSettled = cameraMatches(actual, lockedCamera)
+        ? "true"
+        : "false";
     });
   }, [draft.artboardHeight]);
 
@@ -250,9 +293,11 @@ export function ExcalidrawDrawingEditor({
           onScrollChange={(scrollX, scrollY, zoom) => {
             const locked = cameraRef.current;
             const api = apiRef.current;
+            const canvas = canvasRef.current;
             if (
               locked === null ||
               api === null ||
+              canvas === null ||
               locked.scrollX === scrollX &&
                 locked.scrollY === scrollY &&
                 locked.zoom.value === zoom.value
@@ -267,6 +312,19 @@ export function ExcalidrawDrawingEditor({
               },
               captureUpdate: CaptureUpdateAction.NEVER,
             });
+            const actual = api.getAppState();
+            writeCameraDiagnostics(
+              canvas,
+              {
+                scrollX: actual.scrollX,
+                scrollY: actual.scrollY,
+                zoom: actual.zoom,
+              },
+              draft.artboardHeight,
+            );
+            canvas.dataset.cameraSettled = cameraMatches(actual, locked)
+              ? "true"
+              : "false";
           }}
           onChange={(elements, appState, files) => {
             const scene = captureExcalidrawScene(

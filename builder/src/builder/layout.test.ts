@@ -6,6 +6,7 @@ import { BuilderInlinePluginRegistry } from "./inlinePlugin";
 import {
   computeDocumentLayout,
   insertionIndexAtSceneY,
+  insertionTargetAtScenePoint,
   slideGeometry,
 } from "./layout";
 import { createImagePlugin } from "../plugins/image";
@@ -139,6 +140,32 @@ describe("document flow", () => {
     expect(layout.previewBounds?.x).toBeGreaterThan(
       layout.blocks.find(({ block }) => block.id === "outer")?.bounds.x ?? 0,
     );
+  });
+
+  it("selects a root slot when a nested block is dragged into the root gutter", () => {
+    const child = paragraphPlugin.createDefault("nested-child");
+    const section = {
+      ...sectionPlugin.createDefault("section"),
+      childSequences: [{ id: sectionBodySequenceId, blocks: [child] }],
+    };
+    const after = paragraphPlugin.createDefault("after-section");
+    const layout = computeDocumentLayout([section, after], registry);
+    const sectionLayout = layout.blocks.find(({ block }) => block.id === section.id);
+    const childLayout = layout.blocks.find(({ block }) => block.id === child.id);
+    if (sectionLayout === undefined || childLayout === undefined) {
+      throw new Error("Nested section layout was incomplete");
+    }
+    const sceneY = childLayout.bounds.y + childLayout.bounds.height;
+
+    expect(
+      insertionTargetAtScenePoint(sectionLayout.bounds.x + 1, sceneY, layout),
+    ).toMatchObject({ parentId: null, parentSequenceId: null });
+    expect(
+      insertionTargetAtScenePoint(childLayout.bounds.x + 1, sceneY, layout),
+    ).toMatchObject({
+      parentId: section.id,
+      parentSequenceId: sectionBodySequenceId,
+    });
   });
 
   it("places and previews a named child sequence inside Padding", () => {

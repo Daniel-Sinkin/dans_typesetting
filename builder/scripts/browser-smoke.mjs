@@ -327,7 +327,16 @@ async function exerciseBuilder(client) {
       displayMath: document.querySelector("[data-visual-block-id='sample-display-math'] .katex") !== null,
       listing: document.querySelector("[data-visual-block-id='sample-code-listing'] code")?.textContent.includes("std::println") ?? false,
       listingLabel: document.querySelector("[data-visual-block-id='sample-code-listing'] .code-listing-content__language")?.textContent ?? "",
-      layers: [".document-page-layer", ".excalidraw", ".document-block-visual-layer", ".document-control-layer"].map((selector) => getComputedStyle(document.querySelector(selector)).zIndex),
+      layers: {
+        page: getComputedStyle(document.querySelector(".document-page-layer")).zIndex,
+        root: getComputedStyle(document.querySelector(".canvas-host > .excalidraw")).zIndex,
+        staticCanvas: getComputedStyle(document.querySelector(".canvas-host > .excalidraw canvas.static")).zIndex,
+        interactiveCanvas: getComputedStyle(document.querySelector(".canvas-host > .excalidraw canvas.interactive")).zIndex,
+        blocks: getComputedStyle(document.querySelector(".document-block-visual-layer")).zIndex,
+        controls: getComputedStyle(document.querySelector(".document-control-layer")).zIndex,
+        sidebar: getComputedStyle(document.querySelector(".canvas-host > .excalidraw .sidebar")).zIndex,
+        ui: getComputedStyle(document.querySelector(".canvas-host > .excalidraw .layer-ui__wrapper")).zIndex,
+      },
       displayMathContained: mathContent.top >= mathBox.top - 0.5 && mathContent.bottom <= mathBox.bottom + 0.5,
       displayMathOverflow: getComputedStyle(mathRender).overflowY,
       displayMathTopClearance: Math.min(...mathDescendants.filter(({ text }) => text.length > 0).map(({ top }) => top)) - mathScrollerBox.top,
@@ -355,13 +364,55 @@ async function exerciseBuilder(client) {
   assert(initial.imageLoaded && !initial.imageNumbered, "The bare image did not render as unnumbered content");
   assert(initial.drawing && initial.displayMath && initial.listing, "A focused visual block failed to render");
   assert(initial.listingLabel.includes("Listing 1"), "The Code Listing lost its writer-owned ordinal");
-  assert(JSON.stringify(initial.layers) === JSON.stringify(["1", "2", "3", "4"]), "Canvas layering is incorrect");
+  assert(
+    initial.layers.page === "1" &&
+      initial.layers.root === "auto" &&
+      initial.layers.staticCanvas === "1" &&
+      initial.layers.interactiveCanvas === "2" &&
+      initial.layers.blocks === "3" &&
+      initial.layers.controls === "4" &&
+      Number(initial.layers.sidebar) > Number(initial.layers.controls) &&
+      Number(initial.layers.ui) > Number(initial.layers.controls),
+    `Canvas and UI layering is incorrect: ${JSON.stringify(initial.layers)}`,
+  );
   assert(
     initial.displayMathContained &&
       initial.displayMathOverflow === "visible" &&
       initial.displayMathTopClearance >= 2,
     `The aligned display-math superscript can still be clipped: ${JSON.stringify(initial.displayMathMetrics)}, overflow=${initial.displayMathOverflow}`,
   );
+
+  await client.evaluate(`(() => {
+    const canvas = document.querySelector(".canvas-host > .excalidraw canvas.interactive");
+    const block = document.querySelector("[data-block-id='sample-paragraph']").getBoundingClientRect();
+    canvas.dispatchEvent(new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+      clientX: block.left + block.width / 2,
+      clientY: block.top + block.height / 2,
+    }));
+  })()`);
+  await waitForCondition(client, `document.querySelector(".canvas-host > .excalidraw .context-menu") !== null`);
+  const excalidrawContextLayer = await client.evaluate(`(() => {
+    const menu = document.querySelector(".canvas-host > .excalidraw .context-menu");
+    const popover = menu.closest(".popover");
+    const item = menu.querySelector("button");
+    const bounds = item.getBoundingClientRect();
+    const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+    return {
+      popoverZ: getComputedStyle(popover).zIndex,
+      controlsZ: getComputedStyle(document.querySelector(".document-control-layer")).zIndex,
+      hitMenu: hit?.closest(".context-menu") === menu,
+    };
+  })()`);
+  assert(
+    Number(excalidrawContextLayer.popoverZ) > Number(excalidrawContextLayer.controlsZ) &&
+      excalidrawContextLayer.hitMenu,
+    `The Excalidraw context menu did not own the pointer above document blocks: ${JSON.stringify(excalidrawContextLayer)}`,
+  );
+  await client.evaluate(`document.querySelector(".canvas-host > .excalidraw").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }))`);
+  await waitForCondition(client, `document.querySelector(".canvas-host > .excalidraw .context-menu") === null`);
 
   await waitForCondition(
     client,
@@ -389,8 +440,15 @@ async function exerciseBuilder(client) {
     `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false']")?.dataset.hotSession === "startup-code-hot"`,
     20_000,
   );
+  const cameraBeforeBlockEdit = await client.evaluate(`document.querySelector(".document-block-visual-layer .document-surface").style.transform`);
   await keyOnBlock(client, "sample-paragraph", "Enter");
   await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-source']") !== null`);
+  await delay(180);
+  const cameraAfterBlockEdit = await client.evaluate(`document.querySelector(".document-block-visual-layer .document-surface").style.transform`);
+  assert(
+    cameraAfterBlockEdit === cameraBeforeBlockEdit,
+    `Entering block edit mode moved the document camera: ${cameraBeforeBlockEdit} -> ${cameraAfterBlockEdit}`,
+  );
   const paragraphSourceEditor = await client.evaluate(`(() => ({
     dialog: document.querySelector("[data-testid='block-editor-dialog']") !== null,
     nvim: document.querySelector("[data-testid='nvim-block-editor']") !== null,
@@ -419,6 +477,47 @@ async function exerciseBuilder(client) {
   await client.evaluate(`[...document.querySelectorAll(".inline-paragraph-editor__footer button")].find((button) => button.textContent.trim() === "Cancel").click()`);
   await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-editor']") === null`);
 
+  await keyOnBlock(client, "sample-paragraph", "c", { ctrlKey: true });
+  await pointerSelect(client, "sample-image");
+  await keyOnBlock(client, "sample-image", "v", { ctrlKey: true });
+  await waitForCondition(client, `document.querySelectorAll("[data-block-id]").length === ${String(initialBlockCount + 1)}`);
+  const copiedBlock = await client.evaluate(`(() => {
+    const selected = document.querySelector(".document-block-controls--selected");
+    const blocks = [...document.querySelectorAll("[data-block-id]")];
+    const imageIndex = blocks.findIndex(({ dataset }) => dataset.blockId === "sample-image");
+    return {
+      id: selected?.dataset.blockId,
+      type: selected?.dataset.blockType,
+      afterImage: blocks[imageIndex + 1]?.dataset.blockId === selected?.dataset.blockId,
+    };
+  })()`);
+  assert(
+    copiedBlock.type === "dans.core.paragraph" && copiedBlock.afterImage,
+    `Ctrl+C/Ctrl+V did not copy the single selected block after the current block: ${JSON.stringify(copiedBlock)}`,
+  );
+  await keyOnBlock(client, copiedBlock.id, "z", { ctrlKey: true });
+  await waitForCondition(client, `document.querySelectorAll("[data-block-id]").length === ${String(initialBlockCount)}`);
+
+  await pointerSelect(client, "sample-page-break");
+  await keyOnBlock(client, "sample-page-break", "x", { ctrlKey: true });
+  await waitForCondition(client, `document.querySelector("[data-block-id='sample-page-break']") === null && document.querySelector("[data-block-id='sample-section']").classList.contains("document-block-controls--selected")`);
+  await keyOnBlock(client, "sample-section", "v", { ctrlKey: true });
+  await waitForCondition(client, `document.querySelector("[data-block-id='sample-page-break']") !== null`);
+  assert(
+    await client.evaluate(`(() => {
+      const blocks = [...document.querySelectorAll("[data-block-id]")];
+      const sectionIndex = blocks.findIndex(({ dataset }) => dataset.blockId === "sample-section");
+      return blocks[sectionIndex + 1]?.dataset.blockId === "sample-page-break" &&
+        document.querySelector("[data-block-id='sample-page-break']").classList.contains("document-block-controls--selected");
+    })()`),
+    "Ctrl+X/Ctrl+V did not restore the cut block after the current block",
+  );
+  await keyOnBlock(client, "sample-page-break", "z", { ctrlKey: true });
+  await waitForCondition(client, `document.querySelector("[data-block-id='sample-page-break']") === null`);
+  await keyOnBlock(client, "sample-section", "z", { ctrlKey: true });
+  await waitForCondition(client, `document.querySelector("[data-block-id='sample-page-break']") !== null`);
+
+  await pointerSelect(client, "sample-paragraph");
   await pointerSelect(client, "sample-display-math", { ctrlKey: true });
   assert(
     (await client.evaluate(`document.querySelectorAll(".document-block-controls--selected").length`)) === 2,
@@ -692,10 +791,10 @@ async function exerciseBuilder(client) {
   await waitForCondition(client, `document.querySelector("[data-testid='block-radial-menu']") !== null`);
   const codeMenu = await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].map((button) => button.textContent.trim())`);
   assert(
-    codeMenu.some((label) => label.endsWith("Edit")) && !codeMenu.some((label) => label.includes("Neovim")),
-    "Code listing exposed a redundant Neovim action instead of making it the primary editor",
+    codeMenu.some((label) => label.endsWith("Edit")) && codeMenu.some((label) => label.includes("Neovim")),
+    "Code listing did not expose visual Edit and a separate Neovim action",
   );
-  await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.trim().endsWith("Edit")).click()`);
+  await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.includes("Neovim")).click()`);
   await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-visible='true'][data-render-ready='true']")?.dataset.hotSession === "code-ready"`);
   const codeNvim = await client.evaluate(`(() => {
     const host = document.querySelector(".nvim-editor-host--inline");
@@ -748,13 +847,13 @@ async function exerciseBuilder(client) {
   await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null && document.querySelector("[data-visual-block-id='sample-code-listing']").textContent.includes("nvim browser bridge")`, 20_000);
 
   await keyOnBlock(client, "sample-code-listing", "Enter");
-  await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-visible='true'][data-render-ready='true']") !== null`, 20_000);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-code-listing-editor']") !== null`, 20_000);
   assert(
-    await client.evaluate(`document.querySelector("[data-testid='inline-code-listing-editor']") === null`),
-    "Keyboard editing did not use Neovim as the code listing's primary editor",
+    await client.evaluate(`document.querySelector("[data-testid='nvim-block-editor']") === null`),
+    "Keyboard editing did not use the code listing's visual editor by default",
   );
-  await sendNvimCommand(client, ":quit");
-  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null`, 20_000);
+  await client.evaluate(`[...document.querySelectorAll("[data-testid='inline-code-listing-editor'] button")].find((button) => button.textContent.trim() === "Cancel").click()`);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-code-listing-editor']") === null`, 20_000);
   assert(
     await client.evaluate(`!/(?:\\r?\\n){2,}$/.test(document.querySelector("[data-visual-block-id='sample-code-listing'] code").textContent)`),
     "The code preview retained artificial trailing blank lines",
@@ -764,9 +863,20 @@ async function exerciseBuilder(client) {
   await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false'][data-buffer-ready='true']") !== null`, 20_000);
   await client.evaluate(`document.querySelector("[data-block-id='sample-display-math']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
   await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-visible='true'][data-render-ready='true']") !== null`, 20_000);
+  const mathNvim = await client.evaluate(`(() => {
+    const host = document.querySelector(".nvim-editor-host--inline").getBoundingClientRect();
+    const editor = document.querySelector("[data-testid='nvim-block-editor']");
+    const editorBounds = editor.getBoundingClientRect();
+    return {
+      blockType: editor.dataset.blockType,
+      overflowRows: editorBounds.height - host.height,
+    };
+  })()`);
   assert(
-    await client.evaluate(`document.querySelector("[data-testid='block-editor-dialog']") === null && document.querySelector("[data-testid='inline-latex-math-editor']") === null && document.querySelectorAll("[data-testid='nvim-block-editor'] > header, [data-testid='nvim-block-editor'] > footer").length === 0`),
-    "Display math did not use the chrome-free inline Neovim LaTeX editor",
+    await client.evaluate(`document.querySelector("[data-testid='block-editor-dialog']") === null && document.querySelector("[data-testid='inline-latex-math-editor']") === null && document.querySelectorAll("[data-testid='nvim-block-editor'] > header, [data-testid='nvim-block-editor'] > footer").length === 0`) &&
+      mathNvim.blockType === "dans.math.latex.display" &&
+      Math.abs(mathNvim.overflowRows) <= 1,
+    `Display math did not use the two-row-shorter chrome-free Neovim view: ${JSON.stringify(mathNvim)}`,
   );
   await sendNvimCommand(client, `:call setline(1, "z = 314159") | write`);
   await waitForCondition(client, `document.querySelector("[data-visual-block-id='sample-display-math']").textContent.includes("314159")`, 20_000);
@@ -802,7 +912,7 @@ async function exerciseBuilder(client) {
 
   await client.evaluate(`document.querySelector("[data-block-id='sample-excalidraw-drawing']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
   await waitForCondition(client, `document.querySelector("[data-testid='excalidraw-drawing-editor']") !== null`);
-  await waitForCondition(client, `document.querySelector(".drawing-editor__canvas")?.dataset.artboardViewportRight !== undefined`);
+  await waitForCondition(client, `document.querySelector(".drawing-editor__canvas")?.dataset.cameraSettled === "true"`);
   const drawingEditor = await client.evaluate(`(() => {
     const editor = document.querySelector("[data-testid='excalidraw-drawing-editor']");
     const canvas = editor.querySelector(".drawing-editor__canvas");
@@ -828,14 +938,40 @@ async function exerciseBuilder(client) {
       !drawingEditor.embeddedScene &&
       drawingEditor.zoomHidden &&
       JSON.stringify(drawingEditor.actions) === JSON.stringify(["Cancel", "Save drawing"]) &&
-      drawingEditor.leftClearance >= 270 &&
+      drawingEditor.leftClearance >= 134 &&
+      drawingEditor.leftClearance <= 140 &&
       drawingEditor.rightDelta <= 2 &&
-      Math.abs(drawingEditor.top - 12) <= 2 &&
+      Math.abs(drawingEditor.top - 86) <= 2 &&
       drawingEditor.bottomPadding >= 70 &&
       drawingEditor.bottomPadding <= 74,
-    `The drawing popup did not preserve its tight top-right camera and palette clearance: ${JSON.stringify(drawingEditor)}`,
+    `The drawing popup did not preserve its top-right camera and balanced UI clearance: ${JSON.stringify(drawingEditor)}`,
   );
   await screenshot(client, "drawing-editor.png");
+  await client.evaluate(`document.querySelector(".drawing-editor__actions button").click()`);
+  await waitForCondition(client, `document.querySelector("[data-testid='excalidraw-drawing-editor']") === null`);
+
+  await client.evaluate(`document.querySelector("[data-block-id='sample-excalidraw-drawing']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
+  await waitForCondition(client, `document.querySelector(".drawing-editor__canvas")?.dataset.cameraSettled === "true"`);
+  await delay(300);
+  const reopenedDrawingCamera = await client.evaluate(`(() => {
+    const canvas = document.querySelector(".drawing-editor__canvas");
+    const bounds = canvas.getBoundingClientRect();
+    return {
+      left: Number(canvas.dataset.artboardViewportLeft),
+      rightDelta: Math.abs(Number(canvas.dataset.artboardViewportRight) - (bounds.width - 20)),
+      top: Number(canvas.dataset.artboardViewportTop),
+      bottomPadding: bounds.height - Number(canvas.dataset.artboardViewportBottom),
+    };
+  })()`);
+  assert(
+    reopenedDrawingCamera.left >= 134 &&
+      reopenedDrawingCamera.left <= 140 &&
+      reopenedDrawingCamera.rightDelta <= 2 &&
+      Math.abs(reopenedDrawingCamera.top - 86) <= 2 &&
+      reopenedDrawingCamera.bottomPadding >= 70 &&
+      reopenedDrawingCamera.bottomPadding <= 74,
+    `Reopening the drawing editor lost its locked top-right camera: ${JSON.stringify(reopenedDrawingCamera)}`,
+  );
   await client.evaluate(`document.querySelector(".drawing-editor__actions button").click()`);
   await waitForCondition(client, `document.querySelector("[data-testid='excalidraw-drawing-editor']") === null`);
 
@@ -879,7 +1015,18 @@ async function exerciseBuilder(client) {
   await waitForBuilder(client);
   await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false'][data-buffer-ready='true']") !== null`, 20_000);
   await pointerSelect(client, "sample-code-listing");
-  await keyOnBlock(client, "sample-code-listing", "Enter");
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-code-listing']");
+    const bounds = block.getBoundingClientRect();
+    block.dispatchEvent(new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2,
+    }));
+  })()`);
+  await waitForCondition(client, `document.querySelector("[data-testid='block-radial-menu']") !== null`);
+  await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.includes("Neovim")).click()`);
   await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-render-ready='true']") !== null`, 20_000);
   assert(
     await client.evaluate(`(() => {
@@ -929,20 +1076,6 @@ async function exerciseBuilder(client) {
     `Nested drag feedback was not semantic or depth-aware: ${JSON.stringify(nestedDestination)}`,
   );
   await screenshot(client, "nested-drag.png");
-  await client.send("Input.dispatchKeyEvent", {
-    type: "keyDown",
-    key: "Escape",
-    code: "Escape",
-    windowsVirtualKeyCode: 27,
-    nativeVirtualKeyCode: 27,
-  });
-  await client.send("Input.dispatchKeyEvent", {
-    type: "keyUp",
-    key: "Escape",
-    code: "Escape",
-    windowsVirtualKeyCode: 27,
-    nativeVirtualKeyCode: 27,
-  });
   await client.send("Input.dispatchMouseEvent", {
     type: "mouseReleased",
     x: nestedDragPoints.end.x,
@@ -951,7 +1084,65 @@ async function exerciseBuilder(client) {
     buttons: 0,
     clickCount: 1,
   });
-  await waitForCondition(client, `document.querySelector(".drag-ghost") === null`);
+  await waitForCondition(client, `document.querySelector(".drag-ghost") === null && document.querySelectorAll("[data-block-id]").length === ${String(initialBlockCount + 1)}`);
+  const nestedBlockId = await client.evaluate(`document.querySelector("[data-section-depth='1'][data-block-type='dans.core.paragraph']")?.dataset.blockId`);
+  assert(
+    typeof nestedBlockId === "string" &&
+      await client.evaluate(`document.querySelector("[data-indentation-guides-for='${nestedBlockId}']")?.querySelectorAll("i").length === 1`),
+    "A nested block did not retain its permanent solid-black indentation rail",
+  );
+  await screenshot(client, "nested-indentation.png");
+
+  const rootExtractionPoints = await client.evaluate(`(() => {
+    const nested = document.querySelector("[data-block-id='${nestedBlockId}']").getBoundingClientRect();
+    const section = document.querySelector("[data-block-id='sample-section']").getBoundingClientRect();
+    return {
+      start: { x: nested.left + nested.width / 2, y: nested.top + nested.height / 2 },
+      threshold: { x: nested.left + nested.width / 2 + 12, y: nested.top + nested.height / 2 + 12 },
+      end: { x: section.left + 2, y: section.bottom + 3 },
+    };
+  })()`);
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x: rootExtractionPoints.start.x,
+    y: rootExtractionPoints.start.y,
+    button: "left",
+    buttons: 1,
+    clickCount: 1,
+  });
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: rootExtractionPoints.threshold.x,
+    y: rootExtractionPoints.threshold.y,
+    button: "left",
+    buttons: 1,
+  });
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: rootExtractionPoints.end.x,
+    y: rootExtractionPoints.end.y,
+    button: "left",
+    buttons: 1,
+  });
+  await waitForCondition(client, `document.querySelector(".drag-ghost small")?.textContent.trim() === "Insert at root"`);
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    x: rootExtractionPoints.end.x,
+    y: rootExtractionPoints.end.y,
+    button: "left",
+    buttons: 0,
+    clickCount: 1,
+  });
+  await waitForCondition(client, `document.querySelector("[data-block-id='${nestedBlockId}'][data-section-depth='0']") !== null && document.querySelector(".drag-ghost") === null`);
+  assert(
+    await client.evaluate(`(() => {
+      const blocks = [...document.querySelectorAll("[data-block-id]")];
+      const sectionIndex = blocks.findIndex(({ dataset }) => dataset.blockId === "sample-section");
+      return blocks[sectionIndex + 1]?.dataset.blockId === "${nestedBlockId}" &&
+        document.querySelector("[data-indentation-guides-for='${nestedBlockId}']") === null;
+    })()`),
+    "Dragging a nested block into the root gutter did not extract it after the section",
+  );
 
   assert(client.exceptions.length === 0, `Browser exceptions: ${client.exceptions.join("; ")}`);
 }

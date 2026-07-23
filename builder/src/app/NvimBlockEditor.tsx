@@ -344,6 +344,7 @@ export function NvimBlockEditor({
     <section
       className="nvim-block-editor"
       data-testid="nvim-block-editor"
+      data-block-type={block.typeId}
       data-visible={visible ? "true" : "false"}
       data-buffer-ready={bufferReady ? "true" : "false"}
       data-render-ready={renderReady ? "true" : "false"}

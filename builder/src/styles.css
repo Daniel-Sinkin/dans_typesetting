@@ -38,11 +38,21 @@ button {
 
 .canvas-host .excalidraw {
   position: absolute;
-  z-index: 2;
+  z-index: auto;
   inset: 0;
   --color-primary: #4263eb;
   --color-primary-darker: #364fc7;
   --color-primary-light: #dbe4ff;
+}
+
+.canvas-host > .excalidraw {
+  --zIndex-wysiwyg: 6;
+  --zIndex-canvasButtons: 6;
+  --zIndex-layerUI: 6;
+}
+
+.canvas-host > .excalidraw .App-bottom-bar {
+  z-index: 6;
 }
 
 .document-page-layer,
@@ -216,6 +226,21 @@ button {
   transition:
     transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 140ms ease;
+}
+
+.document-indentation-guides {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.document-indentation-guides > i {
+  position: absolute;
+  width: 4px;
+  background: #111827;
+  border-radius: 999px;
 }
 
 .document-block-visual {
@@ -1449,7 +1474,7 @@ button {
 }
 
 .editor-dialog:has(.drawing-editor) {
-  width: min(1440px, calc(100vw - 32px));
+  width: min(1116px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
 }
 
@@ -1874,7 +1899,6 @@ button {
   width: 4px;
   background: #111827;
   border-radius: 999px;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 74%);
 }
 
 @keyframes insertion-shimmer {
@@ -2398,6 +2422,11 @@ button {
   width: 100%;
   height: calc(100% + 30px);
   min-height: 0;
+}
+
+.nvim-editor-host--inline >
+  .nvim-block-editor[data-block-type="dans.math.latex.display"] {
+  height: 100%;
 }
 
 .nvim-editor-host--preload {

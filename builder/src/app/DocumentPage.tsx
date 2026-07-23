@@ -91,6 +91,34 @@ export function DocumentVisualPage({
           </article>
         )) : null}
 
+      {showBlocks ? visibleBlocks.map(({ blockLayout }) => {
+        const { block, bounds, depth } = blockLayout;
+        if (depth === 0) {
+          return null;
+        }
+        const geometry = geometryForLayoutMode(layout.mode);
+        return (
+          <div
+            className="document-indentation-guides"
+            data-indentation-guides-for={block.id}
+            key={`indentation-${block.id}`}
+            style={positionStyle(layout, bounds)}
+            aria-hidden="true"
+          >
+            {Array.from({ length: depth }, (_, index) => (
+              <i
+                key={index}
+                style={{
+                  top: -geometry.blockGap / 2,
+                  bottom: -geometry.blockGap / 2,
+                  left: -(depth - index) * geometry.sectionIndent,
+                }}
+              />
+            ))}
+          </div>
+        );
+      }) : null}
+
       {showBlocks ? visibleBlocks.map(({ blockLayout, documentIndex }) => {
         const { block, bounds, depth, oversized } = blockLayout;
         const adapter = registry.pluginForBlock(block);
