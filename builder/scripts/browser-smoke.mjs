@@ -23,6 +23,27 @@ const expectedPaletteLabels = [
   "Display math",
   "Code listing",
 ];
+const twoBlockDocumentSource = JSON.stringify({
+  format: "dans.typesetting.document",
+  schemaVersion: 1,
+  documentVersion: { major: 0, minor: 1, patch: 0 },
+  blocks: [
+    {
+      id: "loaded-title-page",
+      type: "dans.document.title_page",
+      payload: {
+        title: "Loaded document",
+        author: "Browser smoke test",
+        date: "23 July 2026",
+      },
+    },
+    {
+      id: "loaded-table-of-contents",
+      type: "dans.document.table_of_contents",
+      payload: {},
+    },
+  ],
+});
 
 function assert(condition, message) {
   if (!condition) {
@@ -114,7 +135,11 @@ class CdpClient {
         }
       }
       if (message.method === "Runtime.exceptionThrown") {
-        this.exceptions.push(message.params.exceptionDetails.text);
+        const details = message.params.exceptionDetails;
+        this.exceptions.push(
+          details.exception?.description ??
+            `${details.text} at ${details.url}:${String(details.lineNumber + 1)}`,
+        );
       }
     });
   }
@@ -383,6 +408,60 @@ async function exerciseBuilder(client) {
   );
 
   await client.evaluate(`(() => {
+    const createObjectUrl = URL.createObjectURL;
+    const clickAnchor = HTMLAnchorElement.prototype.click;
+    window.__savedDocumentSource = null;
+    URL.createObjectURL = (blob) => {
+      void blob.text().then((source) => {
+        window.__savedDocumentSource = source;
+      });
+      URL.createObjectURL = createObjectUrl;
+      return createObjectUrl.call(URL, blob);
+    };
+    HTMLAnchorElement.prototype.click = () => {};
+    document.querySelector("[data-testid='save-document']").click();
+    HTMLAnchorElement.prototype.click = clickAnchor;
+  })()`);
+  await waitForCondition(client, `typeof window.__savedDocumentSource === "string"`);
+  assert(
+    await client.evaluate(`(() => {
+      const input = document.querySelector("[data-testid='load-document']");
+      let activated = false;
+      input.click = () => {
+        activated = true;
+      };
+      document.querySelector("[data-testid='load-document-button']").click();
+      delete input.click;
+      return activated;
+    })()`),
+    "The Load document button did not activate its file picker",
+  );
+  await client.evaluate(`(() => {
+    const input = document.querySelector("[data-testid='load-document']");
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([${JSON.stringify(twoBlockDocumentSource)}], "two-blocks.dans_doc", { type: "application/json" }));
+    input.files = transfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await waitForCondition(client, `document.querySelectorAll("[data-block-id]").length === 2 || document.querySelector(".document-file-error") !== null`);
+  assert(
+    await client.evaluate(`document.querySelectorAll("[data-block-id]").length === 2 && document.querySelector("[data-block-id='loaded-title-page']") !== null && document.querySelector(".document-file-status")?.textContent.includes("Loaded two-blocks.dans_doc · 2 blocks")`),
+    `Loading a valid two-block document did not replace the current document: ${await client.evaluate(`document.querySelector(".document-file-error")?.textContent.trim() ?? "no transport error"`)}`,
+  );
+  await client.evaluate(`(() => {
+    const input = document.querySelector("[data-testid='load-document']");
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([window.__savedDocumentSource], "document.dans_doc", { type: "application/json" }));
+    input.files = transfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await waitForCondition(client, `document.querySelectorAll("[data-block-id]").length === ${String(initialBlockCount)} || document.querySelector(".document-file-error") !== null`);
+  assert(
+    await client.evaluate(`document.querySelectorAll("[data-block-id]").length === ${String(initialBlockCount)} && document.querySelector("[data-block-id='sample-paragraph']") !== null && document.querySelector(".document-file-status")?.textContent.includes("Loaded document.dans_doc · 9 blocks")`),
+    `Reloading the saved document did not restore its blocks: ${await client.evaluate(`document.querySelector(".document-file-error")?.textContent.trim() ?? "no transport error"`)}`,
+  );
+
+  await client.evaluate(`(() => {
     const canvas = document.querySelector(".canvas-host > .excalidraw canvas.interactive");
     const block = document.querySelector("[data-block-id='sample-paragraph']").getBoundingClientRect();
     canvas.dispatchEvent(new MouseEvent("contextmenu", {
@@ -522,6 +601,20 @@ async function exerciseBuilder(client) {
   assert(
     (await client.evaluate(`document.querySelectorAll(".document-block-controls--selected").length`)) === 2,
     "Same-level modifier multiselect did not retain both blocks",
+  );
+  await keyOnBlock(client, "sample-display-math", "Delete");
+  await waitForCondition(
+    client,
+    `document.querySelector("[data-block-id='sample-paragraph']") === null && document.querySelector("[data-block-id='sample-display-math']") === null`,
+  );
+  assert(
+    await client.evaluate(`document.querySelector("[data-block-id='sample-code-listing']").classList.contains("document-block-controls--selected")`),
+    "Deleting a multiselection did not select the next surviving block",
+  );
+  await keyOnBlock(client, "sample-code-listing", "z", { ctrlKey: true });
+  await waitForCondition(
+    client,
+    `document.querySelector("[data-block-id='sample-paragraph']") !== null && document.querySelector("[data-block-id='sample-display-math']") !== null && document.querySelectorAll(".document-block-controls--selected").length === 2`,
   );
 
   await pointerSelect(client, "sample-page-break");

@@ -1966,8 +1966,7 @@ button {
   gap: 8px;
 }
 
-.document-file-controls button,
-.document-file-controls label {
+.document-file-controls button {
   display: grid;
   min-height: 34px;
   place-items: center;
@@ -1982,8 +1981,7 @@ button {
   cursor: pointer;
 }
 
-.document-file-controls button:hover,
-.document-file-controls label:hover {
+.document-file-controls button:hover {
   background: #dbe4ff;
 }
 
@@ -1993,6 +1991,17 @@ button {
   color: #c92a2a;
   background: #fff5f5;
   border: 1px solid #ffc9c9;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.document-file-status {
+  margin: 0;
+  padding: 7px 10px;
+  color: #2b8a3e;
+  background: #ebfbee;
+  border: 1px solid #b2f2bb;
   border-radius: 8px;
   font-size: 10px;
   line-height: 1.4;

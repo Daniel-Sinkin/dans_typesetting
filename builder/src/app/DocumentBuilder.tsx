@@ -268,6 +268,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   >([]);
   const [middlePanning, setMiddlePanning] = useState(false);
   const [transportError, setTransportError] = useState<string | null>(null);
+  const [transportStatus, setTransportStatus] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<DocumentLayoutMode>("continuous");
   const [pageRange, setPageRange] = useState<PageRange>({ start: 1, end: 3 });
   const [presentationOpen, setPresentationOpen] = useState(false);
@@ -1175,7 +1176,11 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     if (pendingDetach !== null) {
       return removeBuilderBlockFromTree(snapshot.blocks, pendingDetach.block.id);
     }
-    if (editingBlock !== null && editingDraft !== null) {
+    if (
+      editingBlock !== null &&
+      editingDraft !== null &&
+      findBuilderBlock(snapshot.blocks, editingBlock.id) !== null
+    ) {
       return replaceBuilderBlockInTree(snapshot.blocks, editingBlock.id, editingDraft);
     }
     return snapshot.blocks;
@@ -1379,9 +1384,18 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
 
   const handleBlockKeyDown = useCallback(
     (block: BuilderBlock, event: ReactKeyboardEvent<HTMLElement>): void => {
+      const selectedIds = selectedBlockIdsRef.current;
       if (
-        selectedBlockIdsRef.current.length !== 1 ||
-        selectedBlockIdsRef.current[0] !== block.id
+        (event.key === "Delete" || event.key === "Backspace") &&
+        selectedIds.includes(block.id)
+      ) {
+        event.preventDefault();
+        deleteBlocks(selectedIds);
+        return;
+      }
+      if (
+        selectedIds.length !== 1 ||
+        selectedIds[0] !== block.id
       ) {
         return;
       }
@@ -1404,11 +1418,6 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           block,
           sourceEditor?.presentation === "inline" ? "nvim_inline" : "nvim",
         );
-        return;
-      }
-      if (event.key === "Delete" || event.key === "Backspace") {
-        event.preventDefault();
-        deleteBlocks([block.id]);
         return;
       }
       const direction =
@@ -1869,30 +1878,60 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         URL.revokeObjectURL(url);
       }, 0);
       setTransportError(null);
+      setTransportStatus("Saved document.dans_doc");
     } catch (error) {
+      setTransportStatus(null);
       setTransportError(error instanceof Error ? error.message : "Could not save document");
     }
   }, [port, transport]);
 
   const loadDocument = useCallback(
     async (file: File): Promise<void> => {
+      setTransportError(null);
+      setTransportStatus(`Loading ${file.name}…`);
       try {
         const decoded = transport.fromString(await file.text());
         deriveReferenceTargets(decoded.blocks, registry);
         deriveDocumentResources(decoded.blocks, registry);
         clearDrag();
+        pendingBlockDragRef.current = null;
+        setPendingBlockDrag(null);
         setPendingDetach(null);
         clearEditorState();
         setBlockContextMenu(null);
+        selectedBlockIdsRef.current = Object.freeze([]);
+        selectionAnchorRef.current = null;
+        setSelectedBlockIds(selectedBlockIdsRef.current);
+        blockClipboardRef.current = null;
         setRecentlyDeletedBlocks([]);
         undoStackRef.current = [];
+        setPreloadSuppressedBlockId(null);
+        setPresentationOpen(false);
+        setPresentationSlide(1);
         port.dispatch({ kind: "replace_all", ...decoded });
+        const hotBlock = flattenBuilderBlocks(decoded.blocks).find(
+          (block) => registry.editorForBlock(block)?.sourceEditor?.preloadOnSelection === true,
+        );
+        if (hotBlock !== undefined) {
+          activateEditor(hotBlock, "nvim_preload");
+        }
+        requestAnimationFrame(() => {
+          canvasApi?.scrollToContent(pageAnchorId, {
+            fitToViewport: true,
+            viewportZoomFactor: 0.64,
+            animate: false,
+          });
+        });
         setTransportError(null);
+        setTransportStatus(
+          `Loaded ${file.name} · ${String(flattenBuilderBlocks(decoded.blocks).length)} blocks`,
+        );
       } catch (error) {
+        setTransportStatus(null);
         setTransportError(error instanceof Error ? error.message : "Could not load document");
       }
     },
-    [clearDrag, clearEditorState, port, registry, transport],
+    [activateEditor, canvasApi, clearDrag, clearEditorState, port, registry, transport],
   );
 
   return (
@@ -1937,6 +1976,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
             pageRange={layout.visiblePageRange}
             totalPageCount={layout.totalPageCount}
             transportError={transportError}
+            transportStatus={transportStatus}
             onSaveDocument={saveDocument}
             onLoadDocument={loadDocument}
             onLayoutModeChange={setLayoutMode}

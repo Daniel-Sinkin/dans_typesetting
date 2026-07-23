@@ -1,6 +1,6 @@
 // builder/src/app/BlockPalette.tsx — render plugin-contributed document block controls.
 import { Sidebar } from "@excalidraw/excalidraw";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 import {
   geometryForLayoutMode,
@@ -18,6 +18,7 @@ interface BlockPaletteProps {
   readonly pageRange: PageRange;
   readonly totalPageCount: number;
   readonly transportError: string | null;
+  readonly transportStatus: string | null;
   readonly onSaveDocument: () => void;
   readonly onLoadDocument: (file: File) => Promise<void>;
   readonly onLayoutModeChange: (mode: DocumentLayoutMode) => void;
@@ -38,6 +39,7 @@ export function BlockPalette({
   pageRange,
   totalPageCount,
   transportError,
+  transportStatus,
   onSaveDocument,
   onLoadDocument,
   onLayoutModeChange,
@@ -46,6 +48,7 @@ export function BlockPalette({
   onBeginDrag,
 }: BlockPaletteProps) {
   const geometry = geometryForLayoutMode(layoutMode);
+  const loadInputRef = useRef<HTMLInputElement>(null);
   return (
     <Sidebar name={sidebarName} docked className="blocks-sidebar">
       <Sidebar.Header>
@@ -61,26 +64,38 @@ export function BlockPalette({
           <button type="button" data-testid="save-document" onClick={onSaveDocument}>
             Save document
           </button>
-          <label>
-            <span>Load document</span>
-            <input
-              className="visually-hidden"
-              data-testid="load-document"
-              type="file"
-              accept=".dans_doc,application/json"
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
-                if (file !== undefined) {
-                  void onLoadDocument(file);
-                }
-                event.currentTarget.value = "";
-              }}
-            />
-          </label>
+          <button
+            type="button"
+            data-testid="load-document-button"
+            onClick={() => {
+              loadInputRef.current?.click();
+            }}
+          >
+            Load document
+          </button>
+          <input
+            ref={loadInputRef}
+            className="visually-hidden"
+            data-testid="load-document"
+            type="file"
+            accept=".dans_doc,application/json"
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file !== undefined) {
+                void onLoadDocument(file);
+              }
+            }}
+          />
         </section>
         {transportError === null ? null : (
           <p className="document-file-error" role="alert">
             {transportError}
+          </p>
+        )}
+        {transportError !== null || transportStatus === null ? null : (
+          <p className="document-file-status" role="status">
+            {transportStatus}
           </p>
         )}
         <section className="layout-mode-controls" aria-label="Document layout mode">
