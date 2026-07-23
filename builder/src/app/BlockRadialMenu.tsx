@@ -1,12 +1,39 @@
-import { useEffect, useMemo, useRef, type CSSProperties, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 
-export interface BlockRadialAction {
+interface BlockRadialActionBase {
   readonly id: string;
   readonly label: string;
   readonly glyph: string;
   readonly disabled?: boolean;
+}
+
+export interface BlockRadialCommandAction extends BlockRadialActionBase {
+  readonly kind?: "command";
   readonly run: () => void;
 }
+
+export interface BlockRadialBranchItem {
+  readonly id: string;
+  readonly label: string;
+  readonly glyph: string;
+  readonly preview: ReactNode;
+  readonly run: () => void;
+}
+
+export interface BlockRadialBranchAction extends BlockRadialActionBase {
+  readonly kind: "branch";
+  readonly items: readonly BlockRadialBranchItem[];
+}
+
+export type BlockRadialAction = BlockRadialCommandAction | BlockRadialBranchAction;
 
 interface BlockRadialMenuProps {
   readonly label: string;
@@ -36,6 +63,7 @@ export function BlockRadialMenu({
   onClose,
 }: BlockRadialMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const center = useMemo(
     () => ({
       x: Math.min(globalThis.innerWidth - viewportMargin, Math.max(viewportMargin, clientX)),
@@ -55,6 +83,16 @@ export function BlockRadialMenu({
     buttons[nextIndex]?.focus();
     event.preventDefault();
   };
+  const expandedAction = actions.find(
+    (action): action is BlockRadialBranchAction =>
+      action.kind === "branch" && action.id === expandedActionId,
+  );
+  const submenuHeight = Math.min(520, 18 + (expandedAction?.items.length ?? 0) * 106);
+  const submenuTop = Math.min(
+    globalThis.innerHeight - 16 - submenuHeight,
+    Math.max(16, center.y - submenuHeight / 2),
+  ) - center.y;
+  const submenuOnLeft = center.x > globalThis.innerWidth - 390;
 
   return (
     <div
@@ -106,15 +144,61 @@ export function BlockRadialMenu({
             role="menuitem"
             disabled={action.disabled}
             style={actionPosition(index, actions.length)}
+            aria-haspopup={action.kind === "branch" ? "menu" : undefined}
+            aria-expanded={
+              action.kind === "branch" ? expandedActionId === action.id : undefined
+            }
+            onPointerEnter={() => {
+              setExpandedActionId(action.kind === "branch" ? action.id : null);
+            }}
+            onFocus={() => {
+              setExpandedActionId(action.kind === "branch" ? action.id : null);
+            }}
             onClick={() => {
-              action.run();
-              onClose();
+              if (action.kind === "branch") {
+                setExpandedActionId((current) => current === action.id ? null : action.id);
+              } else {
+                action.run();
+                onClose();
+              }
             }}
           >
             <span>{action.glyph}</span>
             <small>{action.label}</small>
           </button>
         ))}
+        {expandedAction === undefined ? null : (
+          <div
+            className={`block-radial-menu__submenu block-radial-menu__submenu--${submenuOnLeft ? "left" : "right"}`}
+            role="menu"
+            aria-label={expandedAction.label}
+            style={{ top: submenuTop }}
+            onPointerEnter={() => {
+              setExpandedActionId(expandedAction.id);
+            }}
+          >
+            {expandedAction.items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="menuitem"
+                className="block-radial-menu__submenu-item"
+                onClick={() => {
+                  item.run();
+                  onClose();
+                }}
+              >
+                <span className="block-radial-menu__submenu-heading">
+                  <b>{item.glyph}</b>
+                  <strong>{item.label}</strong>
+                </span>
+                <span className="block-radial-menu__submenu-preview">
+                  {item.preview}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

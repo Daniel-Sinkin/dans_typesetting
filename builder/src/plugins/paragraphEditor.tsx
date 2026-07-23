@@ -619,7 +619,7 @@ export function InlineParagraphEditor({
   const paragraph = requireParagraph(block);
   const composerRef = useRef<ParagraphComposerHandle>(null);
   const [inlines, setInlines] = useState<readonly BuilderInlineNode[]>(paragraph.inlines);
-  const [editingMode, setEditingMode] = useState<"write" | "source">("write");
+  const [editingMode, setEditingMode] = useState<"write" | "source">("source");
   const [sourceText, setSourceText] = useState(() =>
     paragraphInlinesToSource(paragraph.inlines),
   );

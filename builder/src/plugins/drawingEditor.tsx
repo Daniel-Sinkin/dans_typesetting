@@ -3,6 +3,7 @@ import {
   CaptureUpdateAction,
   Excalidraw,
   convertToExcalidrawElements,
+  zoomToFitBounds,
 } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
@@ -30,11 +31,33 @@ import {
 } from "./drawingScene";
 
 const artboardGuideId = "dans-builder-drawing-artboard-guide";
+const cameraInsets = Object.freeze({
+  top: 12,
+  right: 20,
+  bottom: 72,
+  left: 272,
+});
 
 interface LockedCamera {
   readonly scrollX: number;
   readonly scrollY: number;
   readonly zoom: ReturnType<ExcalidrawImperativeAPI["getAppState"]>["zoom"];
+}
+
+function editorHeightForWidth(width: number, artboardHeight: number): number {
+  const widthZoom = Math.min(
+    1,
+    Math.max(
+      0.1,
+      (width - cameraInsets.left - cameraInsets.right) / excalidrawArtboardWidth,
+    ),
+  );
+  return Math.min(
+    Math.max(320, globalThis.innerHeight - 150),
+    Math.ceil(
+      cameraInsets.top + artboardHeight * widthZoom + cameraInsets.bottom,
+    ),
+  );
 }
 
 function createArtboardGuide(height: number): ExcalidrawElement {
@@ -90,6 +113,12 @@ export function ExcalidrawDrawingEditor({
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const cameraRef = useRef<LockedCamera | null>(null);
   const fitFrameRef = useRef<number | null>(null);
+  const [editorHeight, setEditorHeight] = useState(() =>
+    editorHeightForWidth(
+      Math.min(1_440, Math.max(320, globalThis.innerWidth - 32)),
+      draft.artboardHeight,
+    ),
+  );
   const [initialScene] = useState(() => {
     const restored = restoreExcalidrawScene(draft.scene);
     return {
@@ -108,28 +137,51 @@ export function ExcalidrawDrawingEditor({
     if (api === null) {
       return;
     }
+    const canvas = canvasRef.current;
+    if (canvas === null) {
+      return;
+    }
     cameraRef.current = null;
-    api.scrollToContent(artboardGuideId, {
+    const appState = api.getAppState();
+    const fitted = zoomToFitBounds({
+      bounds: [0, 0, excalidrawArtboardWidth, draft.artboardHeight],
+      appState,
+      canvasOffsets: cameraInsets,
       fitToViewport: true,
-      viewportZoomFactor: 0.9,
-      animate: false,
-      canvasOffsets: { top: 38, right: 38, bottom: 38, left: 292 },
+      viewportZoomFactor: 1,
       minZoom: 0.1,
-      maxZoom: 2,
+      maxZoom: 1,
+    });
+    const zoom = fitted.appState.zoom;
+    const scrollX =
+      (canvas.clientWidth - cameraInsets.right) / zoom.value -
+      excalidrawArtboardWidth;
+    const scrollY = cameraInsets.top / zoom.value;
+    canvas.dataset.artboardViewportLeft = String(scrollX * zoom.value);
+    canvas.dataset.artboardViewportRight = String(
+      (scrollX + excalidrawArtboardWidth) * zoom.value,
+    );
+    canvas.dataset.artboardViewportTop = String(scrollY * zoom.value);
+    canvas.dataset.artboardViewportBottom = String(
+      (scrollY + draft.artboardHeight) * zoom.value,
+    );
+    api.updateScene({
+      appState: { scrollX, scrollY, zoom },
+      captureUpdate: CaptureUpdateAction.NEVER,
     });
     if (fitFrameRef.current !== null) {
       cancelAnimationFrame(fitFrameRef.current);
     }
     fitFrameRef.current = requestAnimationFrame(() => {
       fitFrameRef.current = null;
-      const appState = api.getAppState();
+      const nextAppState = api.getAppState();
       cameraRef.current = {
-        scrollX: appState.scrollX,
-        scrollY: appState.scrollY,
-        zoom: appState.zoom,
+        scrollX: nextAppState.scrollX,
+        scrollY: nextAppState.scrollY,
+        zoom: nextAppState.zoom,
       };
     });
-  }, []);
+  }, [draft.artboardHeight]);
 
   const installApi = useCallback(
     (api: ExcalidrawImperativeAPI): void => {
@@ -144,7 +196,16 @@ export function ExcalidrawDrawingEditor({
     if (canvas === null) {
       return;
     }
-    const observer = new ResizeObserver(fitArtboard);
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry === undefined) {
+        return;
+      }
+      setEditorHeight((current) => {
+        const next = editorHeightForWidth(entry.contentRect.width, draft.artboardHeight);
+        return current === next ? current : next;
+      });
+      fitArtboard();
+    });
     observer.observe(canvas);
     return () => {
       observer.disconnect();
@@ -152,10 +213,14 @@ export function ExcalidrawDrawingEditor({
         cancelAnimationFrame(fitFrameRef.current);
       }
     };
-  }, [fitArtboard]);
+  }, [draft.artboardHeight, fitArtboard]);
 
   return (
-    <div className="drawing-editor" data-testid="excalidraw-drawing-editor">
+    <div
+      className="drawing-editor"
+      data-testid="excalidraw-drawing-editor"
+      style={{ height: editorHeight }}
+    >
       <div
         ref={canvasRef}
         className="drawing-editor__canvas"

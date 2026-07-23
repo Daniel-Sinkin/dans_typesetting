@@ -118,6 +118,29 @@ describe("document flow", () => {
     expect(layout.blocks[1]?.bounds.x).toBeGreaterThan(layout.blocks[0]?.bounds.x ?? 0);
   });
 
+  it("reports every nested insertion depth for drag guides", () => {
+    const inner = sectionPlugin.createDefault("inner");
+    const middle = {
+      ...sectionPlugin.createDefault("middle"),
+      childSequences: [{ id: sectionBodySequenceId, blocks: [inner] }],
+    };
+    const outer = {
+      ...sectionPlugin.createDefault("outer"),
+      childSequences: [{ id: sectionBodySequenceId, blocks: [middle] }],
+    };
+    const layout = computeDocumentLayout([outer], registry, {
+      parentId: "inner",
+      parentSequenceId: sectionBodySequenceId,
+      index: 0,
+      block: paragraphPlugin.createDefault("deep-preview"),
+    });
+
+    expect(layout.previewDepth).toBe(3);
+    expect(layout.previewBounds?.x).toBeGreaterThan(
+      layout.blocks.find(({ block }) => block.id === "outer")?.bounds.x ?? 0,
+    );
+  });
+
   it("places and previews a named child sequence inside Padding", () => {
     const nested = paragraphPlugin.createDefault("nested");
     const padding = createPaddingBlock(

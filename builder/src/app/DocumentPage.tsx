@@ -6,7 +6,11 @@ import type {
   ReactNode,
 } from "react";
 
-import type { DocumentLayout, LayoutBounds } from "../builder/layout";
+import {
+  geometryForLayoutMode,
+  type DocumentLayout,
+  type LayoutBounds,
+} from "../builder/layout";
 import type { BuilderPluginRegistry } from "../builder/plugin";
 import {
   deriveInlineOrdinals,
@@ -54,6 +58,7 @@ export function DocumentVisualPage({
     .filter(({ blockLayout }) => isPageVisible(layout, blockLayout.pageIndex));
   const showBackground = layer !== "blocks";
   const showBlocks = layer !== "background";
+  const previewDepth = layout.previewDepth ?? 0;
   return (
     <div
       className={`document-surface document-surface--${layout.mode}`}
@@ -148,7 +153,21 @@ export function DocumentVisualPage({
       layout.previewPageIndex === null ||
       !isPageVisible(layout, layout.previewPageIndex) ? null : (
         <div className="insertion-preview" style={positionStyle(layout, layout.previewBounds)}>
-          <span>Drop block here</span>
+          {previewDepth === 0 ? null : (
+            <div className="insertion-preview__depth-guides" aria-hidden="true">
+              {Array.from({ length: previewDepth }, (_, index) => (
+                <i
+                  key={index}
+                  style={{
+                    left:
+                      -(previewDepth - index) *
+                      geometryForLayoutMode(layout.mode).sectionIndent,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          <span className="insertion-preview__label">Drop block here</span>
         </div>
       )}
 

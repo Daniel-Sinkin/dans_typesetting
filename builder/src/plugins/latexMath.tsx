@@ -2,6 +2,7 @@
 import type { BuilderInlinePlugin } from "../builder/inlinePlugin";
 import type { BuilderBlockPlugin } from "../builder/plugin";
 import type { BuilderBlock } from "../model/document";
+import { sourceBufferFileName } from "../builder/sourceEditing";
 import {
   createLatexMathDisplay,
   createLatexMathInline,
@@ -97,6 +98,27 @@ export const latexMathDisplayPlugin: BuilderBlockPlugin = {
   },
   editor: {
     presentation: "inline",
+    sourceEditor: {
+      preloadOnContextMenu: true,
+      preloadOnSelection: true,
+      presentation: "inline",
+      primaryEdit: true,
+      fileName(block) {
+        return sourceBufferFileName(requireLatexMathDisplay(block).id, "tex");
+      },
+      source(block) {
+        return requireLatexMathDisplay(block).source;
+      },
+      applySource(block, source) {
+        const math = requireLatexMathDisplay(block);
+        return createLatexMathDisplay(
+          source.replace(/(?:\r?\n)+$/u, ""),
+          math.numbered,
+          math.referenceId,
+          math.id,
+        );
+      },
+    },
     title(block: BuilderBlock) {
       return `Edit LaTeX equation · ${requireLatexMathDisplay(block).id}`;
     },

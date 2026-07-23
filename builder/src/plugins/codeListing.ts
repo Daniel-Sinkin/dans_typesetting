@@ -83,7 +83,8 @@ export function createCodeListingPlugin(
       sourceEditor: {
         preloadOnContextMenu: true,
         preloadOnSelection: true,
-        presentation: "dialog",
+        presentation: "inline",
+        primaryEdit: true,
         fileName(block) {
           const listing = requireCodeListing(block);
           const extension = {

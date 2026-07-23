@@ -14,11 +14,6 @@ import {
   ParagraphPreview,
 } from "./paragraphEditor";
 import { copyBuilderInlineForInsert } from "../builder/copyInline";
-import { sourceBufferFileName } from "../builder/sourceEditing";
-import {
-  paragraphInlinesToSource,
-  parseParagraphSource,
-} from "./paragraphSource";
 
 function requireParagraph(block: BuilderBlock): ParagraphBlock {
   if (!isParagraphBlock(block)) {
@@ -92,25 +87,6 @@ export function createParagraphPlugin(
     },
     editor: {
       presentation: "inline",
-      sourceEditor: {
-        preloadOnSelection: true,
-        presentation: "inline",
-        primaryEdit: true,
-        fileName(block) {
-          return sourceBufferFileName(requireParagraph(block).id, "md");
-        },
-        source(block) {
-          return paragraphInlinesToSource(requireParagraph(block).inlines);
-        },
-        applySource(block, source) {
-          const paragraph = requireParagraph(block);
-          const inlines = parseParagraphSource(source.replace(/\r?\n$/u, "")).inlines;
-          if (inlines.length === 0) {
-            throw new Error("A paragraph source buffer cannot be empty");
-          }
-          return Object.freeze({ ...paragraph, inlines });
-        },
-      },
       title(block) {
         return `Edit paragraph · ${requireParagraph(block).id}`;
       },

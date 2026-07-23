@@ -64,6 +64,7 @@ button {
 
 .document-control-layer {
   z-index: 4;
+  overflow: clip;
 }
 
 .document-surface,
@@ -225,6 +226,7 @@ button {
   border-radius: 9px;
   box-shadow: 0 4px 16px rgb(36 42 56 / 7%);
   pointer-events: none;
+  user-select: none;
 }
 
 .document-block-visual--oversized {
@@ -264,6 +266,7 @@ button {
   outline: 0;
   pointer-events: auto;
   touch-action: none;
+  user-select: none;
 }
 
 .document-block-controls:active {
@@ -300,6 +303,7 @@ button {
   border-radius: 8px;
   box-shadow: 0 18px 45px rgb(28 48 94 / 22%);
   pointer-events: auto;
+  user-select: text;
 }
 
 .inline-paragraph-editor,
@@ -601,6 +605,83 @@ button {
 
 .block-radial-menu__action--delete > span {
   color: #e03131;
+}
+
+.block-radial-menu__submenu {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  width: 280px;
+  max-height: min(520px, calc(100vh - 32px));
+  padding: 8px;
+  overflow: auto;
+  gap: 7px;
+  background: rgb(248 249 250 / 98%);
+  border: 1px solid #74c0fc;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgb(18 24 38 / 28%);
+}
+
+.block-radial-menu__submenu--right {
+  left: 122px;
+}
+
+.block-radial-menu__submenu--left {
+  right: 122px;
+}
+
+.block-radial-menu .block-radial-menu__submenu-item {
+  position: relative;
+  top: auto;
+  left: auto;
+  display: grid;
+  width: 100%;
+  min-height: 98px;
+  grid-template-rows: 18px 70px;
+  padding: 5px !important;
+  gap: 4px;
+  color: #343a40;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.block-radial-menu .block-radial-menu__submenu-item:hover,
+.block-radial-menu .block-radial-menu__submenu-item:focus-visible {
+  border-color: #339af0;
+  box-shadow: 0 0 0 2px rgb(77 171 247 / 24%);
+}
+
+.block-radial-menu__submenu-heading {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+}
+
+.block-radial-menu__submenu-heading b {
+  color: #1971c2;
+  font-size: 13px;
+}
+
+.block-radial-menu__submenu-preview {
+  display: block;
+  width: 100%;
+  height: 70px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.block-recovery-preview {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .document-block__selection-label {
@@ -1296,8 +1377,7 @@ button {
 .drawing-editor {
   position: relative;
   width: 100%;
-  height: min(720px, calc(100vh - 150px));
-  min-height: min(560px, calc(100vh - 150px));
+  min-height: 0;
   overflow: hidden;
   color: #343a40;
   background: #eef1f5;
@@ -1366,6 +1446,11 @@ button {
 
 .editor-dialog__body:has(.drawing-editor) {
   overflow: hidden;
+}
+
+.editor-dialog:has(.drawing-editor) {
+  width: min(1440px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
 }
 
 .math-display-content {
@@ -1748,7 +1833,7 @@ button {
 
 .insertion-preview {
   display: grid;
-  overflow: hidden;
+  overflow: visible;
   place-items: center;
   color: #074f69;
   background:
@@ -1764,13 +1849,32 @@ button {
   animation: insertion-shimmer 1.5s ease-in-out infinite;
 }
 
-.insertion-preview span {
+.insertion-preview > .insertion-preview__label {
+  position: relative;
+  z-index: 2;
   padding: 8px 13px;
   background: rgb(255 255 255 / 70%);
   border-radius: 999px;
   font-size: 13px;
   font-weight: 750;
   letter-spacing: 0.04em;
+}
+
+.insertion-preview__depth-guides {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: visible;
+}
+
+.insertion-preview__depth-guides > i {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 4px;
+  background: #111827;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 74%);
 }
 
 @keyframes insertion-shimmer {
@@ -2273,22 +2377,26 @@ button {
 
 .nvim-editor-host--dialog > .nvim-block-editor {
   width: min(1040px, calc(100vw - 56px));
+  height: min(680px, calc(100vh - 170px));
+  min-height: 440px;
   border: 1px solid #414868;
   border-radius: 12px;
   box-shadow: 0 28px 90px rgb(8 12 20 / 48%);
 }
 
 .nvim-editor-host--inline {
-  overflow: hidden;
-  border: 2px solid #4c6ef5;
-  border-radius: 9px;
-  box-shadow: 0 22px 60px rgb(13 27 62 / 34%);
+  overflow: visible;
 }
 
-.nvim-editor-host--inline > .nvim-block-editor,
 .nvim-editor-host--preload > .nvim-block-editor {
   width: 100%;
   height: 100%;
+  min-height: 0;
+}
+
+.nvim-editor-host--inline > .nvim-block-editor {
+  width: 100%;
+  height: calc(100% + 30px);
   min-height: 0;
 }
 
@@ -2302,63 +2410,25 @@ button {
 }
 
 .nvim-block-editor {
-  display: grid;
-  height: min(680px, calc(100vh - 170px));
-  min-height: 440px;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  position: relative;
+  display: block;
   overflow: hidden;
   color: #c0caf5;
-  background: #1a1b26;
-}
-
-.nvim-block-editor > header,
-.nvim-block-editor > footer {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  gap: 10px;
-  background: #24283b;
-  border-color: #414868;
-  font-size: 10px;
-}
-
-.nvim-block-editor > header {
-  justify-content: space-between;
-  border-bottom: 1px solid #414868;
-}
-
-.nvim-block-editor > header > div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nvim-block-editor > header strong {
-  color: #7aa2f7;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
-.nvim-block-editor > header span,
-.nvim-block-editor > footer > span {
-  color: #a9b1d6;
-}
-
-.nvim-block-editor__mode {
-  flex: 0 0 auto;
-  padding: 3px 7px;
-  background: #1a1b26;
-  border: 1px solid #414868;
-  border-radius: 999px;
+  background: transparent;
 }
 
 .nvim-block-editor__terminal {
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 8px 10px;
   overflow: hidden;
   background: #1a1b26;
+  opacity: 0;
+}
+
+.nvim-block-editor[data-render-ready="true"] > .nvim-block-editor__terminal {
+  opacity: 1;
 }
 
 .nvim-block-editor__terminal .xterm,
@@ -2366,33 +2436,21 @@ button {
   height: 100%;
 }
 
-.nvim-block-editor > footer {
-  min-height: 38px;
-  border-top: 1px solid #414868;
-}
-
-.nvim-block-editor > footer > span {
-  margin-right: auto;
-}
-
-.nvim-block-editor > footer > strong {
+.nvim-block-editor__error {
+  position: absolute;
+  z-index: 2;
+  right: 6px;
+  bottom: 6px;
+  left: 6px;
+  padding: 5px 7px;
   overflow: hidden;
   color: #ff9e64;
+  background: rgb(26 27 38 / 94%);
+  border: 1px solid #ff9e64;
+  border-radius: 4px;
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.nvim-block-editor > footer button {
-  flex: 0 0 auto;
-  min-height: 24px;
-  padding: 3px 9px;
-  color: #c0caf5;
-  background: #3b4261;
-  border: 1px solid #565f89;
-  border-radius: 6px;
-  font-size: 9px;
-  cursor: pointer;
 }
 
 .block-editor-form {

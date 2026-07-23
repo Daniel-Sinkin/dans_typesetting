@@ -4,14 +4,17 @@ import type { ResolvedBuilderAdapter } from "../builder/plugin";
 interface DragGhostProps {
   readonly clientX: number;
   readonly clientY: number;
-  readonly insertionIndex: number | null;
+  readonly destination: string | null;
   readonly mode: "insert" | "move" | "copy" | "detached";
   readonly plugin: ResolvedBuilderAdapter;
 }
 
-export function DragGhost({ clientX, clientY, insertionIndex, mode, plugin }: DragGhostProps) {
+export function DragGhost({ clientX, clientY, destination, mode, plugin }: DragGhostProps) {
   const operation =
     mode === "copy" ? "Copy" : mode === "detached" ? "Detached" : mode === "move" ? "Move" : "Insert";
+  const detail = mode === "detached"
+    ? "Awaiting deletion decision"
+    : destination ?? "Move over the page";
   return (
     <div
       className="drag-ghost"
@@ -25,13 +28,7 @@ export function DragGhost({ clientX, clientY, insertionIndex, mode, plugin }: Dr
       <strong>
         {operation} {plugin.palette.label}
       </strong>
-      <small>
-        {mode === "detached"
-          ? "Awaiting deletion decision"
-          : insertionIndex === null
-          ? "Move over the page"
-          : `Insert at ${String(insertionIndex + 1)}`}
-      </small>
+      <small>{detail}</small>
     </div>
   );
 }

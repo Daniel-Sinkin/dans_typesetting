@@ -53,6 +53,7 @@ import {
   createBlockId,
   findBuilderBlock,
   flattenBuilderBlocks,
+  isSectionBlock,
   removeBuilderBlockFromTree,
   replaceBuilderBlockInTree,
   type BuilderBlock,
@@ -67,6 +68,7 @@ import {
   type BlockRadialAction,
 } from "./BlockRadialMenu";
 import { adjacentBlockId, blockIdAfterDeletion } from "./blockNavigation";
+import { rememberDeletedBlocks } from "./deletedBlockCache";
 import { DetachConfirmation } from "./DetachConfirmation";
 import { DocumentControls, DocumentVisualPage } from "./DocumentPage";
 import { DragGhost } from "./DragGhost";
@@ -257,6 +259,9 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const [editingContextActionId, setEditingContextActionId] = useState<string | null>(null);
   const [preloadSuppressedBlockId, setPreloadSuppressedBlockId] = useState<string | null>(null);
   const [blockContextMenu, setBlockContextMenu] = useState<BlockContextMenuState | null>(null);
+  const [recentlyDeletedBlocks, setRecentlyDeletedBlocks] = useState<
+    readonly BuilderBlock[]
+  >([]);
   const [middlePanning, setMiddlePanning] = useState(false);
   const [transportError, setTransportError] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<DocumentLayoutMode>("continuous");
@@ -270,6 +275,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
   const selectionAnchorRef = useRef<string | null>(null);
   const middlePanRef = useRef<MiddlePanGesture | null>(null);
   const documentControlLayerRef = useRef<HTMLDivElement>(null);
+  const nvimInlineHostRef = useRef<HTMLDivElement>(null);
   const undoStackRef = useRef<StructuralUndoEntry[]>([]);
 
   const activateEditor = useCallback(
@@ -466,6 +472,10 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       port.dispatch({ kind: "delete", blockId });
     });
     if (port.getSnapshot().revision !== beforeRevision && deletedLocations.length > 0) {
+      const deletedBlocks = deletedLocations.map(({ block }) => block);
+      setRecentlyDeletedBlocks((current) =>
+        rememberDeletedBlocks(current, deletedBlocks),
+      );
       undoStackRef.current.push({
         undo: () => {
           deletedLocations.forEach((location) => {
@@ -942,6 +952,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       if (event.button !== 0) {
         return;
       }
+      event.preventDefault();
       event.stopPropagation();
       setBlockContextMenu(null);
       event.currentTarget.focus();
@@ -1082,6 +1093,23 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     }
     return snapshot.blocks;
   }, [activeDrag, editingBlock, editingDraft, pendingDetach, snapshot.blocks]);
+
+  const dragDestination = useMemo(() => {
+    if (placement === null) {
+      return null;
+    }
+    if (placement.parentId === null) {
+      return "Insert at root";
+    }
+    const parent = findBuilderBlock(snapshot.blocks, placement.parentId)?.block;
+    if (parent === undefined) {
+      return "Insert into nested block";
+    }
+    const label = registry.pluginForBlock(parent).palette.label;
+    return isSectionBlock(parent)
+      ? `Insert into ${label} “${parent.title}”`
+      : `Insert into ${label}`;
+  }, [placement, registry, snapshot.blocks]);
 
   const insertionPreview = useMemo<InsertionPreview | null>(
     () =>
@@ -1454,21 +1482,46 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
       { sceneX: blockLayout.bounds.x, sceneY: blockLayout.bounds.y },
       viewport,
     );
-    const width = Math.min(
-      globalThis.innerWidth - 24,
-      Math.max(560, blockLayout.bounds.width * viewport.zoom.value),
-    );
-    const height = Math.min(
-      globalThis.innerHeight - 24,
-      Math.max(280, blockLayout.bounds.height * viewport.zoom.value),
-    );
+    const width = Math.max(1, blockLayout.bounds.width * viewport.zoom.value);
+    const height = Math.max(1, blockLayout.bounds.height * viewport.zoom.value);
     return {
-      left: Math.min(globalThis.innerWidth - width - 12, Math.max(12, origin.x)),
-      top: Math.min(globalThis.innerHeight - height - 12, Math.max(12, origin.y)),
+      left: origin.x,
+      top: origin.y,
       width,
       height,
     };
   }, [editingBlock, editingPresentation, layout.blocks, viewport]);
+
+  useEffect(() => {
+    if (editingPresentation !== "nvim_inline" || editingBlock === null) {
+      return;
+    }
+    let frame: number | null = null;
+    const startedAt = performance.now();
+    const syncToRenderedBlock = (): void => {
+      const host = nvimInlineHostRef.current;
+      const block = [...document.querySelectorAll<HTMLElement>("[data-block-id]")]
+        .find((candidate) => candidate.dataset.blockId === editingBlock.id);
+      if (host !== null && block !== undefined) {
+        const bounds = block.getBoundingClientRect();
+        host.style.left = `${String(bounds.left)}px`;
+        host.style.top = `${String(bounds.top)}px`;
+        host.style.width = `${String(bounds.width)}px`;
+        host.style.height = `${String(bounds.height)}px`;
+      }
+      if (performance.now() - startedAt < 500) {
+        frame = requestAnimationFrame(syncToRenderedBlock);
+      }
+    };
+    frame = requestAnimationFrame(syncToRenderedBlock);
+    globalThis.addEventListener("resize", syncToRenderedBlock);
+    return () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+      globalThis.removeEventListener("resize", syncToRenderedBlock);
+    };
+  }, [editingBlock, editingPresentation, viewport]);
 
   const moveBlockBy = useCallback(
     (block: BuilderBlock, direction: -1 | 1): void => {
@@ -1543,6 +1596,65 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
     },
     [beginEdit],
   );
+  const recoverDeletedBlock = useCallback(
+    (deletedBlock: BuilderBlock, afterBlockId: string): void => {
+      const currentBlocks = port.getSnapshot().blocks;
+      const target = findBuilderBlock(currentBlocks, afterBlockId);
+      if (target === null) {
+        return;
+      }
+      const recovered = findBuilderBlock(currentBlocks, deletedBlock.id) === null
+        ? deletedBlock
+        : copyBuilderBlockForInsert(deletedBlock, registry);
+      insertBlocksWithUndo([
+        {
+          kind: "insert",
+          parentId: target.parentId,
+          parentSequenceId: target.parentSequenceId,
+          index: target.index + 1,
+          block: recovered,
+        },
+      ]);
+      setRecentlyDeletedBlocks((current) =>
+        Object.freeze(current.filter(({ id }) => id !== deletedBlock.id)),
+      );
+      selectSingleBlock(recovered.id);
+    },
+    [insertBlocksWithUndo, port, registry, selectSingleBlock],
+  );
+  const recoveryItems = recentlyDeletedBlocks.map((deletedBlock) => {
+    const adapter = registry.pluginForBlock(deletedBlock);
+    const occurrence = registry.numberedOccurrencesForBlock(deletedBlock)[0];
+    return {
+      id: `recover-${deletedBlock.id}`,
+      label: adapter.palette.label,
+      glyph: adapter.palette.glyph,
+      preview: (
+        <div
+          className="block-recovery-preview"
+          data-recovery-block-type={deletedBlock.typeId}
+        >
+          {adapter.renderPreview(deletedBlock, {
+            documentIndex: -1,
+            numberingSeries: occurrence?.numberingSeries ?? null,
+            ordinal: null,
+            documentBlocks: snapshot.blocks,
+            sectionDepth: 0,
+            referenceTargets,
+            inlineOrdinals,
+            blockOrdinals,
+            documentResources,
+            childSequenceLayouts: [],
+          })}
+        </div>
+      ),
+      run: () => {
+        if (contextBlock !== null) {
+          recoverDeletedBlock(deletedBlock, contextBlock.id);
+        }
+      },
+    };
+  });
   const contextActions: readonly BlockRadialAction[] =
     contextBlock === null
       ? []
@@ -1662,6 +1774,14 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
             },
           },
           {
+            kind: "branch",
+            id: "recover",
+            label: "Recover",
+            glyph: "↶",
+            disabled: recoveryItems.length === 0,
+            items: recoveryItems,
+          },
+          {
             id: "delete",
             label: "Delete",
             glyph: "×",
@@ -1702,6 +1822,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
         setPendingDetach(null);
         clearEditorState();
         setBlockContextMenu(null);
+        setRecentlyDeletedBlocks([]);
         undoStackRef.current = [];
         port.dispatch({ kind: "replace_all", ...decoded });
         setTransportError(null);
@@ -1824,7 +1945,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           <DragGhost
             clientX={activeDrag.clientX}
             clientY={activeDrag.clientY}
-            insertionIndex={placement?.index ?? null}
+            destination={dragDestination}
             mode={
               activeDrag.source === "palette" ? "insert" : activeDrag.copy ? "copy" : "move"
             }
@@ -1837,7 +1958,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
             <DragGhost
               clientX={pendingDetach.clientX}
               clientY={pendingDetach.clientY}
-              insertionIndex={null}
+              destination={null}
               mode="detached"
               plugin={registry.pluginForBlock(pendingDetach.block)}
             />
@@ -1880,6 +2001,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
           editingPresentation !== "nvim_preload") ||
         editorProps === null ? null : (
           <div
+            ref={nvimInlineHostRef}
             className={`nvim-editor-host nvim-editor-host--${
               editingPresentation === "nvim_preload"
                 ? "preload"
@@ -1891,6 +2013,7 @@ export function DocumentBuilder({ port, registry, transport }: DocumentBuilderPr
             aria-hidden={editingPresentation === "nvim_preload"}
           >
             <NvimBlockEditor
+              key={editorProps.block.id}
               {...editorProps}
               sourceEditor={editingDescriptor.sourceEditor}
               visible={editingPresentation !== "nvim_preload"}

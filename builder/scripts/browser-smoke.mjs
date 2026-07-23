@@ -363,12 +363,13 @@ async function exerciseBuilder(client) {
     `The aligned display-math superscript can still be clipped: ${JSON.stringify(initial.displayMathMetrics)}, overflow=${initial.displayMathOverflow}`,
   );
 
-  await pointerSelect(client, "sample-paragraph");
   await waitForCondition(
     client,
-    `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false']")?.textContent.includes("normal config loaded")`,
+    `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false'][data-buffer-ready='true']") !== null`,
     20_000,
   );
+  await client.evaluate(`document.querySelector("[data-testid='nvim-block-editor']").dataset.hotSession = "startup-code-hot"`);
+  await pointerSelect(client, "sample-paragraph");
   assert(
     await client.evaluate(`document.querySelector("[data-block-id='sample-paragraph']").classList.contains("document-block-controls--selected")`),
     "Single-click selection did not select the paragraph block",
@@ -377,53 +378,46 @@ async function exerciseBuilder(client) {
     await client.evaluate(`document.querySelector("[data-block-id='sample-paragraph'] .document-block__selection-label")?.firstElementChild?.matches("button") ?? false`),
     "The stable delete control was not placed to the left of the block label",
   );
-  await client.evaluate(`document.querySelector("[data-testid='nvim-block-editor']").dataset.hotSession = "startup-hot"`);
   await keyOnBlock(client, "sample-paragraph", "ArrowDown");
   assert(
-    await client.evaluate(`document.querySelector("[data-block-id='sample-image']").classList.contains("document-block-controls--selected") && document.activeElement?.dataset.blockId === "sample-image" && document.querySelector("[data-testid='nvim-block-editor'][data-visible='false']")?.dataset.hotSession === "startup-hot"`),
-    "ArrowDown did not move block selection while retaining the warm paragraph session",
+    await client.evaluate(`document.querySelector("[data-block-id='sample-image']").classList.contains("document-block-controls--selected") && document.activeElement?.dataset.blockId === "sample-image" && document.querySelector("[data-testid='nvim-block-editor'][data-visible='false']")?.dataset.hotSession === "startup-code-hot"`),
+    "ArrowDown did not move block selection while retaining the warm code session",
   );
   await keyOnBlock(client, "sample-image", "ArrowUp");
   await waitForCondition(
     client,
-    `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false']")?.dataset.hotSession === "startup-hot"`,
+    `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false']")?.dataset.hotSession === "startup-code-hot"`,
     20_000,
   );
-  await client.evaluate(`document.querySelector("[data-testid='nvim-block-editor']").dataset.hotSession = "paragraph-ready"`);
   await keyOnBlock(client, "sample-paragraph", "Enter");
-  await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-visible='true']") !== null`);
-  const inlineNvim = await client.evaluate(`(() => ({
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-source']") !== null`);
+  const paragraphSourceEditor = await client.evaluate(`(() => ({
     dialog: document.querySelector("[data-testid='block-editor-dialog']") !== null,
-    retainedSession: document.querySelector("[data-testid='nvim-block-editor']")?.dataset.hotSession === "paragraph-ready",
-    hostWidth: document.querySelector(".nvim-editor-host--inline").getBoundingClientRect().width,
-    blockWidth: document.querySelector("[data-block-id='sample-paragraph']").getBoundingClientRect().width,
+    nvim: document.querySelector("[data-testid='nvim-block-editor']") !== null,
+    sourceSelected: document.querySelector(".inline-paragraph-editor__modes [aria-selected='true']")?.textContent.trim() === "Source",
+    focused: document.activeElement?.dataset.testid === "inline-paragraph-source",
   }))()`);
   assert(
-    !inlineNvim.dialog && inlineNvim.retainedSession && inlineNvim.hostWidth >= inlineNvim.blockWidth * 0.8,
-    "Enter did not reveal the already-hot Neovim session as an anchored paragraph box",
+    !paragraphSourceEditor.dialog && !paragraphSourceEditor.nvim && paragraphSourceEditor.sourceSelected && paragraphSourceEditor.focused,
+    "Enter did not open the ordinary inline paragraph source editor",
   );
-  await screenshot(client, "paragraph-nvim.png");
-  await sendNvimCommand(client, `:call append(line("$"), "Nvim paragraph edit.") | write`);
-  await waitForCondition(
-    client,
-    `document.querySelector("[data-testid='nvim-block-editor']")?.textContent.includes(":write synchronized") && document.querySelector("[data-visual-block-id='sample-paragraph']").textContent.includes("Nvim paragraph edit")`,
-    20_000,
-  );
-  assert(
-    await client.evaluate(`document.querySelector("[data-testid='nvim-block-editor'][data-visible='true']") !== null`),
-    ":w synchronized the paragraph but unexpectedly closed Neovim",
-  );
-  await sendNvimCommand(client, ":quit");
-  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null && document.querySelector("[data-visual-block-id='sample-paragraph']").textContent.includes("Nvim paragraph edit")`, 20_000);
+  await client.evaluate(`(() => {
+    const textarea = document.querySelector("[data-testid='inline-paragraph-source']");
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+    setter.call(textarea, textarea.value + " Source paragraph edit.");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await client.evaluate(`document.querySelector(".inline-paragraph-editor button.primary-action").click()`);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-editor']") === null && document.querySelector("[data-visual-block-id='sample-paragraph']").textContent.includes("Source paragraph edit")`);
 
   await client.evaluate(`document.querySelector("[data-block-id='sample-paragraph']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
-  await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-visible='true']") !== null`, 20_000);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-source']") !== null`, 20_000);
   assert(
-    await client.evaluate(`document.querySelector("[data-testid='block-editor-dialog']") === null`),
-    "Double-click paragraph editing opened a separate dialog instead of its anchored Neovim box",
+    await client.evaluate(`document.querySelector("[data-testid='block-editor-dialog']") === null && document.querySelector("[data-testid='nvim-block-editor']") === null`),
+    "Double-click paragraph editing did not stay in the ordinary anchored source editor",
   );
-  await client.evaluate(`document.querySelector("[data-testid='nvim-block-editor'] footer button").click()`);
-  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null`);
+  await client.evaluate(`[...document.querySelectorAll(".inline-paragraph-editor__footer button")].find((button) => button.textContent.trim() === "Cancel").click()`);
+  await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-editor']") === null`);
 
   await pointerSelect(client, "sample-display-math", { ctrlKey: true });
   assert(
@@ -444,7 +438,7 @@ async function exerciseBuilder(client) {
     `document.querySelector("[data-block-id='sample-page-break']") !== null && document.querySelector("[data-block-id='sample-page-break']").classList.contains("document-block-controls--selected")`,
   );
   assert(
-    await client.evaluate(`document.querySelector("[data-visual-block-id='sample-paragraph']").textContent.includes("Nvim paragraph edit")`),
+    await client.evaluate(`document.querySelector("[data-visual-block-id='sample-paragraph']").textContent.includes("Source paragraph edit")`),
     "Structural undo reverted a paragraph content edit",
   );
 
@@ -542,7 +536,12 @@ async function exerciseBuilder(client) {
       end: { x: target.left + target.width / 2, y: target.bottom - 3 },
     };
   })()`);
+  await client.evaluate(`getSelection()?.removeAllRanges()`);
   await pointerDrag(client, dragPoints.start, dragPoints.end);
+  assert(
+    await client.evaluate(`getSelection()?.toString() === ""`),
+    "Dragging document blocks selected preview text",
+  );
   const orderAfterGroupDrag = await client.evaluate(
     `[...document.querySelectorAll("[data-block-id]")].map((node) => node.dataset.blockId)`,
   );
@@ -572,11 +571,48 @@ async function exerciseBuilder(client) {
   assert(
       radialLabels.some((label) => label.includes("Edit")) &&
       radialLabels.some((label) => label.includes("Full editor")) &&
-      radialLabels.some((label) => label.includes("Visual edit")) &&
+      radialLabels.some((label) => label.includes("Recover")) &&
       radialLabels.some((label) => label.includes("Duplicate")) &&
-      radialLabels.some((label) => label.includes("Delete")),
+      radialLabels.some((label) => label.includes("Delete")) &&
+      !radialLabels.some((label) => label.includes("Neovim")),
     "The block context menu did not expose the expected radial actions",
   );
+  await client.evaluate(`(() => {
+    const recover = [...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")]
+      .find((button) => button.textContent.includes("Recover"));
+    recover.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+  })()`);
+  await waitForCondition(client, `document.querySelector(".block-radial-menu__submenu-item")?.textContent.includes("Page break") ?? false`);
+  await screenshot(client, "recovery-menu.png");
+  await client.evaluate(`document.querySelector(".block-radial-menu__submenu-item").click()`);
+  await waitForCondition(client, `document.querySelectorAll("[data-block-id]").length === ${String(initialBlockCount + 1)}`);
+  const recoveredBlock = await client.evaluate(`(() => {
+    const selected = document.querySelector(".document-block-controls--selected");
+    const order = [...document.querySelectorAll("[data-block-id]")];
+    const paragraphIndex = order.findIndex((node) => node.dataset.blockId === "sample-paragraph");
+    return {
+      id: selected?.dataset.blockId,
+      type: selected?.dataset.blockType,
+      insertedAfterParagraph: order[paragraphIndex + 1]?.dataset.blockId === selected?.dataset.blockId,
+    };
+  })()`);
+  assert(
+    recoveredBlock.type === "dans.document.page_break" && recoveredBlock.insertedAfterParagraph,
+    "The recent-deletion branch did not recover the selected preview after the context block",
+  );
+  await keyOnBlock(client, recoveredBlock.id, "z", { ctrlKey: true });
+  await waitForCondition(client, `document.querySelectorAll("[data-block-id]").length === ${String(initialBlockCount)}`);
+  await client.evaluate(`(() => {
+    const block = document.querySelector("[data-block-id='sample-paragraph']");
+    const bounds = block.getBoundingClientRect();
+    block.dispatchEvent(new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2,
+    }));
+  })()`);
+  await waitForCondition(client, `document.querySelector("[data-testid='block-radial-menu']") !== null`);
   await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.includes("Duplicate")).click()`);
   await waitForCondition(client, `document.querySelectorAll("[data-block-id]").length === ${String(initialBlockCount + 1)}`);
   const duplicateId = await client.evaluate(`document.querySelector(".document-block-controls--selected")?.dataset.blockId`);
@@ -594,8 +630,14 @@ async function exerciseBuilder(client) {
     }));
   })()`);
   await waitForCondition(client, `document.querySelector("[data-testid='block-radial-menu']") !== null`);
-  await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.includes("Visual edit")).click()`);
+  await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.trim().endsWith("Edit")).click()`);
   await waitForCondition(client, `document.querySelector("[data-testid='inline-paragraph-editor']") !== null`);
+  assert(
+    await client.evaluate(`document.querySelector("[data-testid='inline-paragraph-source']") !== null`),
+    "Paragraph Edit did not default to source mode",
+  );
+  await client.evaluate(`[...document.querySelectorAll(".inline-paragraph-editor__modes button")].find((button) => button.textContent.trim() === "Write").click()`);
+  await waitForCondition(client, `document.querySelector(".inline-paragraph-editor .paragraph-composer") !== null`);
   const writer = await client.evaluate(`(() => ({
     modes: [...document.querySelectorAll(".inline-paragraph-editor__modes button")].map((button) => button.textContent.trim()),
     dialog: document.querySelector("[data-testid='block-editor-dialog']") !== null,
@@ -633,7 +675,7 @@ async function exerciseBuilder(client) {
   await pointerSelect(client, "sample-code-listing");
   await waitForCondition(
     client,
-    `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false']")?.textContent.includes("normal config loaded")`,
+    `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false'][data-buffer-ready='true']") !== null`,
     20_000,
   );
   await client.evaluate(`document.querySelector("[data-testid='nvim-block-editor']").dataset.hotSession = "code-ready"`);
@@ -648,18 +690,54 @@ async function exerciseBuilder(client) {
     }));
   })()`);
   await waitForCondition(client, `document.querySelector("[data-testid='block-radial-menu']") !== null`);
-  await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.includes("Neovim")).click()`);
-  await waitForCondition(client, `document.querySelector(".nvim-editor-host--dialog [data-testid='nvim-block-editor'][data-visible='true']")?.dataset.hotSession === "code-ready"`);
+  const codeMenu = await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].map((button) => button.textContent.trim())`);
   assert(
-    await client.evaluate(`document.querySelector("[data-testid='block-editor-dialog']") === null`),
-    "The preloaded code Neovim session was wrapped in a second editor dialog",
+    codeMenu.some((label) => label.endsWith("Edit")) && !codeMenu.some((label) => label.includes("Neovim")),
+    "Code listing exposed a redundant Neovim action instead of making it the primary editor",
   );
-  await delay(1_800);
+  await client.evaluate(`[...document.querySelectorAll("[data-testid='block-radial-menu'] [role='menuitem']")].find((button) => button.textContent.trim().endsWith("Edit")).click()`);
+  await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-visible='true'][data-render-ready='true']")?.dataset.hotSession === "code-ready"`);
+  const codeNvim = await client.evaluate(`(() => {
+    const host = document.querySelector(".nvim-editor-host--inline");
+    const block = document.querySelector("[data-block-id='sample-code-listing']");
+    const visual = document.querySelector("[data-visual-block-id='sample-code-listing']");
+    const terminal = document.querySelector("[data-testid='nvim-terminal']");
+    const hostBox = host.getBoundingClientRect();
+    const blockBox = block.getBoundingClientRect();
+    const visualBox = visual.getBoundingClientRect();
+    const visualSurface = visual.closest(".document-surface");
+    const controlSurface = block.closest(".document-controls");
+    const visualSurfaceBox = visualSurface.getBoundingClientRect();
+    const controlSurfaceBox = controlSurface.getBoundingClientRect();
+    return {
+      dialog: document.querySelector("[data-testid='block-editor-dialog']") !== null,
+      chrome: document.querySelectorAll("[data-testid='nvim-block-editor'] > header, [data-testid='nvim-block-editor'] > footer").length,
+      widthDelta: Math.abs(hostBox.width - blockBox.width),
+      heightDelta: Math.abs(hostBox.height - blockBox.height),
+      positionDelta: Math.abs(hostBox.left - blockBox.left) + Math.abs(hostBox.top - blockBox.top),
+      visualDelta: Math.abs(hostBox.left - visualBox.left) + Math.abs(hostBox.top - visualBox.top),
+      hostBox: { left: hostBox.left, top: hostBox.top, width: hostBox.width, height: hostBox.height },
+      blockBox: { left: blockBox.left, top: blockBox.top, width: blockBox.width, height: blockBox.height },
+      visualBox: { left: visualBox.left, top: visualBox.top, width: visualBox.width, height: visualBox.height },
+      blockTransform: getComputedStyle(block).transform,
+      visualTransform: getComputedStyle(visual).transform,
+      visualSurfaceBox: { left: visualSurfaceBox.left, top: visualSurfaceBox.top },
+      controlSurfaceBox: { left: controlSurfaceBox.left, top: controlSurfaceBox.top },
+      visualSurfaceTransform: getComputedStyle(visualSurface).transform,
+      controlSurfaceTransform: getComputedStyle(controlSurface).transform,
+      terminalPadding: getComputedStyle(terminal).padding,
+      terminalOpacity: getComputedStyle(terminal).opacity,
+    };
+  })()`);
+  assert(
+    !codeNvim.dialog && codeNvim.chrome === 0 && codeNvim.widthDelta <= 1 && codeNvim.heightDelta <= 1 && codeNvim.positionDelta <= 1 && codeNvim.visualDelta <= 1 && codeNvim.terminalPadding === "0px" && codeNvim.terminalOpacity === "1",
+    `The inline Neovim surface did not match the code block footprint: ${JSON.stringify(codeNvim)}`,
+  );
   await screenshot(client, "nvim-editor.png");
-  await sendNvimCommand(client, `:call append(line("$"), "// nvim browser bridge") | write`);
+  await sendNvimCommand(client, `:call append(line("$"), ["", "", "// nvim browser bridge", "", "", ""]) | write`);
   await waitForCondition(
     client,
-    `document.querySelector("[data-testid='nvim-block-editor']")?.textContent.includes(":write synchronized") && document.querySelector("[data-visual-block-id='sample-code-listing']").textContent.includes("nvim browser bridge")`,
+    `document.querySelector("[data-visual-block-id='sample-code-listing']").textContent.includes("nvim browser bridge")`,
     20_000,
   );
   assert(
@@ -670,33 +748,30 @@ async function exerciseBuilder(client) {
   await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null && document.querySelector("[data-visual-block-id='sample-code-listing']").textContent.includes("nvim browser bridge")`, 20_000);
 
   await keyOnBlock(client, "sample-code-listing", "Enter");
-  await waitForCondition(client, `document.querySelector("[data-testid='inline-code-listing-editor']") !== null`);
-  await waitForCondition(
-    client,
-    `document.activeElement?.dataset.testid === "inline-code-listing-source" && document.querySelector("[data-testid='block-editor-dialog']") === null`,
+  await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-visible='true'][data-render-ready='true']") !== null`, 20_000);
+  assert(
+    await client.evaluate(`document.querySelector("[data-testid='inline-code-listing-editor']") === null`),
+    "Keyboard editing did not use Neovim as the code listing's primary editor",
   );
-  await client.evaluate(`(() => {
-    const textarea = document.querySelector("[data-testid='inline-code-listing-source']");
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
-    setter.call(textarea, textarea.value + "\\n\\n\\n\\n// keyboard-only edit\\n\\n\\n\\n");
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-  })()`);
-  await waitForCondition(client, `document.querySelector("[data-testid='inline-code-listing-source']").value.includes("keyboard-only edit")`);
-  await client.evaluate(`document.querySelector("[data-testid='inline-code-listing-source']").dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter", ctrlKey: true }))`);
-  await waitForCondition(client, `document.querySelector("[data-testid='inline-code-listing-editor']") === null && document.querySelector("[data-visual-block-id='sample-code-listing']").textContent.includes("keyboard-only edit")`);
+  await sendNvimCommand(client, ":quit");
+  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null`, 20_000);
   assert(
     await client.evaluate(`!/(?:\\r?\\n){2,}$/.test(document.querySelector("[data-visual-block-id='sample-code-listing'] code").textContent)`),
     "The code preview retained artificial trailing blank lines",
   );
 
+  await pointerSelect(client, "sample-display-math");
+  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false'][data-buffer-ready='true']") !== null`, 20_000);
   await client.evaluate(`document.querySelector("[data-block-id='sample-display-math']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
-  await waitForCondition(client, `document.querySelector("[data-testid='inline-latex-math-editor']") !== null`);
+  await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-visible='true'][data-render-ready='true']") !== null`, 20_000);
   assert(
-    await client.evaluate(`document.querySelector("[data-testid='block-editor-dialog']") === null && document.querySelector("[data-testid='inline-latex-math-source']").value.includes("x_{n+1}")`),
-    "Display math did not open as inline LaTeX source",
+    await client.evaluate(`document.querySelector("[data-testid='block-editor-dialog']") === null && document.querySelector("[data-testid='inline-latex-math-editor']") === null && document.querySelectorAll("[data-testid='nvim-block-editor'] > header, [data-testid='nvim-block-editor'] > footer").length === 0`),
+    "Display math did not use the chrome-free inline Neovim LaTeX editor",
   );
-  await client.evaluate(`document.querySelector("[data-testid='inline-latex-math-editor'] footer button").click()`);
-  await waitForCondition(client, `document.querySelector("[data-testid='inline-latex-math-editor']") === null`);
+  await sendNvimCommand(client, `:call setline(1, "z = 314159") | write`);
+  await waitForCondition(client, `document.querySelector("[data-visual-block-id='sample-display-math']").textContent.includes("314159")`, 20_000);
+  await sendNvimCommand(client, ":quit");
+  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null`, 20_000);
 
   await client.evaluate(`document.querySelector("[data-block-id='sample-image']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
   await waitForCondition(client, `document.querySelector("[data-testid='block-editor-dialog'] .content-image-editor") !== null`);
@@ -727,20 +802,40 @@ async function exerciseBuilder(client) {
 
   await client.evaluate(`document.querySelector("[data-block-id='sample-excalidraw-drawing']").dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }))`);
   await waitForCondition(client, `document.querySelector("[data-testid='excalidraw-drawing-editor']") !== null`);
+  await waitForCondition(client, `document.querySelector(".drawing-editor__canvas")?.dataset.artboardViewportRight !== undefined`);
   const drawingEditor = await client.evaluate(`(() => {
     const editor = document.querySelector("[data-testid='excalidraw-drawing-editor']");
+    const canvas = editor.querySelector(".drawing-editor__canvas");
     const zoom = editor.querySelector(".zoom-actions");
+    const canvasBox = canvas.getBoundingClientRect();
+    const artboardLeft = Number(canvas.dataset.artboardViewportLeft);
+    const artboardRight = Number(canvas.dataset.artboardViewportRight);
+    const artboardTop = Number(canvas.dataset.artboardViewportTop);
+    const artboardBottom = Number(canvas.dataset.artboardViewportBottom);
     return {
       settings: editor.querySelector("[data-testid='drawing-width']") !== null,
       embeddedScene: editor.textContent.includes("Embedded scene"),
       actions: [...editor.querySelectorAll(".drawing-editor__actions button")].map((button) => button.textContent.trim()),
       zoomHidden: zoom === null || getComputedStyle(zoom).display === "none",
+      leftClearance: artboardLeft,
+      rightDelta: Math.abs(artboardRight - (canvasBox.width - 20)),
+      top: artboardTop,
+      bottomPadding: canvasBox.height - artboardBottom,
     };
   })()`);
   assert(
-    !drawingEditor.settings && !drawingEditor.embeddedScene && drawingEditor.zoomHidden && JSON.stringify(drawingEditor.actions) === JSON.stringify(["Cancel", "Save drawing"]),
-    "The drawing popup still mixed document settings or movable-camera controls into Excalidraw",
+    !drawingEditor.settings &&
+      !drawingEditor.embeddedScene &&
+      drawingEditor.zoomHidden &&
+      JSON.stringify(drawingEditor.actions) === JSON.stringify(["Cancel", "Save drawing"]) &&
+      drawingEditor.leftClearance >= 270 &&
+      drawingEditor.rightDelta <= 2 &&
+      Math.abs(drawingEditor.top - 12) <= 2 &&
+      drawingEditor.bottomPadding >= 70 &&
+      drawingEditor.bottomPadding <= 74,
+    `The drawing popup did not preserve its tight top-right camera and palette clearance: ${JSON.stringify(drawingEditor)}`,
   );
+  await screenshot(client, "drawing-editor.png");
   await client.evaluate(`document.querySelector(".drawing-editor__actions button").click()`);
   await waitForCondition(client, `document.querySelector("[data-testid='excalidraw-drawing-editor']") === null`);
 
@@ -779,6 +874,84 @@ async function exerciseBuilder(client) {
     })()`),
     "The drawing preview did not preserve the configured 100% fixed artboard",
   );
+
+  await client.send("Page.reload");
+  await waitForBuilder(client);
+  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor'][data-visible='false'][data-buffer-ready='true']") !== null`, 20_000);
+  await pointerSelect(client, "sample-code-listing");
+  await keyOnBlock(client, "sample-code-listing", "Enter");
+  await waitForCondition(client, `document.querySelector(".nvim-editor-host--inline [data-testid='nvim-block-editor'][data-render-ready='true']") !== null`, 20_000);
+  assert(
+    await client.evaluate(`(() => {
+      const bounds = document.querySelector("[data-testid='nvim-terminal']").getBoundingClientRect();
+      return bounds.top < innerHeight && bounds.bottom > 0;
+    })()`),
+    "The freshly preloaded code editor did not reveal inside the visible block",
+  );
+  await screenshot(client, "nvim-editor.png");
+  await sendNvimCommand(client, ":quit");
+  await waitForCondition(client, `document.querySelector("[data-testid='nvim-block-editor']") === null`, 20_000);
+
+  const nestedDragPoints = await client.evaluate(`(() => {
+    const palette = [...document.querySelectorAll(".palette-card")]
+      .find((card) => card.querySelector("strong")?.textContent.trim() === "Paragraph")
+      .getBoundingClientRect();
+    const section = document.querySelector("[data-block-id='sample-section']").getBoundingClientRect();
+    return {
+      start: { x: palette.left + palette.width / 2, y: palette.top + palette.height / 2 },
+      end: { x: section.left + 34, y: section.bottom + 14 },
+    };
+  })()`);
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x: nestedDragPoints.start.x,
+    y: nestedDragPoints.start.y,
+    button: "left",
+    buttons: 1,
+    clickCount: 1,
+  });
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: nestedDragPoints.end.x,
+    y: nestedDragPoints.end.y,
+    button: "left",
+    buttons: 1,
+  });
+  await waitForCondition(client, `document.querySelector(".drag-ghost small")?.textContent.includes("Insert into Section") ?? false`);
+  const nestedDestination = await client.evaluate(`(() => ({
+    label: document.querySelector(".drag-ghost small").textContent.trim(),
+    depthGuides: document.querySelectorAll(".insertion-preview__depth-guides > i").length,
+  }))()`);
+  assert(
+    nestedDestination.label.includes("Interactive document blocks") &&
+      !/Insert at \\d/u.test(nestedDestination.label) &&
+      nestedDestination.depthGuides === 1,
+    `Nested drag feedback was not semantic or depth-aware: ${JSON.stringify(nestedDestination)}`,
+  );
+  await screenshot(client, "nested-drag.png");
+  await client.send("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+    nativeVirtualKeyCode: 27,
+  });
+  await client.send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+    nativeVirtualKeyCode: 27,
+  });
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    x: nestedDragPoints.end.x,
+    y: nestedDragPoints.end.y,
+    button: "left",
+    buttons: 0,
+    clickCount: 1,
+  });
+  await waitForCondition(client, `document.querySelector(".drag-ghost") === null`);
 
   assert(client.exceptions.length === 0, `Browser exceptions: ${client.exceptions.join("; ")}`);
 }

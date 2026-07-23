@@ -2,7 +2,7 @@
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
   BuilderBlockEditorProps,
@@ -24,7 +24,6 @@ interface NvimEditorCallbacks {
   readonly sourceEditor: BuilderBlockSourceEditor;
   readonly onPreview: (block: BuilderBlock) => void;
   readonly onCommit: (block: BuilderBlock) => void;
-  readonly onCancel: () => void;
 }
 
 function socketUrl(): string {
@@ -38,20 +37,48 @@ function send(socket: WebSocket, message: NvimClientMessage): void {
   }
 }
 
+function normalizedTerminalText(value: string): string {
+  return value.replace(/\s/gu, "");
+}
+
+function sourceMarker(source: string): string {
+  const firstContentLine = source.split(/\r?\n/u).find((line) => /\S/u.test(line)) ?? "";
+  return normalizedTerminalText(firstContentLine).slice(0, 32);
+}
+
+function terminalContainsSource(terminal: Terminal, marker: string): boolean {
+  if (marker.length === 0) {
+    return true;
+  }
+  const buffer = terminal.buffer.active;
+  let visibleText = "";
+  for (let index = 0; index < buffer.length; index += 1) {
+    const line = buffer.getLine(index)?.translateToString(true) ?? "";
+    visibleText += normalizedTerminalText(line);
+    if (visibleText.includes(marker)) {
+      return true;
+    }
+    visibleText = visibleText.slice(-marker.length);
+  }
+  return false;
+}
+
 export function NvimBlockEditor({
   block,
   sourceEditor,
   visible,
   onPreview,
   onCommit,
-  onCancel,
 }: NvimBlockEditorProps) {
   const terminalHostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const visibleRef = useRef(visible);
-  const cancelledRef = useRef(false);
+  const serverReadyRef = useRef(false);
+  const bufferReadyRef = useRef(false);
+  const revealFrameRef = useRef<number | null>(null);
+  const revealPaintFrameRef = useRef<number | null>(null);
   const exitReceivedRef = useRef(false);
   const draftRef = useRef<BuilderBlock>(block);
   const validDraftRef = useRef(true);
@@ -59,25 +86,68 @@ export function NvimBlockEditor({
     sourceEditor,
     onPreview,
     onCommit,
-    onCancel,
   });
   const [session] = useState(() => ({
     block,
     fileName: sourceEditor.fileName(block),
     source: sourceEditor.source(block),
   }));
-  const [status, setStatus] = useState("Connecting to local Neovim…");
+  const [bufferReady, setBufferReady] = useState(false);
+  const [renderReady, setRenderReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    callbacksRef.current = { sourceEditor, onPreview, onCommit, onCancel };
-  }, [onCancel, onCommit, onPreview, sourceEditor]);
+    callbacksRef.current = { sourceEditor, onPreview, onCommit };
+  }, [onCommit, onPreview, sourceEditor]);
+
+  const schedulePaintedReveal = useCallback((): void => {
+    if (!visibleRef.current || !bufferReadyRef.current) {
+      return;
+    }
+    if (revealFrameRef.current !== null) {
+      cancelAnimationFrame(revealFrameRef.current);
+    }
+    if (revealPaintFrameRef.current !== null) {
+      cancelAnimationFrame(revealPaintFrameRef.current);
+    }
+    revealFrameRef.current = requestAnimationFrame(() => {
+      revealFrameRef.current = null;
+      revealPaintFrameRef.current = requestAnimationFrame(() => {
+        revealPaintFrameRef.current = null;
+        if (visibleRef.current && bufferReadyRef.current) {
+          setRenderReady(true);
+        }
+      });
+    });
+  }, []);
+
+  const detectLoadedBuffer = useCallback((): void => {
+    const terminal = terminalRef.current;
+    if (
+      !serverReadyRef.current ||
+      terminal === null ||
+      !terminalContainsSource(terminal, sourceMarker(session.source))
+    ) {
+      return;
+    }
+    bufferReadyRef.current = true;
+    setBufferReady(true);
+    schedulePaintedReveal();
+  }, [schedulePaintedReveal, session.source]);
 
   useEffect(() => {
     visibleRef.current = visible;
     if (!visible) {
       return;
     }
+    let paintFrame: number | null = null;
+    const fallback = globalThis.setTimeout(() => {
+      if (visibleRef.current && serverReadyRef.current) {
+        bufferReadyRef.current = true;
+        setBufferReady(true);
+        schedulePaintedReveal();
+      }
+    }, 1_200);
     const frame = requestAnimationFrame(() => {
       try {
         fitAddonRef.current?.fit();
@@ -91,14 +161,22 @@ export function NvimBlockEditor({
             rows: Math.max(5, terminal.rows),
           });
         }
+        paintFrame = requestAnimationFrame(() => {
+          detectLoadedBuffer();
+          schedulePaintedReveal();
+        });
       } catch {
         // The host can take one animation frame to acquire its visible size.
       }
     });
     return () => {
       cancelAnimationFrame(frame);
+      if (paintFrame !== null) {
+        cancelAnimationFrame(paintFrame);
+      }
+      globalThis.clearTimeout(fallback);
     };
-  }, [visible]);
+  }, [detectLoadedBuffer, schedulePaintedReveal, visible]);
 
   useEffect(() => {
     const terminalHost = terminalHostRef.current;
@@ -145,6 +223,9 @@ export function NvimBlockEditor({
     const inputSubscription = terminal.onData((data) => {
       send(socket, { type: "input", data });
     });
+    const renderSubscription = terminal.onRender(() => {
+      detectLoadedBuffer();
+    });
 
     socket.addEventListener("open", () => {
       fitAddon.fit();
@@ -163,11 +244,12 @@ export function NvimBlockEditor({
       try {
         const message = parseNvimServerMessage(JSON.parse(String(event.data)) as unknown);
         if (message.type === "data") {
-          terminal.write(message.data);
+          terminal.write(message.data, detectLoadedBuffer);
           return;
         }
         if (message.type === "ready") {
-          setStatus(`${message.fileName} · normal config loaded`);
+          serverReadyRef.current = true;
+          requestAnimationFrame(detectLoadedBuffer);
           if (visibleRef.current) {
             terminal.focus();
           }
@@ -188,7 +270,6 @@ export function NvimBlockEditor({
             draftRef.current = replacement;
             validDraftRef.current = true;
             setError(null);
-            setStatus(":write synchronized to the document preview");
             callbacksRef.current.onPreview(replacement);
           } catch (cause: unknown) {
             validDraftRef.current = false;
@@ -198,11 +279,10 @@ export function NvimBlockEditor({
         }
         if (message.type === "exit") {
           exitReceivedRef.current = true;
-          if (cancelledRef.current || disposed) {
+          if (disposed) {
             return;
           }
           if (message.exitCode === 0 && validDraftRef.current) {
-            setStatus("Neovim exited; committing the last written buffer…");
             callbacksRef.current.onCommit(draftRef.current);
           } else {
             setError(
@@ -214,17 +294,26 @@ export function NvimBlockEditor({
           return;
         }
         setError(message.message);
+        bufferReadyRef.current = true;
+        setBufferReady(true);
+        setRenderReady(true);
       } catch (cause: unknown) {
         setError(cause instanceof Error ? cause.message : "Malformed Neovim response");
+        bufferReadyRef.current = true;
+        setBufferReady(true);
+        setRenderReady(true);
       }
     });
     socket.addEventListener("error", () => {
       if (!disposed) {
         setError("The local Neovim bridge is unavailable. Run the builder through its Vite dev or preview server.");
+        bufferReadyRef.current = true;
+        setBufferReady(true);
+        setRenderReady(true);
       }
     });
     socket.addEventListener("close", () => {
-      if (!disposed && !cancelledRef.current && !exitReceivedRef.current) {
+      if (!disposed && !exitReceivedRef.current) {
         setError("The local Neovim session closed unexpectedly");
       }
     });
@@ -233,51 +322,42 @@ export function NvimBlockEditor({
       disposed = true;
       resizeObserver.disconnect();
       inputSubscription.dispose();
+      renderSubscription.dispose();
       if (socket.readyState === WebSocket.OPEN) {
         send(socket, { type: "terminate" });
       }
       socket.close();
       terminal.dispose();
+      if (revealFrameRef.current !== null) {
+        cancelAnimationFrame(revealFrameRef.current);
+      }
+      if (revealPaintFrameRef.current !== null) {
+        cancelAnimationFrame(revealPaintFrameRef.current);
+      }
       terminalRef.current = null;
       fitAddonRef.current = null;
       socketRef.current = null;
     };
-  }, [session]);
-
-  const cancel = (): void => {
-    cancelledRef.current = true;
-    const socket = socketRef.current;
-    if (socket !== null) {
-      send(socket, { type: "terminate" });
-      socket.close();
-    }
-    callbacksRef.current.onCancel();
-  };
+  }, [detectLoadedBuffer, session]);
 
   return (
     <section
       className="nvim-block-editor"
       data-testid="nvim-block-editor"
       data-visible={visible ? "true" : "false"}
+      data-buffer-ready={bufferReady ? "true" : "false"}
+      data-render-ready={renderReady ? "true" : "false"}
+      aria-busy={!renderReady}
     >
-      <header>
-        <div>
-          <strong>NEOVIM · {session.fileName}</strong>
-          <span>{status}</span>
-        </div>
-        <span className="nvim-block-editor__mode">real PTY · ~/.config/nvim</span>
-      </header>
       <div
         ref={terminalHostRef}
         className="nvim-block-editor__terminal"
         data-testid="nvim-terminal"
         aria-label={`Neovim terminal editing ${session.fileName}`}
       />
-      <footer>
-        <span><kbd>:w</kbd> preview · <kbd>:wq</kbd> commit · ordinary Neovim keys and commands apply</span>
-        {error === null ? null : <strong role="alert">{error}</strong>}
-        <button type="button" onClick={cancel}>Cancel session</button>
-      </footer>
+      {error === null ? null : (
+        <strong className="nvim-block-editor__error" role="alert">{error}</strong>
+      )}
     </section>
   );
 }

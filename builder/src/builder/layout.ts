@@ -135,6 +135,7 @@ export interface DocumentLayout {
   readonly childSequenceLayouts: readonly ChildSequenceLayout[];
   readonly previewBounds: LayoutBounds | null;
   readonly previewPageIndex: number | null;
+  readonly previewDepth: number | null;
   readonly insertionSlots: readonly InsertionSlot[];
 }
 
@@ -200,6 +201,7 @@ export function computeDocumentLayout(
   let cursorY = pages[0]?.contentBounds.y ?? geometry.contentInsetTop;
   let previewBounds: LayoutBounds | null = null;
   let previewPageIndex: number | null = null;
+  let previewDepth: number | null = null;
   let previewWasPlaced = preview === null;
 
   const sequenceWithPreview = (
@@ -376,6 +378,7 @@ export function computeDocumentLayout(
     if (isPreview) {
       previewBounds = bounds;
       previewPageIndex = currentPageIndex;
+      previewDepth = depth;
       previewWasPlaced = true;
     } else {
       blockLayouts.push(result);
@@ -455,6 +458,7 @@ export function computeDocumentLayout(
       if (isPreview) {
         previewBounds = bounds;
         previewPageIndex = pageIndex;
+        previewDepth = sectionDepth;
         previewWasPlaced = true;
       } else {
         blockLayouts.push(result);
@@ -719,6 +723,7 @@ export function computeDocumentLayout(
     childSequenceLayouts,
     previewBounds,
     previewPageIndex,
+    previewDepth,
     insertionSlots,
   };
 }
